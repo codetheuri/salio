@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: salio_api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ENV=production
+      # Connect to your existing global Postgres container
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-legendroot}
+      - DB_PASSWORD=${DB_PASSWORD:-l3g3ndaryHub}
+      - DB_NAME=${DB_NAME:-salio_db}
+      - JWT_SECRET=${JWT_SECRET:-generate_a_secure_random_string_for_production}
+    networks:
+      db-network:
+        ipv4_address: 172.20.0.11 # I've assigned an IP next to Nginx Proxy Manager
+
+networks:
+  db-network:
+    external: true
+    name: tigerforge-db

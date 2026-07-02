@@ -1,7 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+// Services
+import 'core/storage/secure_storage.dart';
+import 'core/network/api_client.dart';
+import 'core/network/sync_service.dart';
+import 'features/auth/http_auth_repository.dart';
+import 'features/customer/sqflite_customer_repository.dart';
+import 'features/transaction/sqflite_transaction_repository.dart';
+import 'features/settings/sqflite_settings_repository.dart';
+
+// Providers
+import 'features/auth/auth_provider.dart';
+import 'features/customer/customer_provider.dart';
+import 'features/transaction/transaction_provider.dart';
+import 'features/settings/settings_provider.dart';
+
+// Screens
+import 'features/auth/screens/login_screen.dart';
+import 'features/dashboard/dashboard_screen.dart';
 
 void main() {
-  runApp(const SalioApp());
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Instantiate our core services (Dependency Injection)
+  final secureStorage = SecureStorageService();
+  final apiClient = ApiClient(secureStorage: secureStorage);
+  
+  // Phase 2: We swap the Mock implementation for the real HttpAuthRepository!
+  final authRepository = HttpAuthRepository(apiClient: apiClient);
+  
+  final customerRepository = SqfliteCustomerRepository();
+  final transactionRepository = SqfliteTransactionRepository();
+  final settingsRepository = SqfliteSettingsRepository();
+
+  // Phase 3: Setup the Sync Service
+  final syncService = SyncService(
+    apiClient: apiClient, 
+    secureStorage: secureStorage,
+  );
+
+  runApp(
+    MultiProvider(
+      providers: [
+        // 1. AuthProvider sits at the top of the tree
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(authRepository, secureStorage, syncService: syncService)..checkAuthStatus(),
+        ),
+        
+        // 2. CustomerProvider sits below it using a ProxyProvider.
+        // This is crucial: it allows CustomerProvider to "listen" to AuthProvider.
+        // When a user logs in, or when a background sync finishes, this triggers!
+        ChangeNotifierProxyProvider<AuthProvider, CustomerProvider>(
+          create: (_) => CustomerProvider(customerRepository),
+          update: (_, auth, customerProvider) {
+            return customerProvider!..updateAuthData(auth.businessId, auth.userId, auth.lastSyncCompletionTime);
+          },
+        ),
+        
+        // 3. TransactionProvider
+        ChangeNotifierProxyProvider<AuthProvider, TransactionProvider>(
+          create: (_) => TransactionProvider(transactionRepository),
+          update: (_, auth, transactionProvider) {
+            return transactionProvider!..updateAuthData(auth.businessId, auth.userId, auth.lastSyncCompletionTime);
+          },
+        ),
+        
+        // 4. SettingsProvider
+        ChangeNotifierProxyProvider<AuthProvider, SettingsProvider>(
+          create: (_) => SettingsProvider(settingsRepository),
+          update: (_, auth, settingsProvider) {
+            return settingsProvider!..updateAuthData(auth.businessId, auth.userId);
+          },
+        ),
+      ],
+      child: const SalioApp(),
+    ),
+  );
 }
 
 class SalioApp extends StatelessWidget {
@@ -11,181 +86,38 @@ class SalioApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Salio',
-      // This removes the "DEBUG" banner in the top right corner
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.grey[50],
       ),
-      home: const DashboardScreen(),
+      home: const AuthWrapper(),
     );
   }
 }
 
-class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+/// AuthWrapper acts as our routing brain. 
+/// It listens to AuthProvider and shows the correct screen automatically.
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Salio Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. Summary Card
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              color: Colors.teal.shade700,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-                child: Column(
-                  children: [
-                    Text(
-                      'Total Unpaid Debts',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'KES 45,500', // We will make this dynamic later!
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
+    final authState = context.watch<AuthProvider>().state;
 
-            // 2. Quick Actions Title
-            const Text(
-              'Quick Actions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            // 3. Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      print("Add Customer Pressed!");
-                    },
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('New Customer '),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      print("Record Payment Pressed!");
-                    },
-                    icon: const Icon(Icons.payment),
-                    label: const Text('Record Payment'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.teal.shade50,
-                      foregroundColor: Colors.teal.shade900,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // 4. Recent Customers List Title
-            const Text(
-              'Recent Customers',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            // 5. Scrollable List of Customers
-            Expanded(
-              child: ListView(
-                children: [
-                  _buildCustomerTile(
-                    'John Doe',
-                    'Owes KES 1,200',
-                    Colors.red.shade700,
-                  ),
-                  _buildCustomerTile(
-                    'Jane Smith',
-                    'Owes KES 500',
-                    Colors.red.shade700,
-                  ),
-                  _buildCustomerTile(
-                    'Alice K',
-                    'Cleared',
-                    Colors.green.shade700,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // A helper function to build list items cleanly
-  Widget _buildCustomerTile(String name, String status, Color statusColor) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8.0),
-      elevation: 1,
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.teal.shade100,
-          child: Text(
-            name[0],
-            style: TextStyle(
-              color: Colors.teal.shade900,
-              fontWeight: FontWeight.bold,
-            ),
+    switch (authState) {
+      case AuthState.initial:
+      case AuthState.loading:
+        return const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(color: Colors.teal),
           ),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        trailing: Text(
-          status,
-          style: TextStyle(
-            color: statusColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
-        onTap: () {
-          print("$name clicked!");
-        },
-      ),
-    );
+        );
+      case AuthState.unauthenticated:
+        return const LoginScreen();
+      case AuthState.authenticated:
+        return const DashboardScreen();
+    }
   }
 }
