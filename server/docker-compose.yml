@@ -19,7 +19,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-generate_a_secure_random_string_for_production}
     networks:
       db-network:
-        ipv4_address: 172.20.0.11 # I've assigned an IP next to Nginx Proxy Manager
+        ipv4_address: 172.20.0.15 # I've assigned an IP next to Nginx Proxy Manager
 
 networks:
   db-network:
