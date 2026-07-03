@@ -22,6 +22,15 @@ MIGRATIONS_DIR := ./migrations
 run:
 	go run ./cmd/api/main.go
 
+## create-admin: Create the first super admin for the console. Usage: make create-admin NAME="..." EMAIL="..." PASSWORD="..."
+.PHONY: create-admin
+create-admin:
+	@if [ -z "$(NAME)" ] || [ -z "$(EMAIL)" ] || [ -z "$(PASSWORD)" ]; then \
+		echo "❌ Usage: make create-admin NAME='Your Name' EMAIL='you@salio.co.ke' PASSWORD='yourpassword'"; \
+		exit 1; \
+	fi
+	go run ./cmd/seed -name="$(NAME)" -email="$(EMAIL)" -password="$(PASSWORD)"
+
 ## build: Compile a production binary to ./bin/salio-server
 .PHONY: build
 build:

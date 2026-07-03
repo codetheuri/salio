@@ -2,40 +2,50 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 	"time"
 )
 
 // SecurityHeaders adds security-hardening HTTP headers to every response.
-// These protect against common web vulnerabilities even for API-only servers.
+// Headers are tuned differently for API routes vs console (HTML) routes.
 func SecurityHeaders() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			h := w.Header()
 
-			// Prevent browsers from MIME-sniffing the content type
+			// Common headers — applied to ALL routes
 			h.Set("X-Content-Type-Options", "nosniff")
-
-			// Do not allow this API to be embedded in iframes (clickjacking)
 			h.Set("X-Frame-Options", "DENY")
-
-			// Enforce HTTPS for 1 year when accessed over TLS (behind Nginx)
 			h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-
-			// Disable legacy XSS auditor (modern browsers ignore it, old ones break on it)
 			h.Set("X-XSS-Protection", "0")
-
-			// Strict Content Security Policy — this is an API, not a web page
-			h.Set("Content-Security-Policy", "default-src 'none'")
-
-			// Do not send referrer information
 			h.Set("Referrer-Policy", "no-referrer")
+			h.Set("Server", "") // Hide tech stack
 
-			// Remove the server identifier (don't leak tech stack)
-			h.Set("Server", "")
+			// Content-Security-Policy is tuned per route type:
+			//   - API routes: strict "default-src 'none'" — pure JSON, no resources needed
+			//   - Console/static routes: allow same-origin CSS and images for the web UI
+			if isConsoleRoute(r.URL.Path) {
+				h.Set("Content-Security-Policy",
+					"default-src 'none'; "+
+						"style-src 'self'; "+   // Allow CSS from /static/css/
+						"img-src 'self' data:; "+ // Allow images from /static/
+						"font-src 'self'; "+
+						"form-action 'self'",    // Forms can only POST to same origin
+				)
+			} else {
+				// Strict API CSP — no resources, no scripts, nothing
+				h.Set("Content-Security-Policy", "default-src 'none'")
+			}
 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// isConsoleRoute returns true for paths that serve HTML pages and static assets.
+func isConsoleRoute(path string) bool {
+	return strings.HasPrefix(path, "/console") ||
+		strings.HasPrefix(path, "/static")
 }
 
 // RequestTimeout wraps each request in a context with a hard deadline.
@@ -44,8 +54,6 @@ func SecurityHeaders() func(http.Handler) http.Handler {
 func RequestTimeout(timeout time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Chi's built-in Timeout middleware handles this cleanly
-			// We expose our own wrapper so the timeout is in our config, not hardcoded.
 			http.TimeoutHandler(next, timeout, `{"success":false,"error":{"code":"TIMEOUT","message":"Request timed out. Please try again."}}`).ServeHTTP(w, r)
 		})
 	}

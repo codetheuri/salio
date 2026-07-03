@@ -1,0 +1,78 @@
+{{define "title"}}Users — Salio Console{{end}}
+
+{{define "content"}}
+<div class="console-layout">
+    {{template "sidebar" .}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Users &amp; Staff</h1>
+            <p class="page-subtitle">{{.Total}} registered users across all businesses</p>
+        </div>
+
+        <div class="page-body">
+            <div class="table-card">
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Role</th>
+                                <th>Business</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Users}}
+                            <tr>
+                                <td>
+                                    <div class="cell-business">
+                                        <div class="table-avatar bg-blue-50 text-blue-600">
+                                            {{slice .Name 0 1}}
+                                        </div>
+                                        <div>
+                                            <div class="cell-primary">{{.Name}}</div>
+                                            <div class="cell-secondary mono">{{slice .ID 0 8}}…</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-primary">{{.Phone}}</div>
+                                </td>
+                                <td>
+                                    {{if eq .Role "owner"}}
+                                        <span class="badge" style="background: #eff6ff; color: #2563eb;">Owner</span>
+                                    {{else}}
+                                        <span class="badge">Staff</span>
+                                    {{end}}
+                                </td>
+                                <td>
+                                    <div class="cell-primary">{{.BusinessName}}</div>
+                                    <div class="cell-secondary mono">{{slice .BusinessID 0 8}}…</div>
+                                </td>
+                                <td class="cell-date">{{.CreatedAt.Format "Jan 2, 2006"}}</td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                            </svg>
+                                        </div>
+                                        <p class="empty-title">No users found</p>
+                                        <p class="empty-body">Users will appear here once they register via the app.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{{end}}

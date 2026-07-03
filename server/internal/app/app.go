@@ -23,6 +23,7 @@ import (
 
 	"salio/server/internal/api"
 	"salio/server/internal/config"
+	"salio/server/internal/console"
 	"salio/server/internal/db"
 	"salio/server/internal/middleware"
 	"salio/server/internal/repository"
@@ -63,8 +64,15 @@ func New(cfg *config.Config) (*App, error) {
 	syncHandler := api.NewSyncHandler(syncRepo)
 	reportHandler := api.NewReportHandler(reportRepo)
 
+	// Console repo and handler (admin web panel)
+	consoleRepo := repository.NewConsoleRepository(pool)
+	consoleHandler, err := console.NewHandler(consoleRepo, "templates", cfg.IsProduction())
+	if err != nil {
+		return nil, fmt.Errorf("console: failed to parse templates: %w", err)
+	}
+
 	// 4. Router with all middleware and routes
-	router := buildRouter(cfg, authHandler, customerHandler, transactionHandler, userHandler, syncHandler, reportHandler, pool)
+	router := buildRouter(cfg, authHandler, customerHandler, transactionHandler, userHandler, syncHandler, reportHandler, consoleHandler, pool)
 
 	// 5. HTTP server with production-grade timeouts
 	server := &http.Server{
@@ -121,6 +129,7 @@ func buildRouter(
 	userH *api.UserHandler,
 	syncH *api.SyncHandler,
 	reportH *api.ReportHandler,
+	consoleH *console.Handler,
 	pool *pgxpool.Pool,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -138,6 +147,10 @@ func buildRouter(
 	r.Use(rateLimiter.Middleware())                                              // Per-IP token bucket rate limiting
 	r.Use(middleware.RequestTimeout(time.Duration(cfg.RequestTimeoutSecs) * time.Second)) // Request deadline
 	r.Use(chiMiddleware.Heartbeat("/ping"))                                      // /ping → 200 for load balancer checks
+
+	// ── Static Files (CSS, JS, images) ───────────────────────────────────────────
+	// Serves files from the ./static directory under the /static/ URL prefix.
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// ── System Routes ────────────────────────────────────────────────────────────
 	r.Get("/health", healthHandler(pool))
@@ -191,6 +204,23 @@ func buildRouter(
 
 		// Reports - Live analytics
 		r.Get("/v1/reports/summary", reportH.GetSummary)
+	})
+
+	// ── Console Routes (Admin Web Panel — session cookie auth) ───────────────────
+	// These serve HTML pages, not JSON. Auth uses HTTP-only cookies, not JWT.
+	r.Get("/console", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/console/login", http.StatusSeeOther)
+	})
+	r.Get("/console/login", consoleH.ShowLogin)
+	r.Post("/console/login", consoleH.HandleLogin)
+
+	// Protected console routes — session middleware applied to this group only
+	r.Group(func(r chi.Router) {
+		r.Use(consoleH.RequireAuth())
+		r.Post("/console/logout", consoleH.HandleLogout)
+		r.Get("/console/dashboard", consoleH.ShowDashboard)
+		r.Get("/console/businesses", consoleH.ShowBusinesses)
+		r.Get("/console/users", consoleH.ShowUsers)
 	})
 
 	return r

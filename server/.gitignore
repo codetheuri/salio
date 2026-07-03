@@ -5,6 +5,11 @@
 /bin/
 /salio-server
 
+# Tailwind CSS CLI binary (download via: curl ... )
+tailwindcss
+# Old CDN version — no longer used
+static/tailwind.js
+
 # Test coverage output
 *.out
 coverage.html

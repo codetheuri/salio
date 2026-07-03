@@ -1,0 +1,78 @@
+{{define "title"}}Businesses — Salio Console{{end}}
+
+{{define "content"}}
+<div class="console-layout">
+    {{template "sidebar" .}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Businesses</h1>
+            <p class="page-subtitle">{{.Total}} registered businesses on the platform</p>
+        </div>
+
+        <div class="page-body">
+            <div class="table-card">
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Business</th>
+                                <th>Owner</th>
+                                <th>Type</th>
+                                <th>Staff</th>
+                                <th>Customers</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Businesses}}
+                            <tr>
+                                <td>
+                                    <div class="cell-business">
+                                        <div class="table-avatar bg-primary-100 text-primary-700">
+                                            {{slice .Name 0 1}}
+                                        </div>
+                                        <div>
+                                            <div class="cell-primary">{{.Name}}</div>
+                                            <div class="cell-secondary mono">{{slice .ID 0 8}}…</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="cell-primary">{{.OwnerName}}</div>
+                                    <div class="cell-secondary">{{.OwnerPhone}}</div>
+                                </td>
+                                <td>
+                                    {{if .Type}}
+                                    <span class="badge">{{.Type}}</span>
+                                    {{else}}
+                                    <span class="cell-secondary">—</span>
+                                    {{end}}
+                                </td>
+                                <td class="cell-muted">{{.StaffCount}}</td>
+                                <td class="cell-muted">{{.CustomerCount}}</td>
+                                <td class="cell-date">{{.CreatedAt.Format "Jan 2, 2006"}}</td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/>
+                                            </svg>
+                                        </div>
+                                        <p class="empty-title">No businesses yet</p>
+                                        <p class="empty-body">Businesses will appear here once registered.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{{end}}

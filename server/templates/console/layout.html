@@ -1,0 +1,56 @@
+{{define "sidebar"}}
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-logo">
+            <img src="/static/logo.png" alt="Salio">
+        </div>
+        <div>
+            <div class="brand-name">Salio Console</div>
+            <div class="brand-sub">Admin Panel</div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="/console/dashboard" class="nav-link {{if eq .ActivePage "dashboard"}}active{{end}}">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+            </svg>
+            Dashboard
+        </a>
+        <a href="/console/businesses" class="nav-link {{if eq .ActivePage "businesses"}}active{{end}}">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            Businesses
+        </a>
+        <a href="/console/users" class="nav-link {{if eq .ActivePage "users"}}active{{end}}">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            Users &amp; Staff
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="admin-row">
+            <div class="admin-avatar">{{slice .Admin.Name 0 1}}</div>
+            <div class="admin-info">
+                <div class="admin-name truncate">{{.Admin.Name}}</div>
+                <div class="admin-email truncate">{{.Admin.Email}}</div>
+            </div>
+        </div>
+        <form method="POST" action="/console/logout">
+            <button type="submit" class="logout-btn">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                Sign Out
+            </button>
+        </form>
+    </div>
+</aside>
+{{end}}
