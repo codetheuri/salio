@@ -29,7 +29,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     super.initState();
     // Fetch transactions as soon as the screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TransactionProvider>().loadTransactionsForCustomer(widget.customer.id);
+      context.read<TransactionProvider>().loadTransactionsForCustomer(
+        widget.customer.id,
+      );
     });
   }
 
@@ -50,11 +52,15 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // Allows sheet to push up when keyboard appears
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom, // Keyboard padding
+            bottom: MediaQuery.of(
+              context,
+            ).viewInsets.bottom, // Keyboard padding
             left: 24,
             right: 24,
             top: 24,
@@ -67,21 +73,30 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               children: [
                 Text(
                   isDebt ? 'Record New Debt' : 'Record Payment',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Amount (KES)',
                     prefixIcon: const Icon(Icons.attach_money),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) return 'Amount is required';
+                    if (value == null || value.trim().isEmpty)
+                      return 'Amount is required';
                     final amount = double.tryParse(value);
-                    if (amount == null || amount <= 0) return 'Enter a valid positive number';
+                    if (amount == null || amount <= 0)
+                      return 'Enter a valid positive number';
                     return null;
                   },
                 ),
@@ -91,7 +106,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   decoration: InputDecoration(
                     labelText: 'Description (Optional)',
                     prefixIcon: const Icon(Icons.notes),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   textCapitalization: TextCapitalization.sentences,
                 ),
@@ -110,38 +127,46 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                       Navigator.pop(context);
 
                       // Add transaction via provider
-                      final success = await context.read<TransactionProvider>().addTransaction(
-                        widget.customer.id, 
-                        type, 
-                        amount, 
-                        _descriptionController.text,
-                      );
+                      final success = await context
+                          .read<TransactionProvider>()
+                          .addTransaction(
+                            widget.customer.id,
+                            type,
+                            amount,
+                            _descriptionController.text,
+                          );
 
                       if (success && context.mounted) {
-                       // Force the CustomerProvider to recalculate this customer's new total balance
-                       context.read<CustomerProvider>().loadCustomers();
-                       
-                       ScaffoldMessenger.of(context).showSnackBar(
-                         SnackBar(
-                           content: Text('${isDebt ? 'Debt' : 'Payment'} recorded successfully!'),
-                           backgroundColor: Colors.teal.shade700,
-                         ),
-                       );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDebt ? Colors.red.shade600 : Colors.green.shade600,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        // Force the CustomerProvider to recalculate this customer's new total balance
+                        context.read<CustomerProvider>().loadCustomers();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${isDebt ? 'Debt' : 'Payment'} recorded successfully!',
+                            ),
+                            backgroundColor: Colors.teal.shade700,
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDebt
+                          ? Colors.red.shade600
+                          : Colors.green.shade600,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text('Save ${isDebt ? 'Debt' : 'Payment'}'),
                   ),
-                  child: Text('Save ${isDebt ? 'Debt' : 'Payment'}'),
                 ),
-              ),
-              const SizedBox(height: 24),
-            ],
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
-        ),
-      );  
+        );
       },
     );
   }
@@ -157,12 +182,15 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
 
     final transactionProv = context.watch<TransactionProvider>();
     final transactions = transactionProv.customerTransactions;
-    
+
     final staffNames = context.watch<SettingsProvider>().staffNames;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(customerData.customer.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          customerData.customer.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
@@ -192,11 +220,18 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                const Text('Current Balance', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                const Text(
+                  'Current Balance',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   'KES ${_currencyFormat.format(customerData.balance)}',
-                  style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -231,55 +266,75 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               ],
             ),
           ).animate().fade(duration: 500.ms).slideY(begin: -0.1, end: 0),
-          
+
           // Transaction History Title
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Transaction History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Transaction History',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
             ),
           ).animate().fade(duration: 600.ms),
 
           // Transaction List
           Expanded(
             child: transactionProv.isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.teal))
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.teal),
+                  )
                 : transactions.isEmpty
-                    ? const Center(child: Text("No transactions yet."))
-                    : ListView.builder(
-                        itemCount: transactions.length,
-                        itemBuilder: (context, index) {
-                          final t = transactions[index];
-                          final isDebt = t.type == 'debt';
-                          final date = DateTime.parse(t.transactionDate).toLocal();
-                          final dateStr = '${date.day}/${date.month}/${date.year}';
-                          
-                          return ListTile(
+                ? const Center(child: Text("No transactions yet."))
+                : ListView.builder(
+                    itemCount: transactions.length,
+                    itemBuilder: (context, index) {
+                      final t = transactions[index];
+                      final isDebt = t.type == 'debt';
+                      final date = DateTime.parse(t.transactionDate).toLocal();
+                      final dateStr = '${date.day}/${date.month}/${date.year}';
+
+                      return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: isDebt ? Colors.red.shade100 : Colors.green.shade100,
+                              backgroundColor: isDebt
+                                  ? Colors.red.shade100
+                                  : Colors.green.shade100,
                               child: Icon(
-                                isDebt ? Icons.arrow_upward : Icons.arrow_downward,
-                                color: isDebt ? Colors.red.shade700 : Colors.green.shade700,
+                                isDebt
+                                    ? Icons.arrow_upward
+                                    : Icons.arrow_downward,
+                                color: isDebt
+                                    ? Colors.red.shade700
+                                    : Colors.green.shade700,
                               ),
                             ),
                             title: Text(
-                              t.description?.isNotEmpty == true 
-                                ? t.description! 
-                                : (isDebt ? 'Goods on Credit' : 'Payment Received')
+                              t.description?.isNotEmpty == true
+                                  ? t.description!
+                                  : (isDebt
+                                        ? 'Goods on Credit'
+                                        : 'Payment Received'),
                             ),
-                            subtitle: Text('$dateStr • Recorded by ${staffNames[t.userId] ?? 'Staff'}'),
+                            subtitle: Text(
+                              '$dateStr • Recorded by ${staffNames[t.userId] ?? 'Staff'}',
+                            ),
                             trailing: Text(
                               '${isDebt ? "+" : "-"} ${_currencyFormat.format(t.amount)}',
                               style: TextStyle(
-                                color: isDebt ? Colors.red.shade700 : Colors.green.shade700,
+                                color: isDebt
+                                    ? Colors.red.shade700
+                                    : Colors.green.shade700,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
-                          ).animate().fade(duration: 400.ms, delay: (index * 50).ms).slideX(begin: 0.1, end: 0);
-                        },
-                      ),
+                          )
+                          .animate()
+                          .fade(duration: 400.ms, delay: (index * 50).ms)
+                          .slideX(begin: 0.1, end: 0);
+                    },
+                  ),
           ),
         ],
       ),

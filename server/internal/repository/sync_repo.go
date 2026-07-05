@@ -87,18 +87,18 @@ func (r *SyncRepository) Push(ctx context.Context, businessID uuid.UUID, payload
 	defer tx.Rollback(ctx)
 
 	// 1. Upsert Customers
-	// If the incoming customer has a newer updated_at than the database, update it.
-	// We force the business_id to match the JWT context so a malicious client cannot overwrite other businesses' data.
+	// We use the Server's authoritative clock (NOW()) for updated_at so that subsequent Pulls
+	// from other devices correctly detect the change, regardless of device clock drift.
 	customerSQL := `
 		INSERT INTO customers (id, business_id, name, phone, notes, created_by, created_at, updated_at, is_deleted)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $9)
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			phone = EXCLUDED.phone,
 			notes = EXCLUDED.notes,
-			updated_at = EXCLUDED.updated_at,
+			updated_at = NOW(),
 			is_deleted = EXCLUDED.is_deleted
-		WHERE customers.updated_at < EXCLUDED.updated_at AND customers.business_id = EXCLUDED.business_id
+		WHERE customers.business_id = EXCLUDED.business_id
 	`
 	for _, c := range payload.Customers {
 		_, err := tx.Exec(ctx, customerSQL,
@@ -110,14 +110,13 @@ func (r *SyncRepository) Push(ctx context.Context, businessID uuid.UUID, payload
 	}
 
 	// 2. Upsert Transactions
-	// Transactions are immutable in amount/type. They only change if soft-deleted.
 	transactionSQL := `
 		INSERT INTO transactions (id, business_id, customer_id, user_id, type, amount, description, transaction_date, created_at, updated_at, is_deleted)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $11)
 		ON CONFLICT (id) DO UPDATE SET
 			is_deleted = EXCLUDED.is_deleted,
-			updated_at = EXCLUDED.updated_at
-		WHERE transactions.updated_at < EXCLUDED.updated_at AND transactions.business_id = EXCLUDED.business_id
+			updated_at = NOW()
+		WHERE transactions.business_id = EXCLUDED.business_id
 	`
 	for _, t := range payload.Transactions {
 		_, err := tx.Exec(ctx, transactionSQL,

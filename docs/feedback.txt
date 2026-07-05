@@ -1,0 +1,28 @@
+i conducted a test run of the application and below is the feedback: 
+ 
+
+ i gave 3 busniess to use the application where i sent them  apk 
+
+ ppstive feedback  is as below:
+ 
+ the app is very easy to use 
+ caputures the problem the are facing 
+ they are really praising the application
+ the backup /sync feature is very useful for them coz if even the phone get lost the data is still save
+ they can manage staff easlity and can track their transcations recorded
+ they are happy about the report section
+
+
+ improvemnt feedback 
+ when a user updates a record/trnasction and syncs the chnage to server they get a succes message howver weh the other staff logins into the bisniess app they can't see they chnages even after they hit they sync button but it worked after they logout then loggined in
+
+ they suggetsted that the phone number in customer not to be optional and aslo it would be good if we get the phone nmber from the contact list making easiert
+
+ then aslo on dashbaord  we can searhc by both number and name 
+
+ aslo on  transctions the decstiption to be a must not optional and aslo the trnascons page to have time added instaed of just date 
+
+ aslo myslef i noticed something strange i have to seperate business whoich i can login into  ...so on one app when i was offilne ion the manage staff it could list aslo the staff of the other business i had logined into so it was shwoing 2 owners but imeaditly yo go online the other  staff disappears
+
+
+ more feedback will come 
