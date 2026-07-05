@@ -220,6 +220,7 @@ func buildRouter(
 		r.Post("/console/logout", consoleH.HandleLogout)
 		r.Get("/console/dashboard", consoleH.ShowDashboard)
 		r.Get("/console/businesses", consoleH.ShowBusinesses)
+		r.Get("/console/businesses/{id}", consoleH.ShowBusinessDetails)
 		r.Get("/console/users", consoleH.ShowUsers)
 	})
 

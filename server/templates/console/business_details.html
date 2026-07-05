@@ -1,4 +1,4 @@
-{{define "title"}}Dashboard — Salio Console{{end}}
+{{define "title"}}{{.Details.Name}} — Salio Console{{end}}
 
 {{define "content"}}
 <div class="console-layout">
@@ -6,8 +6,9 @@
 
     <main class="main-content">
         <div class="page-header">
-            <h1 class="page-title">Platform Overview</h1>
-            <p class="page-subtitle">Live summary of all Salio businesses and activity</p>
+            <a href="/console/businesses" class="table-card-link mb-2 inline-block">← Back to Businesses</a>
+            <h1 class="page-title">{{.Details.Name}}</h1>
+            <p class="page-subtitle">Owner: {{.Details.OwnerName}} ({{.Details.OwnerPhone}}) &middot; Registered on {{.Details.CreatedAt.Format "Jan 2, 2006"}} &middot; Last Synced: {{.Details.LastSyncedAt.Format "Jan 2, 2006 15:04"}}</p>
         </div>
 
         <div class="page-body">
@@ -15,104 +16,101 @@
                 
                 <div class="stat-card">
                     <div class="stat-card-top">
-                        <p class="stat-label">Businesses</p>
-                        <div class="stat-icon icon-teal">
-                            <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <p class="stat-value">{{.Summary.TotalBusinesses}}</p>
-                    <p class="stat-hint good">+{{.Summary.NewBusinessesToday}} today</p>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <p class="stat-label">Users</p>
-                        <div class="stat-icon icon-blue">
-                            <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <p class="stat-value">{{.Summary.TotalUsers}}</p>
-                    <p class="stat-hint muted">Owners &amp; Staff combined</p>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-card-top">
-                        <p class="stat-label">Customers</p>
+                        <p class="stat-label">Total Customers</p>
                         <div class="stat-icon icon-purple">
                             <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
                             </svg>
                         </div>
                     </div>
-                    <p class="stat-value">{{.Summary.TotalCustomers}}</p>
-                    <p class="stat-hint muted">Active credit buyers</p>
+                    <p class="stat-value">{{.Details.CustomerCount}}</p>
                 </div>
 
                 <div class="stat-card">
                     <div class="stat-card-top">
-                        <p class="stat-label">Outstanding</p>
+                        <p class="stat-label">Staff Count</p>
+                        <div class="stat-icon icon-blue">
+                            <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="stat-value">{{.Details.StaffCount}}</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <p class="stat-label">Total Debt Given</p>
+                        <div class="stat-icon icon-teal">
+                            <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="stat-value">{{printf "%.0f" .Details.TotalDebtAmount}}</p>
+                    <p class="stat-hint muted">KES issued across all time</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <p class="stat-label">Outstanding Debt</p>
                         <div class="stat-icon icon-amber">
                             <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                             </svg>
                         </div>
                     </div>
-                    <p class="stat-value">{{printf "%.0f" .Summary.OutstandingBalance}}</p>
-                    <p class="stat-hint muted">KES total platform debt</p>
+                    <p class="stat-value">{{printf "%.0f" .Details.OutstandingBalance}}</p>
+                    <p class="stat-hint muted">KES currently unpaid</p>
                 </div>
 
             </div>
 
             <div class="table-card">
                 <div class="table-card-header">
-                    <h2 class="table-card-title">Recent Businesses</h2>
-                    <a href="/console/businesses" class="table-card-link">View all →</a>
+                    <h2 class="table-card-title">Business Users (Staff & Owner)</h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Business</th>
-                                <th>Owner</th>
-                                <th>Staff</th>
-                                <th>Customers</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Role</th>
                                 <th>Joined</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {{range .Businesses}}
+                            {{range .Users}}
                             <tr>
                                 <td>
                                     <div class="cell-business">
-                                        <div class="table-avatar bg-primary-100 text-primary-700">
+                                        <div class="table-avatar bg-blue-50 text-blue-600">
                                             {{slice .Name 0 1}}
                                         </div>
-                                        <a href="/console/businesses/{{.ID}}" class="cell-primary" style="text-decoration: underline; color: #0d9488;">{{.Name}}</a>
+                                        <div>
+                                            <div class="cell-primary">{{.Name}}</div>
+                                            <div class="cell-secondary mono">{{slice .ID 0 8}}…</div>
+                                        </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="cell-primary">{{.OwnerName}}</div>
-                                    <div class="cell-secondary">{{.OwnerPhone}}</div>
+                                    <div class="cell-primary">{{.Phone}}</div>
                                 </td>
-                                <td class="cell-muted">{{.StaffCount}}</td>
-                                <td class="cell-muted">{{.CustomerCount}}</td>
+                                <td>
+                                    {{if eq .Role "owner"}}
+                                        <span class="badge" style="background: #eff6ff; color: #2563eb;">Owner</span>
+                                    {{else}}
+                                        <span class="badge">Staff</span>
+                                    {{end}}
+                                </td>
                                 <td class="cell-date">{{.CreatedAt.Format "Jan 2, 2006"}}</td>
                             </tr>
                             {{else}}
                             <tr>
-                                <td colspan="5">
+                                <td colspan="4">
                                     <div class="empty-state">
-                                        <div class="empty-icon">
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/>
-                                            </svg>
-                                        </div>
-                                        <p class="empty-title">No businesses yet</p>
-                                        <p class="empty-body">Businesses will appear here once registered.</p>
+                                        <p class="empty-body">No users found for this business.</p>
                                     </div>
                                 </td>
                             </tr>

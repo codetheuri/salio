@@ -146,6 +146,9 @@ func (r *ConsoleRepository) GetSummary(ctx context.Context) (*models.ConsoleSumm
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch summary: %w", err)
 	}
+	
+	summary.OutstandingBalance = summary.TotalDebtAmount - summary.TotalPaymentAmount
+	
 	return summary, nil
 }
 
@@ -190,6 +193,80 @@ func (r *ConsoleRepository) CountBusinesses(ctx context.Context) (int, error) {
 	var count int
 	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM businesses`).Scan(&count)
 	return count, err
+}
+
+// GetBusinessDetails returns detailed information and stats for a specific business.
+func (r *ConsoleRepository) GetBusinessDetails(ctx context.Context, businessID string) (*models.BusinessDetails, error) {
+	details := &models.BusinessDetails{}
+
+	err := r.db.QueryRow(ctx, `
+		SELECT
+			b.id, b.name, b.type,
+			owner.name  AS owner_name,
+			owner.phone AS owner_phone,
+			(SELECT COUNT(*) FROM users    u WHERE u.business_id = b.id AND u.role = 'staff') AS staff_count,
+			(SELECT COUNT(*) FROM customers c WHERE c.business_id = b.id AND c.is_deleted = FALSE) AS customer_count,
+			b.created_at,
+			(SELECT COUNT(*) FROM transactions WHERE business_id = b.id AND is_deleted = FALSE) AS total_transactions,
+			COALESCE((SELECT SUM(amount) FROM transactions WHERE business_id = b.id AND type='debt' AND is_deleted=FALSE), 0) AS total_debt,
+			COALESCE((SELECT SUM(amount) FROM transactions WHERE business_id = b.id AND type='payment' AND is_deleted=FALSE), 0) AS total_payments,
+			GREATEST(
+				COALESCE((SELECT MAX(updated_at) FROM customers WHERE business_id = b.id), b.created_at),
+				COALESCE((SELECT MAX(updated_at) FROM transactions WHERE business_id = b.id), b.created_at)
+			) AS last_synced_at
+		FROM businesses b
+		LEFT JOIN users owner ON owner.business_id = b.id AND owner.role = 'owner'
+		WHERE b.id = $1
+	`, businessID).Scan(
+		&details.ID, &details.Name, &details.Type,
+		&details.OwnerName, &details.OwnerPhone,
+		&details.StaffCount, &details.CustomerCount,
+		&details.CreatedAt,
+		&details.TotalTransactions,
+		&details.TotalDebtAmount,
+		&details.TotalPaymentAmount,
+		&details.LastSyncedAt,
+	)
+
+	if err == pgx.ErrNoRows {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get business details: %w", err)
+	}
+
+	details.OutstandingBalance = details.TotalDebtAmount - details.TotalPaymentAmount
+	return details, nil
+}
+
+// GetBusinessUsers returns all users (owner and staff) for a specific business.
+func (r *ConsoleRepository) GetBusinessUsers(ctx context.Context, businessID string) ([]models.UserRow, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			u.id, u.name, u.phone, u.role, u.business_id,
+			b.name AS business_name,
+			u.created_at
+		FROM users u
+		JOIN businesses b ON u.business_id = b.id
+		WHERE u.business_id = $1
+		ORDER BY u.created_at ASC
+	`, businessID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query business users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []models.UserRow
+	for rows.Next() {
+		var u models.UserRow
+		if err := rows.Scan(
+			&u.ID, &u.Name, &u.Phone, &u.Role, &u.BusinessID, &u.BusinessName, &u.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
 }
 
 // GetUsers returns a paginated list of all users, including their business name.

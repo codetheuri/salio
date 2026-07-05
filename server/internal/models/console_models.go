@@ -32,6 +32,7 @@ type ConsoleSummary struct {
 	TotalTransactions  int     `json:"total_transactions"`
 	TotalDebtAmount    float64 `json:"total_debt_amount"`
 	TotalPaymentAmount float64 `json:"total_payment_amount"`
+	OutstandingBalance float64 `json:"outstanding_balance"`
 	NewBusinessesToday int     `json:"new_businesses_today"`
 }
 
@@ -58,4 +59,14 @@ type UserRow struct {
 	BusinessID   string    `json:"business_id"`
 	BusinessName string    `json:"business_name"`
 	CreatedAt    time.Time `json:"created_at"`
+}
+
+// BusinessDetails extends BusinessRow with financial statistics for the business details page.
+type BusinessDetails struct {
+	BusinessRow
+	TotalDebtAmount    float64   `json:"total_debt_amount"`
+	TotalPaymentAmount float64   `json:"total_payment_amount"`
+	OutstandingBalance float64   `json:"outstanding_balance"`
+	TotalTransactions  int       `json:"total_transactions"`
+	LastSyncedAt       time.Time `json:"last_synced_at"`
 }

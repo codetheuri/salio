@@ -6,7 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 
 	"salio/server/internal/models"
 	"salio/server/internal/repository"
@@ -172,43 +175,106 @@ func (h *Handler) ShowDashboard(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ShowBusinesses(w http.ResponseWriter, r *http.Request) {
 	admin := adminFromCtx(r)
 
-	businesses, err := h.repo.GetBusinesses(r.Context(), 50, 0)
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
+		page = p
+	}
+	limit := 10
+	if l, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && l > 0 {
+		limit = l
+	}
+	offset := (page - 1) * limit
+
+	businesses, err := h.repo.GetBusinesses(r.Context(), limit, offset)
 	if err != nil {
 		slog.Error("Businesses: failed to fetch", "error", err)
 	}
 
 	total, _ := h.repo.CountBusinesses(r.Context())
+	totalPages := (total + limit - 1) / limit
+	if totalPages == 0 {
+		totalPages = 1
+	}
 
 	h.render(w, r, "businesses.html", map[string]any{
-		"Admin":      admin,
-		"ActivePage": "businesses",
-		"Businesses": businesses,
-		"Total":      total,
+		"Admin":       admin,
+		"ActivePage":  "businesses",
+		"Businesses":  businesses,
+		"Total":       total,
+		"CurrentPage": page,
+		"TotalPages":  totalPages,
+		"Limit":       limit,
+		"HasNext":     page < totalPages,
+		"HasPrev":     page > 1,
+		"PrevPage":    page - 1,
+		"NextPage":    page + 1,
 	})
+}
 
+// ShowBusinessDetails renders a specific business's details
+func (h *Handler) ShowBusinessDetails(w http.ResponseWriter, r *http.Request) {
+	admin := adminFromCtx(r)
+	businessID := chi.URLParam(r, "id")
 
+	details, err := h.repo.GetBusinessDetails(r.Context(), businessID)
+	if err != nil {
+		slog.Error("Business details: failed to fetch", "error", err, "business_id", businessID)
+		http.Redirect(w, r, "/console/businesses", http.StatusSeeOther)
+		return
+	}
+
+	users, err := h.repo.GetBusinessUsers(r.Context(), businessID)
+	if err != nil {
+		slog.Error("Business users: failed to fetch", "error", err, "business_id", businessID)
+	}
+
+	h.render(w, r, "business_details.html", map[string]any{
+		"Admin":      admin,
+		"ActivePage": "businesses", // Keep "businesses" active in sidebar
+		"Details":    details,
+		"Users":      users,
+	})
 }
 
 //users and staff
 
-
 func (h *Handler) ShowUsers(w http.ResponseWriter, r *http.Request) {
+	admin := adminFromCtx(r)
+
+	page := 1
+	if p, err := strconv.Atoi(r.URL.Query().Get("page")); err == nil && p > 0 {
+		page = p
+	}
+	limit := 10
+	if l, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && l > 0 {
+		limit = l
+	}
+	offset := (page - 1) * limit
+
+	users, err := h.repo.GetUsers(r.Context(), limit, offset)
+	if err != nil {
+		slog.Error("Users: failed to fetch", "error", err)
+	}
 	
-   admin := adminFromCtx(r)
+	total, _ := h.repo.CountUsers(r.Context())
+	totalPages := (total + limit - 1) / limit
+	if totalPages == 0 {
+		totalPages = 1
+	}
 
-   users, err := h.repo.GetUsers(r.Context(), 50, 0)
-   if err != nil {
-	   slog.Error("Users: failed to fetch", "error", err)
-   }
-   
-   total, _ := h.repo.CountUsers(r.Context())
-
-   h.render(w, r, "users.html", map[string]any{
-	   "Admin":      admin,
-	   "ActivePage": "users",
-	   "Users":      users,
-	   "Total":      total,
-   })
+	h.render(w, r, "users.html", map[string]any{
+		"Admin":       admin,
+		"ActivePage":  "users",
+		"Users":       users,
+		"Total":       total,
+		"CurrentPage": page,
+		"TotalPages":  totalPages,
+		"Limit":       limit,
+		"HasNext":     page < totalPages,
+		"HasPrev":     page > 1,
+		"PrevPage":    page - 1,
+		"NextPage":    page + 1,
+	})
 }
 
 
