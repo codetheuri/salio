@@ -91,7 +91,7 @@ func (r *SyncRepository) Push(ctx context.Context, businessID uuid.UUID, payload
 	// from other devices correctly detect the change, regardless of device clock drift.
 	customerSQL := `
 		INSERT INTO customers (id, business_id, name, phone, notes, created_by, created_at, updated_at, is_deleted)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			phone = EXCLUDED.phone,
@@ -102,7 +102,7 @@ func (r *SyncRepository) Push(ctx context.Context, businessID uuid.UUID, payload
 	`
 	for _, c := range payload.Customers {
 		_, err := tx.Exec(ctx, customerSQL,
-			c.ID, businessID, c.Name, c.Phone, c.Notes, c.CreatedBy, c.CreatedAt, c.UpdatedAt, c.IsDeleted,
+			c.ID, businessID, c.Name, c.Phone, c.Notes, c.CreatedBy, c.CreatedAt, c.IsDeleted,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to upsert customer %s: %w", c.ID, err)
@@ -112,7 +112,7 @@ func (r *SyncRepository) Push(ctx context.Context, businessID uuid.UUID, payload
 	// 2. Upsert Transactions
 	transactionSQL := `
 		INSERT INTO transactions (id, business_id, customer_id, user_id, type, amount, description, transaction_date, created_at, updated_at, is_deleted)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $11)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10)
 		ON CONFLICT (id) DO UPDATE SET
 			is_deleted = EXCLUDED.is_deleted,
 			updated_at = NOW()
@@ -120,7 +120,7 @@ func (r *SyncRepository) Push(ctx context.Context, businessID uuid.UUID, payload
 	`
 	for _, t := range payload.Transactions {
 		_, err := tx.Exec(ctx, transactionSQL,
-			t.ID, businessID, t.CustomerID, t.UserID, t.Type, t.Amount, t.Description, t.TransactionDate, t.CreatedAt, t.UpdatedAt, t.IsDeleted,
+			t.ID, businessID, t.CustomerID, t.UserID, t.Type, t.Amount, t.Description, t.TransactionDate, t.CreatedAt, t.IsDeleted,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to upsert transaction %s: %w", t.ID, err)
