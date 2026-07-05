@@ -30,6 +30,7 @@ func SecurityHeaders() func(http.Handler) http.Handler {
 						"style-src 'self'; "+   // Allow CSS from /static/css/
 						"img-src 'self' data:; "+ // Allow images from /static/
 						"font-src 'self'; "+
+						"script-src 'self'; "+   // Allow JS from /static/js/
 						"form-action 'self'",    // Forms can only POST to same origin
 				)
 			} else {

@@ -77,7 +77,7 @@
                         Showing page {{.CurrentPage}} of {{.TotalPages}} (Total {{.Total}})
                         <span style="margin-left: 1rem;">
                             Per page: 
-                            <select onchange="window.location.href='?page=1&limit=' + this.value" style="padding: 2px 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8125rem; color: #374151;">
+                            <select class="per-page-select" style="padding: 2px 6px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8125rem; color: #374151;">
                                 <option value="5" {{if eq .Limit 5}}selected{{end}}>5</option>
                                 <option value="10" {{if eq .Limit 10}}selected{{end}}>10</option>
                                 <option value="20" {{if eq .Limit 20}}selected{{end}}>20</option>
