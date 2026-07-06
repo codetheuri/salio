@@ -9,7 +9,7 @@ services:
       - "8080:8080"
     environment:
       - PORT=8080
-      - ENVIRONMENT=production
+      - ENVIRONMENT=development
       # Connect to your existing global Postgres container
       - DB_HOST=postgres
       - DB_PORT=5432

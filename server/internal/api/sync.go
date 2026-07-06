@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -61,7 +62,8 @@ func (h *SyncHandler) Push(w http.ResponseWriter, r *http.Request) {
 	// at the database layer (in SyncRepository) to ensure tenants cannot overwrite each other.
 
 	if err := h.syncRepo.Push(r.Context(), businessID, payload); err != nil {
-		respondError(w, http.StatusInternalServerError, ErrCodeInternal, "Failed to push sync data")
+		slog.Error("Sync Push failed", "error", err, "business_id", businessID)
+		respondError(w, http.StatusInternalServerError, ErrCodeInternal, "Failed to push sync data: "+err.Error())
 		return
 	}
 
