@@ -111,6 +111,21 @@ class SqfliteCustomerRepository implements CustomerRepository {
   Future<void> update(Customer customer) async {
     try {
       final db = await _dbService.database;
+
+      // Strict Phone Number Validation (Enterprise Pattern)
+      if (customer.phone != null && customer.phone!.isNotEmpty) {
+        final existing = await db.query(
+          'customers',
+          where: 'business_id = ? AND phone = ? AND is_deleted = 0',
+          whereArgs: [customer.businessId, customer.phone],
+        );
+        if (existing.isNotEmpty) {
+          throw SalioDatabaseException('A customer with this phone number already exists.');
+        }
+      }
+
+
+
       await db.update(
         'customers',
         customer.toMap(),

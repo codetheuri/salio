@@ -278,7 +278,7 @@ class DashboardScreen extends StatelessWidget {
                                 ),
                                 title: Text(c.customer.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                                 trailing: Text(
-                                  c.balance > 0 ? 'Owes $balanceStr' : 'Cleared ✓',
+                                  c.balance != 0 ? ' $balanceStr' : 'Cleared ✓',
                                   style: TextStyle(
                                     color: c.balance > 0 ? Colors.red.shade700 : Colors.green.shade700,
                                     fontWeight: FontWeight.bold,

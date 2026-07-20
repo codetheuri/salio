@@ -10,7 +10,7 @@ class ApiClient {
   // baseUrl points to the Go backend.
   // We use 127.0.0.1 because you are running the Flutter Linux Desktop app, not the Android Emulator.
   // We can also override this during build with --dart-define=API_URL=http://...
-  static const String baseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://127.0.0.1:8080/v1');
+  static const String baseUrl = String.fromEnvironment('SALIO_API_URL', defaultValue: 'https://salio.urizon.co.ke/v1');
 
   final SecureStorageService _secureStorage;
 
