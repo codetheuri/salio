@@ -87,6 +87,7 @@ class CustomerProvider extends ChangeNotifier {
     Future.microtask(() => notifyListeners()); 
 
     try {
+      await _repository.fixDuplicatePhoneNumbers();
       _customers = await _repository.getAllWithBalances(_businessId!);
     } catch (e) {
       _errorMessage = 'Failed to load customers. Please try again.';

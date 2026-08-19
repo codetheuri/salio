@@ -181,6 +181,7 @@ class AuthProvider extends ChangeNotifier {
       if (e.toString().contains('SocketException') || e.toString().contains('offline')) {
         return 'offline';
       }
+      Logger.i(errorMessage!);
       return 'error';
     } finally {
       _isSyncing = false;

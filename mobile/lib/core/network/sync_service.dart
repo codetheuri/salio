@@ -125,21 +125,63 @@ class SyncService {
 
     // Upsert Customers into local SQLite
     // ConflictAlgorithm.replace essentially overwrites the local row with the remote row.
+    // for (final c in customersList) {
+    //   final customer = Customer.fromMap(c as Map<String, dynamic>);
+    //   batch.insert(
+    //     'customers',
+    //     customer.toMap(),
+    //     conflictAlgorithm: ConflictAlgorithm.replace,
+    //   );
+    // }
+    //
+    // // Upsert Transactions into local SQLite
+    // for (final t in transactionsList) {
+    //   final transaction = TransactionRecord.fromMap(t as Map<String, dynamic>);
+    //   batch.insert(
+    //     'transactions',
+    //     transaction.toMap(),
+    //     conflictAlgorithm: ConflictAlgorithm.replace,
+    //   );
+    // }
+
+    // Upsert Customers into local SQLite
     for (final c in customersList) {
       final customer = Customer.fromMap(c as Map<String, dynamic>);
+      final map = customer.toMap();
+
+      // 1. Generate the SQL string for logging
+      final columns = map.keys.join(', ');
+      final placeholders = List.filled(map.length, '?').join(', ');
+      final sql = 'INSERT OR REPLACE INTO customers ($columns) VALUES ($placeholders)';
+
+      // 2. Log the raw query and the exact arguments
+      Logger.e("SQL: $sql");
+      Logger.e("ARGS: ${map.values.toList()}");
+
       batch.insert(
         'customers',
-        customer.toMap(),
+        map,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
 
-    // Upsert Transactions into local SQLite
+// Upsert Transactions into local SQLite
     for (final t in transactionsList) {
       final transaction = TransactionRecord.fromMap(t as Map<String, dynamic>);
+      final map = transaction.toMap();
+
+      // 1. Generate the SQL string for logging
+      final columns = map.keys.join(', ');
+      final placeholders = List.filled(map.length, '?').join(', ');
+      final sql = 'INSERT OR REPLACE INTO transactions ($columns) VALUES ($placeholders)';
+
+      // 2. Log the raw query and the exact arguments
+      Logger.e("SQL: $sql");
+      Logger.e("ARGS: ${map.values.toList()}");
+
       batch.insert(
         'transactions',
-        transaction.toMap(),
+        map,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }

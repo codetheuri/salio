@@ -3,11 +3,11 @@
 /// Represents a buyer who owes money to the Business.
 class Customer {
   final String id;
-  final String businessId; // Crucial for multi-tenant isolation
+  final String businessId;
   final String name;
   final String? phone;
   final String? notes;
-  final String createdBy; // The ID of the User who added them
+  final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;

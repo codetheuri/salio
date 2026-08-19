@@ -14,4 +14,5 @@ abstract class CustomerRepository {
   Future<void> add(Customer customer);
   Future<void> update(Customer customer);
   Future<void> softDelete(String businessId, String id);
+  Future<void> fixDuplicatePhoneNumbers();
 }

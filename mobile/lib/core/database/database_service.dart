@@ -18,7 +18,8 @@ class DatabaseService {
     return _database!;
   }
 
-  // 3. Initialization
+
+  static DatabaseService get instance => _instance; // 3. Initialization
   Future<Database> _initDatabase() async {
     // Finds the correct folder on the phone to safely store the DB file
     final documentsDirectory = await getApplicationDocumentsDirectory();

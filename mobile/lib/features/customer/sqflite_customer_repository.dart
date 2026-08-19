@@ -158,4 +158,13 @@ class SqfliteCustomerRepository implements CustomerRepository {
       throw SalioDatabaseException('Could not delete customer.', originalError: e, stackTrace: stackTrace);
     }
   }
+  // This method has been added to rectify customers that had the same phone number before uniqueness was invented
+  @override
+  Future<void> fixDuplicatePhoneNumbers() async{
+    final db = await _dbService.database;
+
+
+    // TODO: implement fixDuplicatePhoneNumbers
+    throw UnimplementedError();
+  }
 }

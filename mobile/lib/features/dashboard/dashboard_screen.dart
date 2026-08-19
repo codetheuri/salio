@@ -64,7 +64,8 @@ class DashboardScreen extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: const Text('Sync completed successfully!'), backgroundColor: Colors.teal.shade700),
                     );
-                  } else if (status == 'offline') {
+                  }
+                  else if (status == 'offline') {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -84,7 +85,13 @@ class DashboardScreen extends StatelessWidget {
                         ],
                       ),
                     );
-                  } else if (status == 'error') {
+                  }
+                  else if (status == 'error') {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: const Text('Sync failed. Please try again later.'), backgroundColor: Colors.red.shade700),
+                    );
+                  }
+                  else{
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: const Text('Sync failed. Please try again later.'), backgroundColor: Colors.red.shade700),
                     );
