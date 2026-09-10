@@ -1,0 +1,127 @@
+{{define "title"}}{{.Details.Name}} — Salio Console{{end}}
+
+{{define "content"}}
+<div class="console-layout">
+    {{template "sidebar" .}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <a href="/console/businesses" class="table-card-link mb-2 inline-block">← Back to Businesses</a>
+            <h1 class="page-title">{{.Details.Name}}</h1>
+            <p class="page-subtitle">
+                Owner: {{if .Details.OwnerName}}{{.Details.OwnerName}} ({{.Details.OwnerPhone}}){{else}}none{{end}}
+                &middot; Registered {{date .Details.CreatedAt}}
+                &middot; Last entry {{since .Details.LastActivityAt}}
+            </p>
+        </div>
+
+        <div class="page-body">
+            <div class="stats-grid">
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <p class="stat-label">Customers</p>
+                        <div class="stat-icon icon-purple">
+                            <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="stat-value">{{.Details.CustomerCount}}</p>
+                    <p class="stat-hint muted">{{.Details.TotalTransactions}} ledger entries</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <p class="stat-label">Staff</p>
+                        <div class="stat-icon icon-blue">
+                            <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="stat-value">{{.Details.StaffCount}}</p>
+                    <p class="stat-hint muted">Excluding the owner</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <p class="stat-label">Debt issued</p>
+                        <div class="stat-icon icon-teal">
+                            <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="stat-value">{{money .Details.TotalDebt}}</p>
+                    <p class="stat-hint muted">KES, all time &middot; {{money .Details.TotalPayments}} collected</p>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-top">
+                        <p class="stat-label">Outstanding</p>
+                        <div class="stat-icon icon-amber">
+                            <svg class="icon-md" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="stat-value">{{money .Details.OutstandingBalance}}</p>
+                    <p class="stat-hint muted">KES currently unpaid</p>
+                </div>
+
+            </div>
+
+            <div class="table-card">
+                <div class="table-card-header">
+                    <h2 class="table-card-title">People</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Users}}
+                            <tr>
+                                <td>
+                                    <div class="cell-business">
+                                        <div class="table-avatar bg-blue-50 text-blue-600">{{initial .Name}}</div>
+                                        <div>
+                                            <div class="cell-primary">{{.Name}}</div>
+                                            <div class="cell-secondary mono">{{shortID .ID}}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="cell-primary">{{.Phone}}</td>
+                                <td>{{template "role-badge" .Role}}</td>
+                                <td>
+                                    {{if .IsActive}}<span class="badge" style="background: #ecfdf5; color: #059669;">Active</span>
+                                    {{else}}<span class="badge" style="background: #fef2f2; color: #dc2626;">Deactivated</span>{{end}}
+                                </td>
+                                <td class="cell-date">{{date .CreatedAt}}</td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="5">
+                                    <div class="empty-state">
+                                        <p class="empty-body">No users found for this business.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+{{end}}

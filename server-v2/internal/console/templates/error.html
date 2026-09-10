@@ -1,0 +1,24 @@
+{{define "title"}}{{.Title}} — Salio Console{{end}}
+
+{{define "content"}}
+<div class="console-layout">
+    {{if .Admin}}{{template "sidebar" .}}{{end}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">{{.Title}}</h1>
+            <p class="page-subtitle">{{.Detail}}</p>
+        </div>
+        <div class="page-body">
+            <div class="table-card">
+                <div class="empty-state">
+                    <p class="empty-title">{{.Status}}</p>
+                    <p class="empty-body">
+                        <a href="/console/dashboard" class="table-card-link">← Back to the dashboard</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+{{end}}

@@ -1,0 +1,74 @@
+{{define "title"}}Users &amp; Staff — Salio Console{{end}}
+
+{{define "content"}}
+<div class="console-layout">
+    {{template "sidebar" .}}
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">Users &amp; Staff</h1>
+            <p class="page-subtitle">Everyone who signs in to the Salio app, across all businesses</p>
+        </div>
+
+        <div class="page-body">
+            <div class="table-card">
+                <div class="overflow-x-auto">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Business</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Joined</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Users}}
+                            <tr>
+                                <td>
+                                    <div class="cell-business">
+                                        <div class="table-avatar bg-blue-50 text-blue-600">{{initial .Name}}</div>
+                                        <div>
+                                            <div class="cell-primary">{{.Name}}</div>
+                                            <div class="cell-secondary mono">{{shortID .ID}}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="cell-primary">{{.Phone}}</td>
+                                <td>
+                                    <a href="/console/businesses/{{.BusinessID}}" class="cell-primary" style="text-decoration: underline; color: #0d9488;">{{.BusinessName}}</a>
+                                </td>
+                                <td>{{template "role-badge" .Role}}</td>
+                                <td>
+                                    {{if .IsActive}}<span class="badge" style="background: #ecfdf5; color: #059669;">Active</span>
+                                    {{else}}<span class="badge" style="background: #fef2f2; color: #dc2626;">Deactivated</span>{{end}}
+                                </td>
+                                <td class="cell-date">{{date .CreatedAt}}</td>
+                            </tr>
+                            {{else}}
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <div class="empty-icon">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                            </svg>
+                                        </div>
+                                        <p class="empty-title">No users found</p>
+                                        <p class="empty-body">Users will appear here once they register via the app.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+
+                {{template "pagination" .}}
+            </div>
+        </div>
+    </main>
+</div>
+{{end}}

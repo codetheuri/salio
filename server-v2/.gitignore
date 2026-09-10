@@ -1,0 +1,18 @@
+# Local configuration — real secrets belong here in every real deployment.
+# .env.example is the template that IS committed.
+.env
+
+# Air's hot-reload output.
+tmp/
+
+# Build artifacts.
+bin/
+*.exe
+
+# Test/coverage output.
+coverage.out
+coverage.html
+
+# Editor/OS noise.
+.DS_Store
+*.swp

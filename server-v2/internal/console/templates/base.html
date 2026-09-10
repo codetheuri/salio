@@ -1,0 +1,16 @@
+{{define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{template "title" .}}</title>
+    <link rel="stylesheet" href="/console/static/css/console.css">
+    <link rel="icon" type="image/png" href="/console/static/logo.png">
+    <script src="/console/static/js/console.js" defer></script>
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    {{template "content" .}}
+</body>
+</html>
+{{end}}
