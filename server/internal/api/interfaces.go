@@ -12,7 +12,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-    "time"
+	"time"
 
 	"salio/server/internal/models"
 	"salio/server/internal/repository"
@@ -60,6 +60,13 @@ type UserRepository interface {
 // SyncRepository defines the operations for offline-first sync.
 // *repository.SyncRepository satisfies this interface automatically.
 type SyncRepository interface {
+	// PullByCursor is the correct path: it returns changes after a server-issued
+	// sequence value, in order, and reports how far the client may safely advance.
+	PullByCursor(ctx context.Context, businessID uuid.UUID, cursor int64, limit int) (*models.SyncPayload, error)
+
+	// Pull is the legacy timestamp path, retained only for app versions already in
+	// the field. It carries the defect described in migration 006.
 	Pull(ctx context.Context, businessID uuid.UUID, lastSync time.Time) (*models.SyncPayload, error)
+
 	Push(ctx context.Context, businessID uuid.UUID, payload models.SyncPayload) error
 }

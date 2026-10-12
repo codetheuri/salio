@@ -50,7 +50,12 @@ class SqfliteTransactionRepository implements TransactionRepository {
       await db.update(
         'transactions',
         {
-          'is_deleted': 1, 
+          'is_deleted': 1,
+          // Without this the void never leaves the device. Push selects rows by
+          // `updated_at > lastPushedAt`, so a soft delete that leaves the
+          // timestamp untouched falls outside every future push window and the
+          // transaction stays alive on the server and on every other device.
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
         },
         where: 'id = ? AND business_id = ?',
         whereArgs: [id, businessId],

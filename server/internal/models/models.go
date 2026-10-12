@@ -80,5 +80,18 @@ type BusinessInvite struct {
 type SyncPayload struct {
 	Customers    []Customer    `json:"customers"`
 	Transactions []Transaction `json:"transactions"`
-	ServerTime   time.Time     `json:"server_time,omitempty"`
+
+	// ServerTime is retained for app versions still using the legacy timestamp
+	// watermark. New clients must ignore it and store NextCursor instead — see
+	// migration 006 for why a clock cannot safely mark sync progress.
+	ServerTime time.Time `json:"server_time,omitempty"`
+
+	// NextCursor is the highest change sequence actually included in this
+	// response. A client stores it and sends it back on the next pull. Because it
+	// never exceeds what was delivered, it cannot skip past an unseen row.
+	NextCursor int64 `json:"next_cursor"`
+
+	// HasMore reports that more changes are already available beyond NextCursor.
+	// A client seeing this should pull again immediately rather than wait.
+	HasMore bool `json:"has_more"`
 }
