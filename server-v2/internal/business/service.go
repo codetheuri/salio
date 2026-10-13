@@ -74,12 +74,21 @@ func (s *Service) Register(ctx context.Context, in RegisterBusinessInput) (*Auth
 		return nil, ErrPhoneTaken
 	}
 
+	zone := domain.DefaultTimeZone
+	if in.Body.TimeZone != "" {
+		loc, err := domain.LoadTimeZone(in.Body.TimeZone)
+		if err != nil {
+			return nil, err
+		}
+		zone = loc.String()
+	}
+
 	hash, err := hashPassword(in.Body.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	b := &domain.Business{Name: strings.TrimSpace(in.Body.BusinessName)}
+	b := &domain.Business{Name: strings.TrimSpace(in.Body.BusinessName), TimeZone: zone}
 	if t := strings.TrimSpace(in.Body.BusinessType); t != "" {
 		b.Type = &t
 	}
@@ -183,11 +192,31 @@ func (s *Service) GetBusiness(ctx context.Context) (*domain.Business, error) {
 }
 
 func (s *Service) UpdateBusiness(ctx context.Context, in UpdateBusinessInput) (*domain.Business, error) {
-	var typ *string
-	if t := strings.TrimSpace(in.Body.Type); t != "" {
-		typ = &t
+	d := businessDetails{
+		name:    strings.TrimSpace(in.Body.Name),
+		typ:     optional(in.Body.Type),
+		phone:   optional(in.Body.Phone),
+		email:   optional(in.Body.Email),
+		address: optional(in.Body.Address),
 	}
-	return s.repo.UpdateBusiness(ctx, strings.TrimSpace(in.Body.Name), typ)
+	if in.Body.TimeZone != "" {
+		loc, err := domain.LoadTimeZone(in.Body.TimeZone)
+		if err != nil {
+			return nil, err
+		}
+		zone := loc.String()
+		d.timeZone = &zone
+	}
+	return s.repo.UpdateBusiness(ctx, d)
+}
+
+// optional turns a blank field into "not set" rather than an empty string, so a
+// letterhead never prints a label with nothing after it.
+func optional(s string) *string {
+	if t := strings.TrimSpace(s); t != "" {
+		return &t
+	}
+	return nil
 }
 
 func (s *Service) Me(ctx context.Context, userID uuid.UUID) (*domain.User, error) {

@@ -3,6 +3,7 @@ package ledger
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,31 +44,56 @@ func (s *Service) ListForCustomer(ctx context.Context, customerID uuid.UUID) ([]
 
 // Create validates and records one ledger entry.
 func (s *Service) Create(ctx context.Context, userID uuid.UUID, in CreateInput) (*TransactionView, error) {
-	if !in.Body.Type.Valid() {
-		return nil, ErrInvalidType
-	}
-	if !in.Body.Amount.IsPositive() {
-		return nil, ErrNonPositiveAmount
-	}
-
-	date := time.Now().UTC()
+	var date time.Time
 	if in.Body.TransactionDate != nil && *in.Body.TransactionDate != "" {
 		parsed, err := time.Parse(dateLayout, *in.Body.TransactionDate)
 		if err != nil {
 			return nil, ErrInvalidDate
 		}
 		date = parsed
+	} else {
+		today, err := s.repo.Today(ctx)
+		if err != nil {
+			return nil, err
+		}
+		date = today
 	}
 
+	var due *time.Time
+	if in.Body.DueDate != nil && *in.Body.DueDate != "" {
+		parsed, err := time.Parse(dateLayout, *in.Body.DueDate)
+		if err != nil {
+			return nil, ErrInvalidDate
+		}
+		due = &parsed
+	}
+
+	description := strings.TrimSpace(in.Body.Description)
 	t := &domain.Transaction{
 		CustomerID:      in.Body.CustomerID,
 		UserID:          userID,
 		Type:            in.Body.Type,
 		Amount:          in.Body.Amount,
-		Description:     in.Body.Description,
+		Description:     &description,
 		TransactionDate: date,
+		PaymentMethod:   in.Body.PaymentMethod,
+		Reference:       in.Body.Reference,
+		DueDate:         due,
+	}
+	if err := ValidateEntry(t); err != nil {
+		return nil, err
 	}
 	if err := s.repo.Create(ctx, t); err != nil {
+		return nil, err
+	}
+	v := view(*t)
+	return &v, nil
+}
+
+// Get returns one transaction.
+func (s *Service) Get(ctx context.Context, id uuid.UUID) (*TransactionView, error) {
+	t, err := s.repo.GetByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
 	v := view(*t)

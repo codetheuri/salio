@@ -3,20 +3,32 @@ package customer
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/codetheuri/tusk/v2/pkg/query"
 	"github.com/google/uuid"
 
 	"salio/server-v2/internal/domain"
+	"salio/server-v2/internal/money"
 )
 
 // ErrHasBalance blocks deleting a customer who still owes money or is owed a
 // refund. A shopkeeper deletes a customer to tidy up, not to forgive a debt —
 // forgiving one is a payment, an explicit act that belongs in the ledger, not a
 // side effect of a delete button.
-var ErrHasBalance = errors.New("cannot delete a customer with a non-zero balance; record a payment to clear it first")
+var ErrHasBalance = errors.New("cannot delete a customer with a non-zero balance: clear what they owe, or return the advance you hold for them, first")
+
+// ErrNegativeCreditLimit refuses a limit below zero. Zero itself is allowed: it
+// means "no credit for this customer", which is a real decision a shop makes.
+var ErrNegativeCreditLimit = errors.New("a credit limit cannot be negative")
+
+// ValidateCreditLimit checks a limit, whichever path sets it.
+func ValidateCreditLimit(limit *money.Amount) error {
+	if limit != nil && *limit < 0 {
+		return ErrNegativeCreditLimit
+	}
+	return nil
+}
 
 type Service struct {
 	repo *Repository
@@ -94,16 +106,26 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (*Cu
 	return &v, nil
 }
 
-// Delete removes a customer, refusing while they carry a balance.
-func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
+// SetCreditLimit sets or (with nil) removes a customer's credit limit.
+func (s *Service) SetCreditLimit(ctx context.Context, id uuid.UUID, limit *money.Amount) (*CustomerView, error) {
+	if err := ValidateCreditLimit(limit); err != nil {
+		return nil, err
+	}
+	c, err := s.repo.SetCreditLimit(ctx, id, limit)
+	if err != nil {
+		return nil, err
+	}
 	balance, err := s.repo.Balance(ctx, id)
 	if err != nil {
-		return fmt.Errorf("checking balance: %w", err)
+		return nil, err
 	}
-	if balance != 0 {
-		return ErrHasBalance
-	}
-	return s.repo.SoftDelete(ctx, id)
+	v := view(*c, balance)
+	return &v, nil
+}
+
+// Delete removes a customer, refusing while they carry a balance.
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
+	return s.repo.Delete(ctx, id)
 }
 
 // normalisedOrNil returns nil for an empty or whitespace-only phone, so

@@ -170,7 +170,7 @@ func TestPurge_CollectsPushRecordsOnceTheyCannotAnswerARetry(t *testing.T) {
 	op := id.New()
 	f.pushAs(t, op, nil, []syncengine.SyncTransaction{{
 		ID: id.New(), CustomerID: cid, UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "500.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}})
 
@@ -187,5 +187,92 @@ func TestPurge_CollectsPushRecordsOnceTheyCannotAnswerARetry(t *testing.T) {
 	tenant.Unscoped(f.db).Model(&domain.SyncOperation{}).Where("operation_id = ?", op).Count(&count)
 	if count != 0 {
 		t.Fatal("a month-old push record survived; nothing is retrying that far back")
+	}
+}
+
+// TestPurge_ADeletedCustomerWithHistoryDoesNotFailTheSweep is the regression
+// for a latent bug. The sweep used to delete customers before transactions, so a
+// deleted customer with any entries hit the foreign key and failed the whole
+// sweep for that shop — unnoticed, because earlier tests only ever purged
+// customers with no entries.
+func TestPurge_ADeletedCustomerWithHistoryDoesNotFailTheSweep(t *testing.T) {
+	f := newFixture(t)
+
+	settled := f.customer(t, "Paid up and deleted")
+	f.push(t, nil, []syncengine.SyncTransaction{
+		{ID: id.New(), CustomerID: settled, UserID: f.userID, Type: domain.TypeDebt,
+			Amount: amount(t, "500.00"), Description: desc("seed"), TransactionDate: time.Now().UTC()},
+		{ID: id.New(), CustomerID: settled, UserID: f.userID, Type: domain.TypePayment,
+			Amount: amount(t, "500.00"), Description: desc("seed"), TransactionDate: time.Now().UTC(),
+			PaymentMethod: &cashMethod},
+	})
+	if got := f.balance(t, settled); got != 0 {
+		t.Fatalf("setup: balance = %s, want a settled customer", got)
+	}
+	if err := tenant.Unscoped(f.db).Model(&domain.Customer{}).
+		Where("id = ?", settled).Update("is_deleted", true).Error; err != nil {
+		t.Fatalf("deleting: %v", err)
+	}
+	f.backdate(t, "customers", settled, 200*24*time.Hour)
+
+	if _, err := syncengine.NewMaintenance(f.db).PurgeTombstones(f.ctx, syncengine.DefaultMaxOfflineAge); err != nil {
+		t.Fatalf("the sweep failed on a deleted customer with history: %v", err)
+	}
+
+	// Kept, not purged: its entries still belong to it.
+	var count int64
+	tenant.Unscoped(f.db).Model(&domain.Customer{}).Where("id = ?", settled).Count(&count)
+	if count != 1 {
+		t.Fatal("a customer whose entries are still live was purged out from under them")
+	}
+}
+
+var cashMethod = domain.PaymentCash
+
+// TestPurge_CollectsDeletedSupplierRecordsChildrenFirst: the supplier ledger
+// gets the same sweep as the customer one, in the same order — entries before
+// the supplier they point at — and a deleted supplier with live entries stays.
+func TestPurge_CollectsDeletedSupplierRecordsChildrenFirst(t *testing.T) {
+	f := newFixture(t)
+	gone, kept := id.New(), id.New()
+	voided := id.New()
+
+	var in syncengine.PushInput
+	in.Body.Suppliers = []syncengine.SyncSupplier{
+		{ID: gone, Name: "Closed down", CreatedBy: f.userID},
+		{ID: kept, Name: "Still owed", CreatedBy: f.userID},
+	}
+	in.Body.SupplierTransactions = []syncengine.SyncSupplierTransaction{
+		{ID: voided, SupplierID: gone, Type: domain.SupplierBill, Amount: amount(t, "100.00"),
+			Description: "entered by mistake", TransactionDate: time.Now().UTC(), IsDeleted: true},
+		{ID: id.New(), SupplierID: kept, Type: domain.SupplierBill, Amount: amount(t, "100.00"),
+			Description: "real bill", TransactionDate: time.Now().UTC()},
+	}
+	if v := pushAs(t, f, f.ctx, in); len(v.Conflicts) != 0 {
+		t.Fatalf("setup push: %+v", v.Conflicts)
+	}
+	for _, sid := range []uuid.UUID{gone, kept} {
+		if err := tenant.Unscoped(f.db).Model(&domain.Supplier{}).Where("id = ?", sid).
+			Update("is_deleted", true).Error; err != nil {
+			t.Fatalf("deleting: %v", err)
+		}
+		f.backdate(t, "suppliers", sid, 200*24*time.Hour)
+	}
+	f.backdate(t, "supplier_transactions", voided, 200*24*time.Hour)
+
+	report, err := syncengine.NewMaintenance(f.db).PurgeTombstones(f.ctx, syncengine.DefaultMaxOfflineAge)
+	if err != nil {
+		t.Fatalf("purge: %v", err)
+	}
+	if report.SupplierTxs != 1 || report.Suppliers != 1 {
+		t.Fatalf("purged %d entries and %d suppliers, want 1 and 1", report.SupplierTxs, report.Suppliers)
+	}
+	var left []uuid.UUID
+	tenant.Unscoped(f.db).Model(&domain.Supplier{}).Pluck("id", &left)
+	if len(left) != 1 || left[0] != kept {
+		t.Fatalf("suppliers left = %v, want only the one whose bill is still live", left)
+	}
+	if report.Horizon == 0 {
+		t.Fatal("tombstones were collected but the horizon did not move")
 	}
 }

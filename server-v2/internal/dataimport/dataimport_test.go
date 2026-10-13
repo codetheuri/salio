@@ -439,11 +439,26 @@ func TestImport_MakesEveryExistingCursorResyncOnce(t *testing.T) {
 	}
 
 	svc := syncengine.NewService(syncengine.NewRepository(target))
-	ctx := tenant.WithTenant(context.Background(), f.alphaID)
+	// Signed in as the shop's owner, as a real device is: a pull now needs to
+	// know who is asking, to decide whether supplier records are included.
+	ctx := authz.WithSubject(tenant.WithTenant(context.Background(), f.alphaID),
+		authz.Subject{UserID: f.alphaOwner})
 
 	// A device arriving with a cursor from v1 — including one far higher than
 	// anything this database has issued.
-	for _, cursor := range []int64{1, v1Seq, report.Sealed} {
+	//
+	// Only positive cursors are old ones: zero means a first sync, which is
+	// exactly what a resync asks a device to do. v1's highest cursor is zero
+	// when the v1 being imported predates its migration 006 — which is what
+	// production v1 runs today, since that hotfix lives on its own branch. That
+	// case matters most, and this test only covered it by accident before: it
+	// reads v1's migrations from the working tree, and 006 used to be sitting
+	// there uncommitted.
+	oldCursors := []int64{1, report.Sealed}
+	if v1Seq > 0 {
+		oldCursors = append(oldCursors, v1Seq)
+	}
+	for _, cursor := range oldCursors {
 		view, err := svc.Pull(ctx, cursor, 500)
 		if err != nil {
 			t.Fatalf("pull at cursor %d: %v", cursor, err)

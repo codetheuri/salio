@@ -30,6 +30,7 @@ import (
 
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/money"
+	"salio/server-v2/internal/quantity"
 )
 
 // SyncCustomer is a customer on the wire, in both directions.
@@ -62,6 +63,12 @@ type SyncCustomer struct {
 	// behaviour — so a client that has not been updated yet still works, and is
 	// no worse off than it was.
 	ChangedFields []string `json:"changed_fields,omitempty"`
+
+	// CreditLimit is how much the customer may owe; null is no limit. Only an
+	// owner may change it, and only a push that names "credit_limit" in
+	// changed_fields does: a whole-record push leaves it alone, so a client
+	// that does not know the field cannot wipe the owner's limits.
+	CreditLimit *money.Amount `json:"credit_limit,omitempty" required:"false" doc:"Decimal string; null is no limit"`
 }
 
 // SyncTransaction is a ledger entry on the wire.
@@ -83,6 +90,91 @@ type SyncTransaction struct {
 	CreatedAt       time.Time              `json:"created_at" required:"false"`
 	UpdatedAt       time.Time              `json:"updated_at" required:"false"`
 	IsDeleted       bool                   `json:"is_deleted" required:"false" doc:"Omit for a live entry."`
+
+	// SaleID marks the debt a credit sale created. Such debts belong to the
+	// server: it creates each one from its sale, with id domain.SaleDebtID, and
+	// ignores any a device pushes. A phone may create the same debt locally for
+	// an immediate balance, but never needs to send it.
+	SaleID *uuid.UUID `json:"sale_id,omitempty" required:"false"`
+
+	// Payments: how the money came in. Required on a new payment; absent on a
+	// debt. An M-Pesa code may be recorded on only one live payment.
+	PaymentMethod *domain.PaymentMethod `json:"payment_method,omitempty" required:"false" doc:"Payments: cash, mpesa or bank"`
+	Reference     *string               `json:"reference,omitempty" required:"false" doc:"M-Pesa code or bank reference"`
+
+	// Debts: when the customer agreed to pay by.
+	DueDate *time.Time `json:"due_date,omitempty" required:"false"`
+}
+
+// SyncSale is a sale on the wire.
+//
+// Immutable once the server has it, like a ledger entry: only is_deleted may
+// change, and only for someone holding sales.void. Voiding a credit sale voids
+// its debt too.
+type SyncSale struct {
+	ID            uuid.UUID            `json:"id" required:"true"`
+	CustomerID    *uuid.UUID           `json:"customer_id,omitempty" required:"false"`
+	UserID        uuid.UUID            `json:"user_id" required:"false"`
+	ProductName   string               `json:"product_name" required:"false"`
+	Quantity      quantity.Quantity    `json:"quantity" required:"false"`
+	Amount        money.Amount         `json:"amount" required:"false" doc:"Decimal string, e.g. \"3500.00\""`
+	PaymentMethod domain.PaymentMethod `json:"payment_method" required:"false" doc:"cash, mpesa, bank or credit"`
+	Reference     *string              `json:"reference,omitempty" required:"false" doc:"M-Pesa code or bank reference"`
+	DueDate       *time.Time           `json:"due_date,omitempty" required:"false" doc:"Credit sales: when it is to be paid by"`
+	Notes         *string              `json:"notes,omitempty" required:"false"`
+	SaleDate      time.Time            `json:"sale_date" required:"false"`
+	CreatedAt     time.Time            `json:"created_at" required:"false"`
+	UpdatedAt     time.Time            `json:"updated_at" required:"false"`
+	IsDeleted     bool                 `json:"is_deleted" required:"false"`
+}
+
+// SyncStockRequest is a stock request on the wire.
+//
+// Editable while it is pending. Once on a purchase order it is frozen, and
+// PurchaseOrderID — which says so — is set only by the server and ignored when
+// a device sends it.
+type SyncStockRequest struct {
+	ID              uuid.UUID  `json:"id" required:"true"`
+	UserID          uuid.UUID  `json:"user_id" required:"false"`
+	ProductName     string     `json:"product_name" required:"false"`
+	NeededOn        time.Time  `json:"needed_on" required:"false"`
+	Notes           *string    `json:"notes,omitempty" required:"false"`
+	PurchaseOrderID *uuid.UUID `json:"purchase_order_id,omitempty" required:"false" doc:"Set by the server; ignored on push"`
+	CreatedAt       time.Time  `json:"created_at" required:"false"`
+	UpdatedAt       time.Time  `json:"updated_at" required:"false"`
+	IsDeleted       bool       `json:"is_deleted" required:"false"`
+}
+
+// SyncSupplier is a supplier on the wire. Edited rarely and by the owner, so
+// the whole record follows the latest write rather than merging per field.
+type SyncSupplier struct {
+	ID        uuid.UUID `json:"id" required:"true"`
+	Name      string    `json:"name" required:"false"`
+	Phone     *string   `json:"phone,omitempty" required:"false"`
+	Notes     *string   `json:"notes,omitempty" required:"false"`
+	CreatedBy uuid.UUID `json:"created_by" required:"false"`
+	CreatedAt time.Time `json:"created_at" required:"false"`
+	UpdatedAt time.Time `json:"updated_at" required:"false"`
+	IsDeleted bool      `json:"is_deleted" required:"false"`
+}
+
+// SyncSupplierTransaction is a supplier bill or payment on the wire. Immutable
+// once recorded, like a ledger entry: only a void is accepted afterwards.
+type SyncSupplierTransaction struct {
+	ID              uuid.UUID                `json:"id" required:"true"`
+	SupplierID      uuid.UUID                `json:"supplier_id" required:"false"`
+	UserID          uuid.UUID                `json:"user_id" required:"false"`
+	Type            domain.SupplierEntryType `json:"type" required:"false" doc:"bill or payment"`
+	Amount          money.Amount             `json:"amount" required:"false"`
+	Description     string                   `json:"description" required:"false"`
+	TransactionDate time.Time                `json:"transaction_date" required:"false"`
+	DueDate         *time.Time               `json:"due_date,omitempty" required:"false"`
+	PaymentMethod   *domain.PaymentMethod    `json:"payment_method,omitempty" required:"false"`
+	Reference       *string                  `json:"reference,omitempty" required:"false"`
+	PurchaseOrderID *uuid.UUID               `json:"purchase_order_id,omitempty" required:"false"`
+	CreatedAt       time.Time                `json:"created_at" required:"false"`
+	UpdatedAt       time.Time                `json:"updated_at" required:"false"`
+	IsDeleted       bool                     `json:"is_deleted" required:"false"`
 }
 
 // Conflict reasons. Strings rather than numbers so a log line or a bug report
@@ -104,8 +196,31 @@ const (
 	ReasonUnknownCustomer = "unknown_customer"
 
 	// ReasonInvalid: the record could not be accepted on its own terms — a
-	// non-positive amount, an unrecognised type.
+	// non-positive amount, an unrecognised type, a missing description.
 	ReasonInvalid = "invalid"
+
+	// ReasonForbidden: the change needs a permission this user does not hold —
+	// staff voiding an entry or deleting a customer, which only an owner may do.
+	ReasonForbidden = "forbidden"
+
+	// ReasonHasBalance: deleting a customer who owes money, or who holds an
+	// advance. Settle the balance to zero first.
+	ReasonHasBalance = "has_balance"
+
+	// ReasonDuplicate: the record collides with one that already exists — most
+	// often a customer added on two phones with the same phone number.
+	ReasonDuplicate = "duplicate"
+
+	// ReasonAlreadyOrdered: changing a stock request that is already on a
+	// purchase order.
+	ReasonAlreadyOrdered = "already_ordered"
+
+	// ReasonUnknownSale: voiding a sale this business does not have.
+	ReasonUnknownSale = "unknown_sale"
+
+	// ReasonUnknownSupplier: a bill or payment for a supplier this business
+	// does not have.
+	ReasonUnknownSupplier = "unknown_supplier"
 )
 
 // SyncConflict is one record, or one field, the server did not accept.
@@ -114,7 +229,7 @@ const (
 // so a discarded edit was indistinguishable from an applied one. Anything not
 // applied appears here.
 type SyncConflict struct {
-	Table  string    `json:"table" doc:"customers or transactions"`
+	Table  string    `json:"table" doc:"customers, transactions, sales, stock_requests, suppliers or supplier_transactions"`
 	ID     uuid.UUID `json:"id"`
 	Field  string    `json:"field,omitempty" doc:"set when only one field was rejected"`
 	Reason string    `json:"reason"`
@@ -123,8 +238,16 @@ type SyncConflict struct {
 
 // PullView is one page of changes.
 type PullView struct {
-	Customers    []SyncCustomer    `json:"customers"`
-	Transactions []SyncTransaction `json:"transactions"`
+	Customers     []SyncCustomer     `json:"customers"`
+	Transactions  []SyncTransaction  `json:"transactions"`
+	Sales         []SyncSale         `json:"sales"`
+	StockRequests []SyncStockRequest `json:"stock_requests"`
+
+	// Suppliers and what the shop owes them reach only devices whose user holds
+	// suppliers.read — by default, owners. For anyone else both are always
+	// empty. A user whose role changes should resync from zero.
+	Suppliers            []SyncSupplier            `json:"suppliers"`
+	SupplierTransactions []SyncSupplierTransaction `json:"supplier_transactions"`
 
 	// NextCursor is what to send on the next pull. It advances only as far as
 	// the highest change actually included above — never to "now" — which is the
@@ -148,8 +271,13 @@ type PullView struct {
 type PushView struct {
 	OperationID uuid.UUID `json:"operation_id"`
 
-	AppliedCustomers    int `json:"applied_customers"`
-	AppliedTransactions int `json:"applied_transactions"`
+	AppliedCustomers     int `json:"applied_customers"`
+	AppliedTransactions  int `json:"applied_transactions"`
+	AppliedSales         int `json:"applied_sales"`
+	AppliedStockRequests int `json:"applied_stock_requests"`
+
+	AppliedSuppliers            int `json:"applied_suppliers"`
+	AppliedSupplierTransactions int `json:"applied_supplier_transactions"`
 
 	// Conflicts is never null, always a list. A client checking length should
 	// not have to handle both.
@@ -183,8 +311,13 @@ type PushInput struct {
 		// only safe reading of an unnamed batch is that it is new.
 		OperationID uuid.UUID `json:"operation_id" required:"true" doc:"Client-generated UUID, identical across retries of this batch."`
 
-		Customers    []SyncCustomer    `json:"customers,omitempty"`
-		Transactions []SyncTransaction `json:"transactions,omitempty"`
+		Customers     []SyncCustomer     `json:"customers,omitempty"`
+		Transactions  []SyncTransaction  `json:"transactions,omitempty"`
+		Sales         []SyncSale         `json:"sales,omitempty"`
+		StockRequests []SyncStockRequest `json:"stock_requests,omitempty"`
+
+		Suppliers            []SyncSupplier            `json:"suppliers,omitempty"`
+		SupplierTransactions []SyncSupplierTransaction `json:"supplier_transactions,omitempty"`
 	}
 }
 

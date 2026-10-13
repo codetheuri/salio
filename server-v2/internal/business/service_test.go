@@ -354,3 +354,80 @@ func TestBusiness_IsIsolatedBetweenTenants(t *testing.T) {
 	}
 	_ = beta
 }
+
+func TestTimeZone_DefaultsToNairobiAndCanBeSetAtSignup(t *testing.T) {
+	s, _ := newService(t)
+
+	plain := register(t, s, "0711000140")
+	b, err := s.GetBusiness(tenant.WithTenant(context.Background(), plain.User.BusinessID))
+	if err != nil {
+		t.Fatalf("get business: %v", err)
+	}
+	if b.TimeZone != domain.DefaultTimeZone {
+		t.Errorf("time_zone = %q, want %q", b.TimeZone, domain.DefaultTimeZone)
+	}
+
+	var in business.RegisterBusinessInput
+	in.Body.BusinessName = "Lagos Shop"
+	in.Body.Name = "Owner"
+	in.Body.Phone = "0711000141"
+	in.Body.Password = "correct horse battery staple"
+	in.Body.TimeZone = "Africa/Lagos"
+	auth, err := s.Register(context.Background(), in)
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	b, err = s.GetBusiness(tenant.WithTenant(context.Background(), auth.User.BusinessID))
+	if err != nil {
+		t.Fatalf("get business: %v", err)
+	}
+	if b.TimeZone != "Africa/Lagos" {
+		t.Errorf("time_zone = %q, want Africa/Lagos", b.TimeZone)
+	}
+}
+
+func TestTimeZone_RefusesANameThatIsNotAZone(t *testing.T) {
+	s, _ := newService(t)
+
+	var in business.RegisterBusinessInput
+	in.Body.BusinessName = "Shop"
+	in.Body.Name = "Owner"
+	in.Body.Phone = "0711000142"
+	in.Body.Password = "correct horse battery staple"
+	in.Body.TimeZone = "EAT"
+	if _, err := s.Register(context.Background(), in); !errors.Is(err, domain.ErrInvalidTimeZone) {
+		t.Fatalf("register with EAT: got %v, want ErrInvalidTimeZone", err)
+	}
+
+	ctx := tenant.WithTenant(context.Background(), register(t, s, "0711000143").User.BusinessID)
+	var up business.UpdateBusinessInput
+	up.Body.Name = "Shop"
+	up.Body.TimeZone = "Local"
+	if _, err := s.UpdateBusiness(ctx, up); !errors.Is(err, domain.ErrInvalidTimeZone) {
+		t.Fatalf("update to Local: got %v, want ErrInvalidTimeZone", err)
+	}
+}
+
+func TestTimeZone_AnUpdateThatLeavesItOutKeepsIt(t *testing.T) {
+	s, _ := newService(t)
+	ctx := tenant.WithTenant(context.Background(), register(t, s, "0711000144").User.BusinessID)
+
+	var up business.UpdateBusinessInput
+	up.Body.Name = "Shop"
+	up.Body.TimeZone = "Africa/Lagos"
+	if _, err := s.UpdateBusiness(ctx, up); err != nil {
+		t.Fatalf("set zone: %v", err)
+	}
+
+	// An app version that predates the field saves the name without it. That
+	// must not move the shop back to Nairobi.
+	var rename business.UpdateBusinessInput
+	rename.Body.Name = "Renamed Shop"
+	b, err := s.UpdateBusiness(ctx, rename)
+	if err != nil {
+		t.Fatalf("rename: %v", err)
+	}
+	if b.TimeZone != "Africa/Lagos" {
+		t.Fatalf("time_zone after an update without it = %q, want Africa/Lagos", b.TimeZone)
+	}
+}

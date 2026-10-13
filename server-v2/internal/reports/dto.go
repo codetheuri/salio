@@ -22,8 +22,18 @@ type DebtorView struct {
 // SummaryView is what an owner sees opening the dashboard: three numbers, and
 // two short lists telling them what to actually do about it.
 type SummaryView struct {
-	TotalCustomers       int64        `json:"total_customers"`
+	TotalCustomers int64 `json:"total_customers"`
+
+	// TotalOutstandingDebt is what customers owe the shop: the sum of every
+	// positive balance. Advances are not netted against it.
 	TotalOutstandingDebt money.Amount `json:"total_outstanding_debt"`
+
+	// TotalAdvancesHeld is what the shop holds for customers who paid ahead:
+	// the sum of every negative balance, as a positive number. It is the
+	// shop's money only until those customers buy against it.
+	TotalAdvancesHeld money.Amount `json:"total_advances_held"`
+	CustomersInCredit int          `json:"customers_in_credit"`
+
 	TotalCollected30Days money.Amount `json:"total_collected_last_30_days"`
 	OverdueDebtorCount   int          `json:"overdue_debtor_count"`
 

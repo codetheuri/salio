@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/codetheuri/tusk/v2/pkg/authz"
 	"github.com/codetheuri/tusk/v2/pkg/id"
 	"github.com/codetheuri/tusk/v2/pkg/tenant"
 	"github.com/google/uuid"
@@ -14,6 +15,7 @@ import (
 
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/money"
+	"salio/server-v2/internal/rbac"
 	"salio/server-v2/internal/syncengine"
 	"salio/server-v2/internal/testsupport"
 )
@@ -31,15 +33,47 @@ func newFixture(t *testing.T) *fixture {
 	t.Helper()
 	db := testsupport.Connect(t)
 
+	// Real roles and permissions, read from the same tables the REST routes
+	// check — sync enforces owner-only actions through them, so a fixture
+	// without them would be testing a system that does not exist.
+	if err := rbac.Seed(context.Background(), db); err != nil {
+		t.Fatalf("seeding permissions: %v", err)
+	}
+
 	businessID, userID := seedBusiness(t, db, "Alpha Agrovet", "0712000001")
 	return &fixture{
 		db:         db,
 		svc:        syncengine.NewService(syncengine.NewRepository(db)),
-		ctx:        tenant.WithTenant(context.Background(), businessID),
+		ctx:        signedIn(businessID, userID),
 		businessID: businessID,
 		userID:     userID,
 	}
 }
+
+// signedIn is the context a real request carries: the business from the
+// token's tenant claim, and the user who is pushing.
+func signedIn(businessID, userID uuid.UUID) context.Context {
+	return authz.WithSubject(tenant.WithTenant(context.Background(), businessID), authz.Subject{UserID: userID})
+}
+
+// staff adds a member of staff to the fixture's business and returns a context
+// signed in as them.
+func (f *fixture) staff(t *testing.T, phone string) (context.Context, uuid.UUID) {
+	t.Helper()
+	u := domain.User{
+		ID: id.New(), BusinessID: f.businessID, Name: "Staff", Phone: phone,
+		PasswordHash: "x", Role: domain.RoleStaff, IsActive: true,
+	}
+	if err := tenant.Unscoped(f.db).Create(&u).Error; err != nil {
+		t.Fatalf("creating staff: %v", err)
+	}
+	if err := rbac.AssignRole(context.Background(), f.db, u.ID, domain.RoleStaff); err != nil {
+		t.Fatalf("assigning staff role: %v", err)
+	}
+	return signedIn(f.businessID, u.ID), u.ID
+}
+
+func desc(s string) *string { return &s }
 
 // seedBusiness creates a business and its owner. tenant.Unscoped is called fresh
 // per statement — its return shares one gorm.Statement with the receiver, so
@@ -57,6 +91,9 @@ func seedBusiness(t *testing.T, db *gorm.DB, name, phone string) (businessID, us
 	}
 	if err := tenant.Unscoped(db).Create(&u).Error; err != nil {
 		t.Fatalf("creating owner: %v", err)
+	}
+	if err := rbac.AssignRole(context.Background(), db, u.ID, domain.RoleOwner); err != nil {
+		t.Fatalf("assigning owner role: %v", err)
 	}
 	return b.ID, u.ID
 }
@@ -235,7 +272,7 @@ func TestPull_PaginationLosesNothingAcrossTheTwoTables(t *testing.T) {
 
 		tr := domain.Transaction{
 			ID: id.New(), BusinessID: f.businessID, CustomerID: cid, UserID: f.userID,
-			Type: domain.TypeDebt, Amount: amount(t, "100.00"), TransactionDate: time.Now().UTC(),
+			Type: domain.TypeDebt, Amount: amount(t, "100.00"), Description: desc("test entry"), TransactionDate: time.Now().UTC(),
 		}
 		if err := tenant.Unscoped(f.db).Create(&tr).Error; err != nil {
 			t.Fatalf("creating transaction: %v", err)
@@ -317,7 +354,7 @@ func TestPush_RetryingAnOperationDoesNotRecordTheDebtTwice(t *testing.T) {
 	op := id.New()
 	entry := syncengine.SyncTransaction{
 		ID: id.New(), CustomerID: cid, UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "500.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}
 
@@ -353,7 +390,7 @@ func TestPush_ConcurrentRetriesOfOneOperationApplyItOnce(t *testing.T) {
 	op := id.New()
 	entry := syncengine.SyncTransaction{
 		ID: id.New(), CustomerID: cid, UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "500.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}
 
@@ -578,7 +615,7 @@ func TestPush_CannotEditARecordedEntryAndIsToldSo(t *testing.T) {
 
 	entry := syncengine.SyncTransaction{
 		ID: id.New(), CustomerID: cid, UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "500.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}
 	f.push(t, nil, []syncengine.SyncTransaction{entry})
@@ -614,7 +651,7 @@ func TestPush_AVoidSyncsAndMovesTheCursor(t *testing.T) {
 
 	entry := syncengine.SyncTransaction{
 		ID: id.New(), CustomerID: cid, UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "500.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}
 	f.push(t, nil, []syncengine.SyncTransaction{entry})
@@ -642,7 +679,7 @@ func TestPush_PushingALiveCopyOfAVoidedEntryIsReported(t *testing.T) {
 
 	entry := syncengine.SyncTransaction{
 		ID: id.New(), CustomerID: cid, UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "500.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}
 	f.push(t, nil, []syncengine.SyncTransaction{entry})
@@ -676,17 +713,17 @@ func TestPush_OneBadRecordDoesNotDiscardTheRest(t *testing.T) {
 
 	good := syncengine.SyncTransaction{
 		ID: id.New(), CustomerID: cid, UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "500.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}
 	orphan := syncengine.SyncTransaction{
 		ID: id.New(), CustomerID: id.New(), UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "100.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "100.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}
 	zero := syncengine.SyncTransaction{
 		ID: id.New(), CustomerID: cid, UserID: f.userID,
-		Type: domain.TypeDebt, Amount: amount(t, "0.00"),
+		Type: domain.TypeDebt, Amount: amount(t, "0.00"), Description: desc("test entry"),
 		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 	}
 
@@ -729,7 +766,7 @@ func TestPush_CreatesACustomerAndItsEntriesInOneBatch(t *testing.T) {
 		}},
 		[]syncengine.SyncTransaction{{
 			ID: id.New(), CustomerID: cid, UserID: f.userID,
-			Type: domain.TypeDebt, Amount: amount(t, "250.00"),
+			Type: domain.TypeDebt, Amount: amount(t, "250.00"), Description: desc("test entry"),
 			TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
 		}})
 

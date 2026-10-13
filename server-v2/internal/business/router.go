@@ -86,6 +86,30 @@ func RegisterRoutes(api huma.API, db *gorm.DB, jwtSecret string, tokenTTL time.D
 	}, rbac.PermBusinessUpdate), handler.UpdateBusiness)
 
 	huma.Register(api, guard.Protected(huma.Operation{
+		OperationID: "upload-business-logo",
+		Method:      http.MethodPut,
+		Path:        "/api/v1/business/logo",
+		Summary:     "Upload the logo printed on PDFs (PNG or JPEG, up to 512 KB)",
+		Tags:        []string{"Business"},
+	}, rbac.PermBusinessUpdate), handler.UploadLogo)
+
+	huma.Register(api, guard.Protected(huma.Operation{
+		OperationID: "get-business-logo",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/business/logo",
+		Summary:     "Download the business logo",
+		Tags:        []string{"Business"},
+	}, rbac.PermBusinessRead), handler.GetLogo)
+
+	huma.Register(api, guard.Protected(huma.Operation{
+		OperationID: "delete-business-logo",
+		Method:      http.MethodDelete,
+		Path:        "/api/v1/business/logo",
+		Summary:     "Remove the business logo",
+		Tags:        []string{"Business"},
+	}, rbac.PermBusinessUpdate), handler.DeleteLogo)
+
+	huma.Register(api, guard.Protected(huma.Operation{
 		OperationID: "get-me",
 		Method:      http.MethodGet,
 		Path:        "/api/v1/users/me",

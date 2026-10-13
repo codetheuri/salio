@@ -9,6 +9,7 @@ import (
 	"github.com/codetheuri/tusk/v2/pkg/query"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/money"
@@ -104,26 +105,83 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, name string, phon
 	return r.GetByID(ctx, id)
 }
 
-func (r *Repository) SoftDelete(ctx context.Context, id uuid.UUID) error {
-	stamp, err := domain.StampFieldVersions([]string{"is_deleted"}, time.Now().UTC())
+// SetCreditLimit writes a customer's limit, stamping its field version for the
+// same reason Update does: so a stale offline push cannot overwrite it.
+func (r *Repository) SetCreditLimit(ctx context.Context, id uuid.UUID, limit *money.Amount) (*domain.Customer, error) {
+	stamp, err := domain.StampFieldVersions([]string{"credit_limit"}, time.Now().UTC())
 	if err != nil {
-		return fmt.Errorf("stamping field versions: %w", err)
+		return nil, fmt.Errorf("stamping field versions: %w", err)
 	}
-
 	res := r.db.WithContext(ctx).
 		Model(&domain.Customer{}).
 		Where("id = ? AND is_deleted = false", id).
 		Updates(map[string]any{
-			"is_deleted":     true,
+			"credit_limit":   limit,
 			"field_versions": gorm.Expr("field_versions || ?::jsonb", stamp),
 		})
 	if res.Error != nil {
-		return res.Error
+		return nil, fmt.Errorf("setting credit limit: %w", res.Error)
 	}
 	if res.RowsAffected == 0 {
-		return ErrNotFound
+		return nil, ErrNotFound
 	}
-	return nil
+	return r.GetByID(ctx, id)
+}
+
+// Delete soft-deletes a customer whose balance is zero. See DeleteIfSettled.
+func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
+	return DeleteIfSettled(ctx, r.db, id)
+}
+
+// DeleteIfSettled soft-deletes a customer, but only at a balance of exactly zero.
+//
+// A plain function over a *gorm.DB rather than a method, because the sync engine
+// must apply the same rule inside its own transaction. The rule had previously
+// lived only in the REST path, and sync — which is how the app deletes customers
+// — let a customer with money owing simply disappear.
+//
+// Zero means zero in both directions. A customer who owes money cannot be
+// deleted, and neither can one holding an advance: that money belongs to them,
+// and deleting the account would make the shop forget it owes it back.
+//
+// The check and the delete happen under a lock on the customer row, the same
+// lock ledger.Create takes. Without it, a debt recorded between reading the
+// balance and deleting would leave a deleted customer who still owes money.
+func DeleteIfSettled(ctx context.Context, db *gorm.DB, id uuid.UUID) error {
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var c domain.Customer
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("is_deleted = false").
+			First(&c, "id = ?", id).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("locking customer: %w", err)
+		}
+
+		var balance money.Amount
+		if err := tx.Model(&domain.Transaction{}).
+			Select("COALESCE(SUM(CASE WHEN type = 'debt' THEN amount ELSE -amount END), 0)").
+			Where("customer_id = ? AND is_deleted = false", id).
+			Scan(&balance).Error; err != nil {
+			return fmt.Errorf("computing balance: %w", err)
+		}
+		if balance != 0 {
+			return ErrHasBalance
+		}
+
+		stamp, err := domain.StampFieldVersions([]string{"is_deleted"}, time.Now().UTC())
+		if err != nil {
+			return fmt.Errorf("stamping field versions: %w", err)
+		}
+		return tx.Model(&domain.Customer{}).
+			Where("id = ?", id).
+			Updates(map[string]any{
+				"is_deleted":     true,
+				"field_versions": gorm.Expr("field_versions || ?::jsonb", stamp),
+			}).Error
+	})
 }
 
 // Balance sums the ledger for one customer: debts add, payments subtract. It is

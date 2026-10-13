@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
 	"salio/server-v2/internal/domain"
-	"salio/server-v2/internal/money"
+	"salio/server-v2/internal/payment"
+	"salio/server-v2/internal/shopclock"
 )
 
 var ErrNotFound = errors.New("transaction not found")
@@ -19,11 +21,10 @@ var ErrNotFound = errors.New("transaction not found")
 // — the caller-facing message differs, so the handler needs to tell them apart.
 var ErrCustomerNotFound = errors.New("customer not found")
 
-// ErrExceedsBalance means a payment is larger than what the customer currently
-// owes. A ledger has no notion of a customer being in credit; a payment that
-// size is very likely a typo, and rejecting it is cheaper than a phone call to
-// undo an offsetting entry later.
-var ErrExceedsBalance = errors.New("payment amount exceeds the customer's outstanding balance")
+// ErrBelongsToSale refuses voiding the debt a credit sale created. Voiding it
+// alone would leave a sale recorded as sold on credit with nothing owed for it;
+// the sale is voided instead, which voids its debt with it.
+var ErrBelongsToSale = errors.New("this debt came from a sale; void the sale instead")
 
 type Repository struct {
 	db *gorm.DB
@@ -42,20 +43,18 @@ func (r *Repository) ListForCustomer(ctx context.Context, customerID uuid.UUID) 
 
 // Create records a debt or a payment.
 //
-// Everything happens inside one transaction that holds a row lock on the
-// customer for its duration. That lock is what makes the balance check
-// meaningful: without it, two concurrent payments can each read the same
-// starting balance, each see themselves as within it, and together take the
-// customer negative — the classic read-then-write race, here on money instead
-// of inventory. Debts have no upper bound to protect, but they share the lock
-// anyway so every write against one customer serialises with every other,
-// keeping the rule simple to reason about rather than correct only for one
-// transaction type.
+// A payment larger than the balance is accepted: the difference is an advance,
+// held on the customer's account as a negative balance and used up by the next
+// debts. Shops take deposits and pre-payments routinely, and refusing them made
+// the ledger unable to record what actually happened at the counter.
+//
+// The customer row is still locked for the duration. Its job is no longer a
+// balance ceiling but serialising against deletion: a customer may only be
+// deleted at a zero balance (see customer.DeleteIfSettled), and without the lock
+// a debt recorded in the instant between that check and the delete would leave a
+// deleted customer who still owes money.
 func (r *Repository) Create(ctx context.Context, t *domain.Transaction) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// SELECT ... FOR UPDATE. Ordinary reads are unaffected — only a second
-		// writer touching the same customer waits, and only until this
-		// transaction commits or rolls back.
 		var customer domain.Customer
 		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("is_deleted = false").
@@ -67,34 +66,31 @@ func (r *Repository) Create(ctx context.Context, t *domain.Transaction) error {
 			return fmt.Errorf("locking customer: %w", err)
 		}
 
-		if t.Type == domain.TypePayment {
-			var balance money.Amount
-			err := tx.Model(&domain.Transaction{}).
-				Select("COALESCE(SUM(CASE WHEN type = 'debt' THEN amount ELSE -amount END), 0)").
-				Where("customer_id = ? AND is_deleted = false", t.CustomerID).
-				Scan(&balance).Error
-			if err != nil {
-				return fmt.Errorf("computing balance: %w", err)
-			}
-			if t.Amount.Minor() > balance.Minor() {
-				return ErrExceedsBalance
-			}
-		}
-
 		if err := tx.Create(t).Error; err != nil {
+			if payment.IsDuplicateMpesaRef(err) {
+				return payment.ErrDuplicateMpesaRef
+			}
 			return fmt.Errorf("creating transaction: %w", err)
 		}
 		return nil
 	})
 }
 
+// GetByID returns one transaction, voided or not.
+//
+// Voided entries are included on purpose: someone looking up an entry to ask
+// "what happened to that 500?" needs to see that it was voided, not be told it
+// never existed.
 func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Transaction, error) {
 	var t domain.Transaction
 	err := r.db.WithContext(ctx).First(&t, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
-	return &t, err
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
 }
 
 // Void soft-deletes a transaction. Refuses one that is already voided or does
@@ -107,6 +103,14 @@ func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (*domain.Transac
 // forgot to bump updated_at on soft-delete and voided transactions silently
 // never reached sync: there is no SQL string here to forget a column in.
 func (r *Repository) Void(ctx context.Context, id uuid.UUID) error {
+	t, err := r.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if err := CheckVoidable(t); err != nil {
+		return err
+	}
+
 	res := r.db.WithContext(ctx).
 		Model(&domain.Transaction{}).
 		Where("id = ? AND is_deleted = false", id).
@@ -118,4 +122,9 @@ func (r *Repository) Void(ctx context.Context, id uuid.UUID) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+// Today is the business's current calendar date, in its own time zone.
+func (r *Repository) Today(ctx context.Context) (time.Time, error) {
+	return shopclock.Today(ctx, r.db)
 }

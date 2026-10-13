@@ -4,11 +4,18 @@ import (
 	"time"
 
 	"salio/server-v2/internal/domain"
+	"salio/server-v2/internal/payment"
 )
 
-// customerFields are the fields a device may edit. Order is fixed so a merge
-// produces the same conflicts in the same order every time, which matters
-// because that list is stored and replayed for an idempotent retry.
+// customerFields are what a push without changed_fields is taken to own — the
+// whole record, as far as a client that predates per-field merge knows it.
+// Order is fixed so a merge produces the same conflicts in the same order every
+// time, which matters because that list is stored and replayed for an
+// idempotent retry.
+//
+// credit_limit is editable but deliberately not here: it is applied only when a
+// push names it. A client that does not know the field sends nothing for it,
+// and reading that as "no limit" would wipe every limit the owner set.
 var customerFields = []string{"name", "phone", "notes", "is_deleted"}
 
 // customerMerge is the outcome of merging one incoming customer.
@@ -97,6 +104,8 @@ func incomingValue(in SyncCustomer, field string) (any, bool) {
 		return in.Notes, true
 	case "is_deleted":
 		return in.IsDeleted, true
+	case "credit_limit":
+		return in.CreditLimit, true
 	default:
 		return nil, false
 	}
@@ -152,8 +161,53 @@ func immutableDifference(in SyncTransaction, existing *domain.Transaction) strin
 	// stored. What a debt records is which day it happened on.
 	case !sameDay(in.TransactionDate, existing.TransactionDate):
 		return "transaction_date"
+	case !sameOptionalMethod(in.PaymentMethod, existing.PaymentMethod):
+		return "payment_method"
+	case !sameReference(methodOf(in.PaymentMethod), in.Reference, existing.Reference):
+		return "reference"
+	case !sameOptionalDay(in.DueDate, existing.DueDate):
+		return "due_date"
 	default:
 		return ""
+	}
+}
+
+func sameOptionalMethod(a, b *domain.PaymentMethod) bool {
+	switch {
+	case a == nil && b == nil:
+		return true
+	case a == nil || b == nil:
+		return false
+	default:
+		return *a == *b
+	}
+}
+
+func methodOf(m *domain.PaymentMethod) domain.PaymentMethod {
+	if m == nil {
+		return ""
+	}
+	return *m
+}
+
+// sameReference compares references the way they are stored: normalised, so a
+// device re-sending "sjk4x7y2pq" for a payment stored as "SJK4X7Y2PQ" is the
+// same payment, not an attempt to edit it.
+func sameReference(m domain.PaymentMethod, incoming, stored *string) bool {
+	if norm, err := payment.Reference(m, incoming); err == nil {
+		incoming = norm
+	}
+	return sameOptionalString(incoming, stored)
+}
+
+func sameOptionalDay(a, b *time.Time) bool {
+	switch {
+	case a == nil && b == nil:
+		return true
+	case a == nil || b == nil:
+		return false
+	default:
+		return sameDay(*a, *b)
 	}
 }
 

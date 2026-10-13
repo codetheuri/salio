@@ -7,6 +7,8 @@ import (
 	"github.com/codetheuri/tusk/v2/pkg/authz"
 	"github.com/codetheuri/tusk/v2/pkg/logger"
 	"github.com/danielgtaylor/huma/v2"
+
+	"salio/server-v2/internal/domain"
 )
 
 // Handler translates HTTP concerns — status codes, the response envelope — from
@@ -64,7 +66,7 @@ func (h *Handler) GetBusiness(ctx context.Context, _ *EmptyInput) (*BusinessOutp
 	}
 	resp := &BusinessOutput{}
 	resp.Body.Success = true
-	resp.Body.Data = viewBusiness(*b)
+	resp.Body.Data = viewBusiness(*b, h.service.HasLogo(ctx))
 	return resp, nil
 }
 
@@ -76,7 +78,42 @@ func (h *Handler) UpdateBusiness(ctx context.Context, in *UpdateBusinessInput) (
 	resp := &BusinessOutput{}
 	resp.Body.Success = true
 	resp.Body.Message = "Business updated"
-	resp.Body.Data = viewBusiness(*b)
+	resp.Body.Data = viewBusiness(*b, h.service.HasLogo(ctx))
+	return resp, nil
+}
+
+func (h *Handler) UploadLogo(ctx context.Context, in *UploadLogoInput) (*MessageOutput, error) {
+	if err := h.service.SetLogo(ctx, in.RawBody); err != nil {
+		return nil, h.mapError(err, "saving the logo")
+	}
+	resp := &MessageOutput{}
+	resp.Body.Success = true
+	resp.Body.Message = "Logo saved"
+	return resp, nil
+}
+
+func (h *Handler) GetLogo(ctx context.Context, _ *EmptyInput) (*LogoOutput, error) {
+	logo, err := h.service.GetLogo(ctx)
+	if err != nil {
+		return nil, h.mapError(err, "loading the logo")
+	}
+	return &LogoOutput{
+		ContentType: logo.ContentType,
+		// Private: it is behind authentication, and must not sit in a shared
+		// proxy cache where another business's request could be answered
+		// with it. Short-lived, so a newly uploaded logo shows up promptly.
+		CacheControl: "private, max-age=300",
+		Body:         logo.Data,
+	}, nil
+}
+
+func (h *Handler) DeleteLogo(ctx context.Context, _ *EmptyInput) (*MessageOutput, error) {
+	if err := h.service.DeleteLogo(ctx); err != nil {
+		return nil, h.mapError(err, "removing the logo")
+	}
+	resp := &MessageOutput{}
+	resp.Body.Success = true
+	resp.Body.Message = "Logo removed"
 	return resp, nil
 }
 
@@ -145,13 +182,20 @@ func (h *Handler) mapError(err error, action string) error {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		return huma.Error404NotFound("Not found")
+	case errors.Is(err, ErrLogoNotFound):
+		return huma.Error404NotFound(err.Error())
+	case errors.Is(err, ErrLogoTooLarge):
+		return huma.Error413RequestEntityTooLarge(err.Error())
+	case errors.Is(err, ErrLogoEmpty), errors.Is(err, ErrLogoFormat):
+		return huma.Error415UnsupportedMediaType(err.Error())
 	case errors.Is(err, ErrPhoneTaken):
 		return huma.Error409Conflict(err.Error())
 	case errors.Is(err, ErrInvalidLogin), errors.Is(err, ErrAccountInactive):
 		return huma.Error401Unauthorized(err.Error())
 	case errors.Is(err, ErrInviteUnusable):
 		return huma.Error400BadRequest(err.Error())
-	case errors.Is(err, ErrCannotRemoveSelf), errors.Is(err, ErrLastOwner):
+	case errors.Is(err, ErrCannotRemoveSelf), errors.Is(err, ErrLastOwner),
+		errors.Is(err, domain.ErrInvalidTimeZone):
 		return huma.Error422UnprocessableEntity(err.Error())
 	default:
 		h.log.Error("business module error while "+action, err)

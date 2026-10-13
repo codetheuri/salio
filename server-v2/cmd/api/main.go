@@ -5,13 +5,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/danielgtaylor/huma/v2"
-
 	"github.com/codetheuri/tusk/v2/config"
 	"github.com/codetheuri/tusk/v2/pkg/app"
 	"github.com/codetheuri/tusk/v2/pkg/logger"
 	tuskmw "github.com/codetheuri/tusk/v2/pkg/middleware"
 	"github.com/codetheuri/tusk/v2/pkg/tenant"
+	"github.com/danielgtaylor/huma/v2"
 
 	"salio/server-v2/database"
 	"salio/server-v2/internal/business"
@@ -20,6 +19,9 @@ import (
 	"salio/server-v2/internal/ledger"
 	"salio/server-v2/internal/rbac"
 	"salio/server-v2/internal/reports"
+	"salio/server-v2/internal/sales"
+	"salio/server-v2/internal/stock"
+	"salio/server-v2/internal/supplier"
 	"salio/server-v2/internal/syncengine"
 )
 
@@ -47,6 +49,12 @@ func main() {
 			{Name: "Business", Description: "Business details and staff invites"},
 			{Name: "Users", Description: "Your own profile, and staff management"},
 			{Name: "Sync", Description: "Offline-first cursor sync for the mobile client"},
+			{Name: "Customers", Description: "The people who owe the shop money"},
+			{Name: "Transactions", Description: "Debts (with optional due date) and payments (cash, M-Pesa or bank); a payment above the balance becomes an advance"},
+			{Name: "Sales", Description: "What was sold, in cash or on a customer's account"},
+			{Name: "Stock & Orders", Description: "Products that ran out, and purchase orders to restock them"},
+			{Name: "Suppliers", Description: "Who the shop buys from, and what it owes them (owner only)"},
+			{Name: "Reports", Description: "Dashboard, statements, debt ageing, sales and collections, with PDFs"},
 		},
 	})
 	if err != nil {
@@ -83,6 +91,9 @@ func main() {
 	customer.RegisterRoutes(application.API(), application.DB(), log)
 	ledger.RegisterRoutes(application.API(), application.DB(), log)
 	reports.RegisterRoutes(application.API(), application.DB(), log)
+	sales.RegisterRoutes(application.API(), application.DB(), log)
+	stock.RegisterRoutes(application.API(), application.DB(), log)
+	supplier.RegisterRoutes(application.API(), application.DB(), log)
 	syncengine.RegisterRoutes(application.API(), application.DB(), log)
 
 	// The admin console is server-rendered HTML on the same router, not part of

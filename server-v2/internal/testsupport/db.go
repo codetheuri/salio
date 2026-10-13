@@ -2,8 +2,11 @@
 package testsupport
 
 import (
+	"context"
+	"database/sql"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/codetheuri/tusk/v2/pkg/testdb"
@@ -36,8 +39,46 @@ func DSN() string {
 // runs, so a test that passes here is evidence about production.
 func Connect(t *testing.T) *gorm.DB {
 	t.Helper()
+	migrateOnce.Do(func() { migrateErr = migrateLocked() })
+	if migrateErr != nil {
+		t.Fatalf("migrating the test database: %v", migrateErr)
+	}
 	return testdb.ConnectWith(t, testdb.Options{
 		Migrator:   database.Migrator(),
 		DefaultDSN: defaultDSN,
 	})
+}
+
+var (
+	migrateOnce sync.Once
+	migrateErr  error
+)
+
+// migrateLocked applies pending migrations while holding a database-wide lock.
+//
+// go test runs packages as separate processes against this one database, and
+// testdb.ConnectWith migrates *before* taking its own lock. The first run after
+// a new migration therefore raced: two packages applied it at once and the
+// loser failed with "column already exists". Migrating here first, under a
+// lock, leaves ConnectWith's own migration step nothing to do.
+func migrateLocked() error {
+	db, err := sql.Open("pgx", DSN())
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	conn, err := db.Conn(ctx) // the lock belongs to a session, so hold one connection
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	if _, err := conn.ExecContext(ctx, `SELECT pg_advisory_lock(hashtext('salio:test-migrations'))`); err != nil {
+		return err
+	}
+	defer conn.ExecContext(ctx, `SELECT pg_advisory_unlock(hashtext('salio:test-migrations'))`) //nolint:errcheck
+
+	return database.Up(db)
 }

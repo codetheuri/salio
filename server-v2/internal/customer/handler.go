@@ -65,6 +65,18 @@ func (h *Handler) Update(ctx context.Context, in *UpdateInput) (*CustomerOutput,
 	return output(*v, "Customer updated"), nil
 }
 
+func (h *Handler) SetCreditLimit(ctx context.Context, in *SetCreditLimitInput) (*CustomerOutput, error) {
+	v, err := h.service.SetCreditLimit(ctx, in.CustomerID, in.Body.CreditLimit)
+	if err != nil {
+		return nil, h.mapError(err, "setting the credit limit")
+	}
+	message := "Credit limit set"
+	if in.Body.CreditLimit == nil {
+		message = "Credit limit removed"
+	}
+	return output(*v, message), nil
+}
+
 func (h *Handler) Delete(ctx context.Context, in *CustomerIDInput) (*MessageOutput, error) {
 	if err := h.service.Delete(ctx, in.CustomerID); err != nil {
 		return nil, h.mapError(err, "deleting the customer")
@@ -83,6 +95,8 @@ func (h *Handler) mapError(err error, action string) error {
 		return huma.Error409Conflict(err.Error())
 	case errors.Is(err, ErrHasBalance):
 		return huma.Error409Conflict(err.Error())
+	case errors.Is(err, ErrNegativeCreditLimit):
+		return huma.Error422UnprocessableEntity(err.Error())
 	default:
 		h.log.Error("customer module error while "+action, err)
 		return huma.Error500InternalServerError("Something went wrong. Please try again.")

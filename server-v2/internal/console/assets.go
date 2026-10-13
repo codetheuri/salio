@@ -83,36 +83,10 @@ func shortID(v fmt.Stringer) string {
 	return s
 }
 
-// formatMoney renders an exact amount as KES with thousands separators.
-//
-// It formats money.Amount's own decimal string rather than converting to a
-// float first: v1's templates used {{printf "%.0f"}} on a float64, which both
-// rounds and, past 2^53 minor units, silently loses precision.
-func formatMoney(a money.Amount) string {
-	s := a.String()
-
-	neg := strings.HasPrefix(s, "-")
-	s = strings.TrimPrefix(s, "-")
-
-	whole, frac, _ := strings.Cut(s, ".")
-
-	var b strings.Builder
-	for i, digit := range whole {
-		if i > 0 && (len(whole)-i)%3 == 0 {
-			b.WriteByte(',')
-		}
-		b.WriteRune(digit)
-	}
-
-	out := b.String()
-	if frac != "" {
-		out += "." + frac
-	}
-	if neg {
-		return "-" + out
-	}
-	return out
-}
+// formatMoney renders an exact amount for display. It delegates to
+// money.Amount.Formatted so the console and every printed PDF format money the
+// same way, from one implementation.
+func formatMoney(a money.Amount) string { return a.Formatted() }
 
 // since renders how long ago something happened, for a nil-able timestamp.
 func since(t *time.Time) string {

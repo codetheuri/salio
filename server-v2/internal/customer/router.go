@@ -49,6 +49,15 @@ func RegisterRoutes(api huma.API, db *gorm.DB, log logger.Logger) {
 	}, rbac.PermCustomersUpdate), handler.Update)
 
 	huma.Register(api, guard.Protected(huma.Operation{
+		OperationID: "set-customer-credit-limit",
+		Method:      http.MethodPut,
+		Path:        "/api/v1/customers/{customerID}/credit-limit",
+		Summary:     "Set or remove a customer's credit limit (owner only)",
+		Description: "Advisory: a debt over the limit is still recorded. The app warns before recording one.",
+		Tags:        []string{"Customers"},
+	}, rbac.PermCustomersCreditLimit), handler.SetCreditLimit)
+
+	huma.Register(api, guard.Protected(huma.Operation{
 		OperationID: "delete-customer",
 		Method:      http.MethodDelete,
 		Path:        "/api/v1/customers/{customerID}",

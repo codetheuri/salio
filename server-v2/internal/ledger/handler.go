@@ -7,6 +7,8 @@ import (
 	"github.com/codetheuri/tusk/v2/pkg/authz"
 	"github.com/codetheuri/tusk/v2/pkg/logger"
 	"github.com/danielgtaylor/huma/v2"
+
+	"salio/server-v2/internal/payment"
 )
 
 type Handler struct {
@@ -45,6 +47,18 @@ func (h *Handler) Create(ctx context.Context, in *CreateInput) (*TransactionOutp
 	return resp, nil
 }
 
+func (h *Handler) Get(ctx context.Context, in *TransactionIDInput) (*TransactionOutput, error) {
+	v, err := h.service.Get(ctx, in.TransactionID)
+	if err != nil {
+		return nil, h.mapError(err, "loading the transaction")
+	}
+	resp := &TransactionOutput{}
+	resp.Body.Success = true
+	resp.Body.Message = "Transaction found"
+	resp.Body.Data = *v
+	return resp, nil
+}
+
 func (h *Handler) Void(ctx context.Context, in *TransactionIDInput) (*MessageOutput, error) {
 	if err := h.service.Void(ctx, in.TransactionID); err != nil {
 		return nil, h.mapError(err, "voiding the transaction")
@@ -61,9 +75,9 @@ func (h *Handler) mapError(err error, action string) error {
 		return huma.Error404NotFound("Transaction not found")
 	case errors.Is(err, ErrCustomerNotFound):
 		return huma.Error404NotFound("Customer not found")
-	case errors.Is(err, ErrExceedsBalance):
+	case errors.Is(err, ErrBelongsToSale), errors.Is(err, payment.ErrDuplicateMpesaRef):
 		return huma.Error409Conflict(err.Error())
-	case errors.Is(err, ErrInvalidDate), errors.Is(err, ErrInvalidType), errors.Is(err, ErrNonPositiveAmount):
+	case IsRuleError(err):
 		return huma.Error422UnprocessableEntity(err.Error())
 	default:
 		h.log.Error("ledger module error while "+action, err)

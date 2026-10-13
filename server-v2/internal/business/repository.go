@@ -164,12 +164,22 @@ func (r *Repository) GetBusiness(ctx context.Context) (*domain.Business, error) 
 	return &b, err
 }
 
-func (r *Repository) UpdateBusiness(ctx context.Context, name string, typ *string) (*domain.Business, error) {
+type businessDetails struct {
+	name                       string
+	typ, phone, email, address *string
+	timeZone                   *string // nil keeps the current zone
+}
+
+func (r *Repository) UpdateBusiness(ctx context.Context, d businessDetails) (*domain.Business, error) {
 	b, err := r.GetBusiness(ctx)
 	if err != nil {
 		return nil, err
 	}
-	b.Name, b.Type = name, typ
+	b.Name, b.Type = d.name, d.typ
+	b.Phone, b.Email, b.Address = d.phone, d.email, d.address
+	if d.timeZone != nil {
+		b.TimeZone = *d.timeZone
+	}
 	if err := r.db.WithContext(ctx).Save(b).Error; err != nil {
 		return nil, err
 	}

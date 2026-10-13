@@ -50,6 +50,21 @@ const (
 
 	PermSyncPull = "sync.pull"
 	PermSyncPush = "sync.push"
+
+	PermSalesRead   = "sales.read"
+	PermSalesCreate = "sales.create"
+	PermSalesVoid   = "sales.void"
+
+	PermStockRead    = "stock.read"
+	PermStockRequest = "stock.request"
+
+	PermPurchaseOrdersManage = "purchase_orders.manage"
+
+	PermCustomersCreditLimit = "customers.credit_limit"
+
+	PermSuppliersRead   = "suppliers.read"
+	PermSuppliersManage = "suppliers.manage"
+	PermSuppliersVoid   = "suppliers.void"
 )
 
 // Permissions is the full catalogue, synchronised into the database by Seed.
@@ -73,6 +88,21 @@ var Permissions = []authz.Permission{
 
 	{Name: PermSyncPull, Description: "Download changes to a device"},
 	{Name: PermSyncPush, Description: "Upload changes from a device"},
+
+	{Name: PermSalesRead, Description: "View sales"},
+	{Name: PermSalesCreate, Description: "Record a sale"},
+	{Name: PermSalesVoid, Description: "Void a sale"},
+
+	{Name: PermStockRead, Description: "View stock requests and purchase orders"},
+	{Name: PermStockRequest, Description: "Note a product that needs ordering"},
+
+	{Name: PermPurchaseOrdersManage, Description: "Place and cancel purchase orders"},
+
+	{Name: PermCustomersCreditLimit, Description: "Set how much credit a customer may run up"},
+
+	{Name: PermSuppliersRead, Description: "View suppliers and what the shop owes them"},
+	{Name: PermSuppliersManage, Description: "Add suppliers and record bills and payments to them"},
+	{Name: PermSuppliersVoid, Description: "Void a supplier bill or payment"},
 }
 
 // staffPermissions is everything a member of staff may do.
@@ -98,6 +128,19 @@ var staffPermissions = []string{
 
 	PermSyncPull,
 	PermSyncPush,
+
+	// Staff sell and notice empty shelves; that is most of their day. Voiding a
+	// sale reverses money, and placing an order commits the shop's money to a
+	// supplier, so both stay with the owner.
+	PermSalesRead,
+	PermSalesCreate,
+	PermStockRead,
+	PermStockRequest,
+
+	// Not granted, deliberately: credit limits, and everything about
+	// suppliers. A credit limit is the owner's policy, and what the shop owes
+	// its suppliers is the owner's business — staff phones do not even
+	// receive supplier records through sync.
 }
 
 // PermissionsFor returns what a role grants.

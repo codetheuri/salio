@@ -231,3 +231,29 @@ func (Amount) Schema(r huma.Registry) *huma.Schema {
 		Description: "A decimal amount with at most two decimal places, as a string.",
 	}
 }
+
+// Formatted renders an amount for people to read: thousands separated, two
+// decimal places, "-" for a negative. 1234567.5 becomes "1,234,567.50".
+//
+// Works from String's exact decimal text rather than converting to a float,
+// so formatting can never round a value it is only meant to display.
+func (a Amount) Formatted() string {
+	s := a.String()
+
+	neg := strings.HasPrefix(s, "-")
+	s = strings.TrimPrefix(s, "-")
+	whole, frac, _ := strings.Cut(s, ".")
+
+	var b strings.Builder
+	for i, digit := range whole {
+		if i > 0 && (len(whole)-i)%3 == 0 {
+			b.WriteByte(',')
+		}
+		b.WriteRune(digit)
+	}
+	out := b.String() + "." + frac
+	if neg {
+		return "-" + out
+	}
+	return out
+}

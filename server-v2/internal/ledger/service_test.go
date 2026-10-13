@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/codetheuri/tusk/v2/pkg/tenant"
 	"github.com/google/uuid"
@@ -56,6 +57,11 @@ func newFixture(t *testing.T) fixture {
 	}
 }
 
+func cash() *domain.PaymentMethod {
+	m := domain.PaymentCash
+	return &m
+}
+
 func mustParse(t *testing.T, s string) money.Amount {
 	t.Helper()
 	a, err := money.Parse(s)
@@ -72,6 +78,7 @@ func TestCreate_ADebtIncreasesTheBalance(t *testing.T) {
 	in.Body.CustomerID = f.customerID
 	in.Body.Type = domain.TypeDebt
 	in.Body.Amount = mustParse(t, "1500.50")
+	in.Body.Description = "test entry"
 
 	v, err := f.svc.Create(f.ctx, f.userID, in)
 	if err != nil {
@@ -95,12 +102,15 @@ func TestCreate_APaymentReducesTheBalance(t *testing.T) {
 
 	var debt ledger.CreateInput
 	debt.Body.CustomerID, debt.Body.Type, debt.Body.Amount = f.customerID, domain.TypeDebt, mustParse(t, "1000")
+	debt.Body.Description = "test entry"
 	if _, err := f.svc.Create(f.ctx, f.userID, debt); err != nil {
 		t.Fatalf("debt: %v", err)
 	}
 
 	var payment ledger.CreateInput
 	payment.Body.CustomerID, payment.Body.Type, payment.Body.Amount = f.customerID, domain.TypePayment, mustParse(t, "400")
+	payment.Body.PaymentMethod = cash()
+	payment.Body.Description = "test entry"
 	if _, err := f.svc.Create(f.ctx, f.userID, payment); err != nil {
 		t.Fatalf("payment: %v", err)
 	}
@@ -114,46 +124,46 @@ func TestCreate_APaymentReducesTheBalance(t *testing.T) {
 	}
 }
 
-// TestCreate_RejectsAPaymentExceedingTheBalance is the rule carried over from
-// v1: a customer cannot be paid into credit through this endpoint.
-func TestCreate_RejectsAPaymentExceedingTheBalance(t *testing.T) {
+// TestCreate_APaymentLargerThanTheBalanceBecomesAnAdvance is the rule as the
+// shops asked for it: a deposit or a pre-payment is a real thing that happens at
+// the counter, and the ledger has to be able to record it. The surplus sits on
+// the account as a negative balance and is used up by the next debts.
+func TestCreate_APaymentLargerThanTheBalanceBecomesAnAdvance(t *testing.T) {
 	f := newFixture(t)
 
 	var debt ledger.CreateInput
 	debt.Body.CustomerID, debt.Body.Type, debt.Body.Amount = f.customerID, domain.TypeDebt, mustParse(t, "500")
+	debt.Body.Description = "2 bags maize flour"
 	if _, err := f.svc.Create(f.ctx, f.userID, debt); err != nil {
 		t.Fatalf("debt: %v", err)
 	}
 
 	var payment ledger.CreateInput
-	payment.Body.CustomerID, payment.Body.Type, payment.Body.Amount = f.customerID, domain.TypePayment, mustParse(t, "500.01")
-	if _, err := f.svc.Create(f.ctx, f.userID, payment); !errors.Is(err, ledger.ErrExceedsBalance) {
-		t.Fatalf("got %v, want ErrExceedsBalance", err)
+	payment.Body.CustomerID, payment.Body.Type, payment.Body.Amount = f.customerID, domain.TypePayment, mustParse(t, "800")
+	payment.Body.PaymentMethod = cash()
+	payment.Body.Description = "cash, includes deposit for next week"
+	if _, err := f.svc.Create(f.ctx, f.userID, payment); err != nil {
+		t.Fatalf("a payment above the balance was refused: %v", err)
 	}
 
-	// Exactly the balance must be allowed — the boundary itself is not an error.
-	var exact ledger.CreateInput
-	exact.Body.CustomerID, exact.Body.Type, exact.Body.Amount = f.customerID, domain.TypePayment, mustParse(t, "500")
-	if _, err := f.svc.Create(f.ctx, f.userID, exact); err != nil {
-		t.Fatalf("payment equal to balance should succeed: %v", err)
+	if got := balanceOf(t, f); got.String() != "-300.00" {
+		t.Fatalf("balance = %s, want -300.00: the 300 surplus is an advance held for the customer", got)
 	}
 }
 
-// TestCreate_ConcurrentPaymentsCannotTogetherExceedTheBalance is the race the
-// row lock in Repository.Create exists to close. Without it, two goroutines can
-// each read the same starting balance, each individually pass the check, and
-// together take the customer negative.
-func TestCreate_ConcurrentPaymentsCannotTogetherExceedTheBalance(t *testing.T) {
+// TestCreate_ConcurrentWritesAllLand is the race the customer row lock guards
+// now that there is no ceiling to protect: every write must land, none may be
+// lost, and the total must be exact.
+func TestCreate_ConcurrentWritesAllLand(t *testing.T) {
 	f := newFixture(t)
 
 	var debt ledger.CreateInput
 	debt.Body.CustomerID, debt.Body.Type, debt.Body.Amount = f.customerID, domain.TypeDebt, mustParse(t, "1000")
+	debt.Body.Description = "opening debt"
 	if _, err := f.svc.Create(f.ctx, f.userID, debt); err != nil {
 		t.Fatalf("seed debt: %v", err)
 	}
 
-	// Ten payments of 150 against a balance of 1000. At most 6 can succeed
-	// (900), a 7th would reach 1050 and must be refused, regardless of ordering.
 	const attempts = 10
 	var wg sync.WaitGroup
 	results := make([]error, attempts)
@@ -163,23 +173,76 @@ func TestCreate_ConcurrentPaymentsCannotTogetherExceedTheBalance(t *testing.T) {
 			defer wg.Done()
 			var in ledger.CreateInput
 			in.Body.CustomerID, in.Body.Type, in.Body.Amount = f.customerID, domain.TypePayment, mustParse(t, "150")
+			in.Body.PaymentMethod = cash()
+			in.Body.Description = "instalment"
 			_, results[i] = f.svc.Create(f.ctx, f.userID, in)
 		}(i)
 	}
 	wg.Wait()
 
-	succeeded := 0
-	for _, err := range results {
-		if err == nil {
-			succeeded++
-		} else if !errors.Is(err, ledger.ErrExceedsBalance) {
-			t.Errorf("unexpected error: %v", err)
+	for i, err := range results {
+		if err != nil {
+			t.Errorf("payment %d failed: %v", i, err)
 		}
 	}
-	if succeeded != 6 {
-		t.Errorf("%d of %d concurrent payments succeeded, want exactly 6", succeeded, attempts)
+	// 1000 owed, 1500 paid: 500 held as an advance, to the cent.
+	if got := balanceOf(t, f); got.String() != "-500.00" {
+		t.Fatalf("balance = %s, want -500.00", got)
+	}
+}
+
+func TestCreate_RequiresADescription(t *testing.T) {
+	f := newFixture(t)
+
+	for _, desc := range []string{"", "   "} {
+		var in ledger.CreateInput
+		in.Body.CustomerID, in.Body.Type, in.Body.Amount = f.customerID, domain.TypeDebt, mustParse(t, "100")
+		in.Body.Description = desc
+		if _, err := f.svc.Create(f.ctx, f.userID, in); !errors.Is(err, ledger.ErrDescriptionRequired) {
+			t.Errorf("description %q: got %v, want ErrDescriptionRequired", desc, err)
+		}
+	}
+}
+
+func TestGet_ReturnsOneTransactionIncludingAVoidedOne(t *testing.T) {
+	f := newFixture(t)
+
+	var in ledger.CreateInput
+	in.Body.CustomerID, in.Body.Type, in.Body.Amount = f.customerID, domain.TypeDebt, mustParse(t, "250")
+	in.Body.Description = "1 Duodip 20ml"
+	created, err := f.svc.Create(f.ctx, f.userID, in)
+	if err != nil {
+		t.Fatalf("create: %v", err)
 	}
 
+	got, err := f.svc.Get(f.ctx, created.ID)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.Description == nil || *got.Description != "1 Duodip 20ml" || got.Amount.String() != "250.00" {
+		t.Fatalf("got %+v", got)
+	}
+
+	if err := f.svc.Void(f.ctx, created.ID); err != nil {
+		t.Fatalf("void: %v", err)
+	}
+	// Someone asking "what happened to that 250?" must be told it was voided,
+	// not that it never existed.
+	voided, err := f.svc.Get(f.ctx, created.ID)
+	if err != nil {
+		t.Fatalf("get after void: %v", err)
+	}
+	if !voided.IsDeleted {
+		t.Fatal("a voided transaction was returned as live")
+	}
+
+	if _, err := f.svc.Get(f.ctx, uuid.New()); !errors.Is(err, ledger.ErrNotFound) {
+		t.Fatalf("unknown id: got %v, want ErrNotFound", err)
+	}
+}
+
+func balanceOf(t *testing.T, f fixture) money.Amount {
+	t.Helper()
 	txs, err := f.svc.ListForCustomer(f.ctx, f.customerID)
 	if err != nil {
 		t.Fatalf("list: %v", err)
@@ -192,9 +255,7 @@ func TestCreate_ConcurrentPaymentsCannotTogetherExceedTheBalance(t *testing.T) {
 			total -= tx.Amount
 		}
 	}
-	if total.Minor() < 0 {
-		t.Fatalf("balance went negative: %s", total)
-	}
+	return total
 }
 
 func TestCreate_RejectsANonPositiveAmount(t *testing.T) {
@@ -204,6 +265,7 @@ func TestCreate_RejectsANonPositiveAmount(t *testing.T) {
 		var in ledger.CreateInput
 		in.Body.CustomerID, in.Body.Type = f.customerID, domain.TypeDebt
 		in.Body.Amount = mustParse(t, amt)
+		in.Body.Description = "test entry"
 		if _, err := f.svc.Create(f.ctx, f.userID, in); !errors.Is(err, ledger.ErrNonPositiveAmount) {
 			t.Errorf("amount %q: got %v, want ErrNonPositiveAmount", amt, err)
 		}
@@ -216,6 +278,7 @@ func TestCreate_RejectsAnInvalidType(t *testing.T) {
 	var in ledger.CreateInput
 	in.Body.CustomerID, in.Body.Type = f.customerID, "refund"
 	in.Body.Amount = mustParse(t, "100")
+	in.Body.Description = "test entry"
 	if _, err := f.svc.Create(f.ctx, f.userID, in); !errors.Is(err, ledger.ErrInvalidType) {
 		t.Fatalf("got %v, want ErrInvalidType", err)
 	}
@@ -227,6 +290,7 @@ func TestCreate_RejectsAnUnknownCustomer(t *testing.T) {
 	var in ledger.CreateInput
 	in.Body.CustomerID, in.Body.Type = uuid.New(), domain.TypeDebt
 	in.Body.Amount = mustParse(t, "100")
+	in.Body.Description = "test entry"
 	if _, err := f.svc.Create(f.ctx, f.userID, in); !errors.Is(err, ledger.ErrCustomerNotFound) {
 		t.Fatalf("got %v, want ErrCustomerNotFound", err)
 	}
@@ -241,6 +305,7 @@ func TestVoid_ExcludesTheTransactionFromTheLedger(t *testing.T) {
 	var in ledger.CreateInput
 	in.Body.CustomerID, in.Body.Type = f.customerID, domain.TypeDebt
 	in.Body.Amount = mustParse(t, "500")
+	in.Body.Description = "test entry"
 	created, err := f.svc.Create(f.ctx, f.userID, in)
 	if err != nil {
 		t.Fatalf("create: %v", err)
@@ -279,6 +344,7 @@ func TestVoid_RefusesToVoidTwice(t *testing.T) {
 	var in ledger.CreateInput
 	in.Body.CustomerID, in.Body.Type = f.customerID, domain.TypeDebt
 	in.Body.Amount = mustParse(t, "100")
+	in.Body.Description = "test entry"
 	created, err := f.svc.Create(f.ctx, f.userID, in)
 	if err != nil {
 		t.Fatalf("create: %v", err)
@@ -298,6 +364,7 @@ func TestListForCustomer_IsIsolatedBetweenTenants(t *testing.T) {
 	var in ledger.CreateInput
 	in.Body.CustomerID, in.Body.Type = f.customerID, domain.TypeDebt
 	in.Body.Amount = mustParse(t, "100")
+	in.Body.Description = "test entry"
 	if _, err := f.svc.Create(f.ctx, f.userID, in); err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -317,5 +384,36 @@ func TestListForCustomer_IsIsolatedBetweenTenants(t *testing.T) {
 	}
 	if len(txs) != 0 {
 		t.Errorf("business B saw %d of A's transactions", len(txs))
+	}
+}
+
+func TestCreate_AnUndatedEntryTakesTheBusinessesOwnDate(t *testing.T) {
+	f := newFixture(t)
+
+	// UTC+14: its calendar date is never UTC's, so an entry dated by the
+	// server's clock instead of the business's would fail here at any hour.
+	const zone = "Pacific/Kiritimati"
+	if err := f.db.WithContext(f.ctx).Model(&domain.Business{}).
+		Where("1 = 1").Update("time_zone", zone).Error; err != nil {
+		t.Fatalf("set zone: %v", err)
+	}
+	loc, _ := domain.LoadTimeZone(zone)
+	before := domain.DateIn(time.Now(), loc)
+
+	var in ledger.CreateInput
+	in.Body.CustomerID = f.customerID
+	in.Body.Type = domain.TypeDebt
+	in.Body.Amount = mustParse(t, "100")
+	in.Body.Description = "undated entry"
+	v, err := f.svc.Create(f.ctx, f.userID, in)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	after := domain.DateIn(time.Now(), loc)
+	got := v.TransactionDate
+	if !got.Equal(before) && !got.Equal(after) {
+		t.Fatalf("transaction_date = %s, want %s (today in %s); UTC's today is %s",
+			got.Format(time.DateOnly), before.Format(time.DateOnly), zone, time.Now().UTC().Format(time.DateOnly))
 	}
 }

@@ -41,14 +41,28 @@ func viewUsers(us []domain.User) []UserView {
 
 // BusinessView is the business record as returned to a client.
 type BusinessView struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	Type      *string   `json:"type,omitempty"`
+	ID      uuid.UUID `json:"id"`
+	Name    string    `json:"name"`
+	Type    *string   `json:"type,omitempty"`
+	Phone   *string   `json:"phone,omitempty"`
+	Email   *string   `json:"email,omitempty"`
+	Address *string   `json:"address,omitempty"`
+
+	// TimeZone is the IANA zone the business's dates are taken in.
+	TimeZone string `json:"time_zone"`
+
+	// HasLogo says whether GET /api/v1/business/logo will return an image, so
+	// the app can decide whether to fetch one without a request that 404s.
+	HasLogo   bool      `json:"has_logo"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func viewBusiness(b domain.Business) BusinessView {
-	return BusinessView{ID: b.ID, Name: b.Name, Type: b.Type, CreatedAt: b.CreatedAt}
+func viewBusiness(b domain.Business, hasLogo bool) BusinessView {
+	return BusinessView{
+		ID: b.ID, Name: b.Name, Type: b.Type,
+		Phone: b.Phone, Email: b.Email, Address: b.Address,
+		TimeZone: b.TimeZone, HasLogo: hasLogo, CreatedAt: b.CreatedAt,
+	}
 }
 
 // --- Requests ---
@@ -60,6 +74,10 @@ type RegisterBusinessInput struct {
 		Name         string `json:"name" required:"true" minLength:"2" maxLength:"255" doc:"The owner's name"`
 		Phone        string `json:"phone" required:"true" minLength:"9" maxLength:"50" doc:"Used to sign in"`
 		Password     string `json:"password" required:"true" minLength:"4" maxLength:"72" doc:"At least 8 characters"`
+
+		// The app sends the phone's own zone, so a shop outside Kenya gets
+		// the right dates from its first entry without a settings visit.
+		TimeZone string `json:"time_zone,omitempty" maxLength:"64" doc:"IANA zone, e.g. Africa/Nairobi. Defaults to Africa/Nairobi."`
 	}
 }
 
@@ -89,7 +107,34 @@ type UpdateBusinessInput struct {
 	Body struct {
 		Name string `json:"name" required:"true" minLength:"2" maxLength:"255"`
 		Type string `json:"type,omitempty" maxLength:"100"`
+
+		// Printed in the letterhead of every PDF. Sending an empty string
+		// clears one; leaving a field out does the same, since this is a full
+		// replacement of the business details rather than a patch.
+		Phone   string `json:"phone,omitempty" maxLength:"50" doc:"Shown on purchase orders and statements"`
+		Email   string `json:"email,omitempty" maxLength:"255" doc:"Shown on purchase orders and statements"`
+		Address string `json:"address,omitempty" maxLength:"500" doc:"e.g. Shop 4, Kiambu Road, Ruiru"`
+
+		// Unlike the contact details, leaving this out keeps the current
+		// zone: a client that predates the field must not reset a shop in
+		// Lagos to Nairobi by saving its name.
+		TimeZone string `json:"time_zone,omitempty" maxLength:"64" doc:"IANA zone, e.g. Africa/Nairobi. Omit to keep the current one."`
 	}
+}
+
+// UploadLogoInput takes the image as the raw request body.
+//
+// A raw body rather than multipart: one image, no other fields, and a phone app
+// can send bytes with a Content-Type in one line, where multipart needs a
+// boundary-encoding library.
+type UploadLogoInput struct {
+	RawBody []byte `contentType:"image/png" doc:"A PNG or JPEG, at most 512 KB"`
+}
+
+type LogoOutput struct {
+	ContentType  string `header:"Content-Type"`
+	CacheControl string `header:"Cache-Control"`
+	Body         []byte
 }
 
 type StaffIDInput struct {

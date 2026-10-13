@@ -57,8 +57,10 @@ func main() {
 		log.Fatalf("purge failed: %v", err)
 	}
 
-	fmt.Printf("swept %d businesses: %d customers, %d transactions, %d push records collected\n",
-		report.Businesses, report.Customers, report.Transactions, report.Operations)
+	fmt.Printf("swept %d businesses: %d customers, %d transactions, %d sales, %d stock requests, "+
+		"%d suppliers, %d supplier entries, %d push records collected\n",
+		report.Businesses, report.Customers, report.Transactions, report.Sales, report.StockRequests,
+		report.Suppliers, report.SupplierTxs, report.Operations)
 	fmt.Printf("tombstone horizon is now %d — a device pulling with a cursor at or below that is told to resync\n",
 		report.Horizon)
 }

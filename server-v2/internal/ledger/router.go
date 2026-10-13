@@ -33,6 +33,14 @@ func RegisterRoutes(api huma.API, db *gorm.DB, log logger.Logger) {
 	}, rbac.PermTransactionsCreate), handler.Create)
 
 	huma.Register(api, guard.Protected(huma.Operation{
+		OperationID: "get-transaction",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/transactions/{transactionID}",
+		Summary:     "View one transaction, including a voided one",
+		Tags:        []string{"Transactions"},
+	}, rbac.PermTransactionsRead), handler.Get)
+
+	huma.Register(api, guard.Protected(huma.Operation{
 		OperationID: "void-transaction",
 		Method:      http.MethodDelete,
 		Path:        "/api/v1/transactions/{transactionID}",

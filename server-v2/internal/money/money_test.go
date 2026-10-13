@@ -180,3 +180,18 @@ func TestSchema_DeclaresAStringNotAnInteger(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatted_SeparatesThousandsWithoutRounding(t *testing.T) {
+	for in, want := range map[string]string{
+		"0.00": "0.00", "5.00": "5.00", "999.99": "999.99", "1000.00": "1,000.00",
+		"1234567.50": "1,234,567.50", "-2500.10": "-2,500.10",
+	} {
+		a, err := money.Parse(in)
+		if err != nil {
+			t.Fatalf("Parse(%q): %v", in, err)
+		}
+		if got := a.Formatted(); got != want {
+			t.Errorf("Formatted(%s) = %q, want %q", in, got, want)
+		}
+	}
+}

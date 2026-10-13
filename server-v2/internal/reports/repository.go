@@ -11,6 +11,7 @@ import (
 
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/money"
+	"salio/server-v2/internal/shopclock"
 )
 
 // overdueThreshold is how long a positive balance can sit untouched before it
@@ -58,12 +59,34 @@ func (r *Repository) Summary(ctx context.Context) (*SummaryView, error) {
 		return nil, fmt.Errorf("counting customers: %w", err)
 	}
 
-	if err := r.db.WithContext(ctx).Model(&domain.Transaction{}).
-		Select("COALESCE(SUM(CASE WHEN type = 'debt' THEN amount ELSE -amount END), 0)").
-		Where("is_deleted = false").
-		Scan(&summary.TotalOutstandingDebt).Error; err != nil {
-		return nil, fmt.Errorf("summing outstanding debt: %w", err)
+	// Per customer first, then split by sign. One net sum across the whole
+	// business — what this used to be — stopped meaning anything once advances
+	// were allowed: a customer owing 1,000 and another holding a 300 advance
+	// netted to "700 outstanding", which is neither what is owed to the shop
+	// nor what the shop owes back.
+	var totals struct {
+		Owed     money.Amount
+		Advances money.Amount
+		InCredit int
 	}
+	if err := r.db.WithContext(ctx).Raw(`
+		SELECT
+			COALESCE(SUM(balance) FILTER (WHERE balance > 0), 0)  AS owed,
+			COALESCE(-SUM(balance) FILTER (WHERE balance < 0), 0) AS advances,
+			COUNT(*) FILTER (WHERE balance < 0)                   AS in_credit
+		FROM (
+			SELECT SUM(CASE WHEN t.type = 'debt' THEN t.amount ELSE -t.amount END) AS balance
+			FROM transactions t
+			JOIN customers c ON c.id = t.customer_id AND c.business_id = ?
+			WHERE t.business_id = ? AND t.is_deleted = false AND c.is_deleted = false
+			GROUP BY t.customer_id
+		) AS per_customer
+	`, businessID, businessID).Scan(&totals).Error; err != nil {
+		return nil, fmt.Errorf("summing balances: %w", err)
+	}
+	summary.TotalOutstandingDebt = totals.Owed
+	summary.TotalAdvancesHeld = totals.Advances
+	summary.CustomersInCredit = totals.InCredit
 
 	since := time.Now().Add(-30 * 24 * time.Hour)
 	if err := r.db.WithContext(ctx).Model(&domain.Transaction{}).
@@ -177,4 +200,9 @@ func toDebtorViews(rows []debtorRow) []DebtorView {
 		})
 	}
 	return out
+}
+
+// Today is the business's current calendar date, in its own time zone.
+func (r *Repository) Today(ctx context.Context) (time.Time, error) {
+	return shopclock.Today(ctx, r.db)
 }
