@@ -7,9 +7,8 @@ import (
 	"log"
 	"os"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"github.com/codetheuri/tusk/v2/config"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"salio/server-v2/database"
 )
@@ -18,6 +17,14 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("usage: migrate <up|down|reset|status>")
 		os.Exit(1)
+	}
+
+	// Migrations change the schema, which the application role must not be
+	// able to do (deploy/postgres/roles.sql). When MIGRATION_DB_USER is set,
+	// connect as that owner role instead of the DB_USER the API runs as.
+	if owner := os.Getenv("MIGRATION_DB_USER"); owner != "" {
+		os.Setenv("DB_USER", owner)
+		os.Setenv("DB_PASS", os.Getenv("MIGRATION_DB_PASS"))
 	}
 
 	cfg, err := config.LoadConfig()

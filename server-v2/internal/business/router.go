@@ -126,6 +126,24 @@ func RegisterRoutes(api huma.API, db *gorm.DB, jwtSecret string, tokenTTL time.D
 	}, ""), handler.UpdateMe)
 
 	huma.Register(api, guard.Protected(huma.Operation{
+		OperationID: "change-my-password",
+		Method:      http.MethodPut,
+		Path:        "/api/v1/users/me/password",
+		Summary:     "Change your own password",
+		Description: "Signs out every other device. Returns a new token for this one.",
+		Tags:        []string{"Users"},
+	}, ""), handler.ChangePassword)
+
+	huma.Register(api, guard.Protected(huma.Operation{
+		OperationID: "reset-staff-password",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/staff/{userID}/reset-password",
+		Summary:     "Give a staff member a temporary password (owner only)",
+		Description: "Signs the staff member out everywhere. They must choose a new password when they next sign in.",
+		Tags:        []string{"Users"},
+	}, rbac.PermStaffManage), handler.ResetStaffPassword)
+
+	huma.Register(api, guard.Protected(huma.Operation{
 		OperationID: "list-staff",
 		Method:      http.MethodGet,
 		Path:        "/api/v1/staff",

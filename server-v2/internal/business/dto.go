@@ -19,13 +19,19 @@ type UserView struct {
 	Phone      string      `json:"phone"`
 	Role       domain.Role `json:"role"`
 	IsActive   bool        `json:"is_active"`
-	CreatedAt  time.Time   `json:"created_at"`
+
+	// MustChangePassword: the owner reset this password. The app shows the
+	// change-password screen and nothing else until it is changed; the server
+	// refuses everything else meanwhile (internal/session).
+	MustChangePassword bool      `json:"must_change_password"`
+	CreatedAt          time.Time `json:"created_at"`
 }
 
 func viewUser(u domain.User) UserView {
 	return UserView{
 		ID: u.ID, BusinessID: u.BusinessID, Name: u.Name,
-		Phone: u.Phone, Role: u.Role, IsActive: u.IsActive, CreatedAt: u.CreatedAt,
+		Phone: u.Phone, Role: u.Role, IsActive: u.IsActive,
+		MustChangePassword: u.MustChangePassword, CreatedAt: u.CreatedAt,
 	}
 }
 
@@ -73,7 +79,7 @@ type RegisterBusinessInput struct {
 		BusinessType string `json:"business_type,omitempty" maxLength:"100" doc:"Kiosk, agrovet, hardware, and so on"`
 		Name         string `json:"name" required:"true" minLength:"2" maxLength:"255" doc:"The owner's name"`
 		Phone        string `json:"phone" required:"true" minLength:"9" maxLength:"50" doc:"Used to sign in"`
-		Password     string `json:"password" required:"true" minLength:"4" maxLength:"72" doc:"At least 8 characters"`
+		Password     string `json:"password" required:"true" minLength:"8" maxLength:"72" doc:"At least 8 characters"`
 
 		// The app sends the phone's own zone, so a shop outside Kenya gets
 		// the right dates from its first entry without a settings visit.
@@ -137,8 +143,27 @@ type LogoOutput struct {
 	Body         []byte
 }
 
+type ChangePasswordInput struct {
+	Body struct {
+		CurrentPassword string `json:"current_password" required:"true" minLength:"1" maxLength:"72"`
+		NewPassword     string `json:"new_password" required:"true" minLength:"8" maxLength:"72" doc:"At least 8 characters"`
+	}
+}
+
+type ResetPasswordOutput struct {
+	Body struct {
+		Success bool   `json:"success"`
+		Message string `json:"message"`
+		Data    struct {
+			// Shown once, to the owner, to pass on in person. The staff member
+			// must replace it at their next sign-in.
+			TemporaryPassword string `json:"temporary_password"`
+		} `json:"data"`
+	}
+}
+
 type StaffIDInput struct {
-	UserID uuid.UUID `path:"userID" doc:"The staff member to deactivate"`
+	UserID uuid.UUID `path:"userID" doc:"The staff member"`
 }
 
 type EmptyInput struct{}

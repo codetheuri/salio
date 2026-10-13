@@ -59,6 +59,8 @@ Every SQLite query needs `business_id = ? AND is_deleted = 0`.
 
 The existing `server/` stays live and untouched until the replacement reaches parity.
 
+**Running server-v2** — security model, the two database roles, Docker deployment and CI: [`docs/09-operations.md`](docs/09-operations.md). It must never run as a superuser: PostgreSQL silently exempts superusers from row-level security, which is how server-v2 ran from Phase 3 until 2026-10-13 without RLS ever being exercised.
+
 **Known defects** are catalogued in the plan (§5, §8) and in `docs/feedback.txt`, which holds raw notes from a three-business field test. Two matter most:
 
 - Sync silently and *permanently* hides records from other devices. Root cause is a commit-visibility race in the timestamp watermark, diagnosed in §5 — not a missing filter.

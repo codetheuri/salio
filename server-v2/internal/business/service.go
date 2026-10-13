@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -54,6 +55,14 @@ var (
 	ErrInviteUnusable   = errors.New("that invite code is invalid, already used, or expired")
 	ErrCannotRemoveSelf = errors.New("you cannot remove your own account")
 	ErrLastOwner        = errors.New("a business must keep at least one active owner")
+
+	// Not 401: a client treats 401 as "your session ended" and signs out. A
+	// mistyped current password is an input error on a session that is fine.
+	ErrWrongPassword    = errors.New("the current password is not correct")
+	ErrSamePassword     = errors.New("the new password must be different from the current one")
+	ErrCannotResetSelf  = errors.New("to change your own password, use change password")
+	ErrCannotResetOwner = errors.New("only a staff member's password can be reset; an owner changes their own")
+	ErrResetInactive    = errors.New("that account is deactivated")
 )
 
 // Authenticated is what a successful sign-in produces.
@@ -225,6 +234,92 @@ func (s *Service) Me(ctx context.Context, userID uuid.UUID) (*domain.User, error
 
 func (s *Service) UpdateMe(ctx context.Context, userID uuid.UUID, name string) (*domain.User, error) {
 	return s.repo.UpdateUserName(ctx, userID, strings.TrimSpace(name))
+}
+
+// ChangePassword replaces the caller's password, ends every other session, and
+// returns a fresh token so the device making the change stays signed in.
+func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, current, next string) (*Authenticated, error) {
+	u, err := s.repo.GetUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(current)) != nil {
+		return nil, ErrWrongPassword
+	}
+	if current == next {
+		return nil, ErrSamePassword
+	}
+	hash, err := hashPassword(next)
+	if err != nil {
+		return nil, err
+	}
+
+	// Every session from before this instant ends — including a stolen phone's.
+	// This device gets a new token, issued after the cut-off.
+	now := time.Now().UTC()
+	if err := s.repo.SetPassword(ctx, userID, hash, false, now); err != nil {
+		return nil, err
+	}
+	u.MustChangePassword = false
+	return s.issue(*u)
+}
+
+// ResetStaffPassword gives a staff member a temporary password, ends their
+// sessions, and makes them choose their own at the next sign-in.
+//
+// For the person who has forgotten theirs and has no other way back in: there
+// is no email, and an SMS reset needs an SMS provider. The owner reads the
+// temporary password to them in person. It is shown once and only its hash is
+// stored.
+//
+// Staff only. Letting one owner reset another's password would let either
+// co-owner lock the other out of their own business.
+func (s *Service) ResetStaffPassword(ctx context.Context, actorID, targetID uuid.UUID) (string, error) {
+	if actorID == targetID {
+		return "", ErrCannotResetSelf
+	}
+	target, err := s.repo.GetUser(ctx, targetID)
+	if err != nil {
+		return "", err
+	}
+	switch {
+	case target.Role != domain.RoleStaff:
+		return "", ErrCannotResetOwner
+	case !target.IsActive:
+		return "", ErrResetInactive
+	}
+
+	temporary, err := temporaryPassword()
+	if err != nil {
+		return "", err
+	}
+	hash, err := hashPassword(temporary)
+	if err != nil {
+		return "", err
+	}
+	if err := s.repo.SetPassword(ctx, targetID, hash, true, time.Now().UTC()); err != nil {
+		return "", err
+	}
+	return temporary, nil
+}
+
+// temporaryAlphabet leaves out characters that are confused when read aloud or
+// copied by hand: 0/O, 1/I/L.
+const temporaryAlphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
+// temporaryPassword is 10 characters from a 31-letter alphabet: about 50 bits,
+// from crypto/rand. Short enough to read out over a counter, and it only has to
+// survive until its owner replaces it at the next sign-in.
+func temporaryPassword() (string, error) {
+	b := make([]byte, 10)
+	for i := range b {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(temporaryAlphabet))))
+		if err != nil {
+			return "", fmt.Errorf("generating a temporary password: %w", err)
+		}
+		b[i] = temporaryAlphabet[n.Int64()]
+	}
+	return string(b), nil
 }
 
 func (s *Service) ListStaff(ctx context.Context) ([]domain.User, error) {

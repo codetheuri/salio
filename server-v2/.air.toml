@@ -1,3 +1,11 @@
+#:schema ./.air.schema.json
+# Config for Air, the Go live-reloader (github.com/air-verse/air): `air` rebuilds
+# and restarts the API whenever a watched file changes.
+#
+# The directive above points editors at a schema for *this* Air. Without it, the
+# public schema catalog matches the file name to Posit's Air, an unrelated R
+# formatter, and every key below shows as an error.
+
 root = "."
 tmp_dir = "tmp"
 

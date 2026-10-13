@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm/clause"
 
 	"salio/server-v2/internal/domain"
+	"salio/server-v2/internal/identity"
 )
 
 // ErrNotFound is returned when a record does not exist, or exists in another
@@ -36,6 +37,11 @@ func NewRepository(db *gorm.DB) *Repository { return &Repository{db: db} }
 // registration creates the tenant, and login has to find a user by phone across
 // every business, because the sign-in form asks only for a phone and a password.
 // Grep for Unscoped and this is the complete list.
+//
+// Unscoped only silences the GORM tenant callbacks. Row-level security still
+// applies, so each of these also either declares the new tenant itself
+// (registering, joining) or reads through the identity door (signing in,
+// checking a phone) — see internal/identity.
 
 // CreateBusinessWithOwner registers a shop and its first user atomically.
 //
@@ -59,6 +65,12 @@ func (r *Repository) CreateBusinessWithOwner(
 		if err := tenant.Unscoped(tx).Create(b).Error; err != nil {
 			return fmt.Errorf("creating business: %w", err)
 		}
+		// The business exists now, so the rest of this transaction can say
+		// whose it is — which row-level security requires before the owner
+		// can be written.
+		if err := identity.DeclareTenant(tx, b.ID.String()); err != nil {
+			return err
+		}
 
 		u.BusinessID = b.ID
 		if err := tenant.Unscoped(tx).Create(u).Error; err != nil {
@@ -72,9 +84,9 @@ func (r *Repository) CreateBusinessWithOwner(
 // FindUserByPhone locates a user for sign-in.
 func (r *Repository) FindUserByPhone(ctx context.Context, phone string) (*domain.User, error) {
 	var u domain.User
-	err := tenant.Unscoped(r.db.WithContext(ctx)).
-		Where("phone = ?", phone).
-		First(&u).Error
+	err := identity.Lookup(ctx, r.db, func(tx *gorm.DB) error {
+		return tx.Where("phone = ?", phone).First(&u).Error
+	})
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrNotFound
 	}
@@ -90,10 +102,9 @@ func (r *Repository) FindUserByPhone(ctx context.Context, phone string) (*domain
 // this, a duplicate surfaces as a constraint violation the client cannot act on.
 func (r *Repository) PhoneTaken(ctx context.Context, phone string) (bool, error) {
 	var n int64
-	err := tenant.Unscoped(r.db.WithContext(ctx)).
-		Model(&domain.User{}).
-		Where("phone = ?", phone).
-		Count(&n).Error
+	err := identity.Lookup(ctx, r.db, func(tx *gorm.DB) error {
+		return tx.Model(&domain.User{}).Where("phone = ?", phone).Count(&n).Error
+	})
 	return n > 0, err
 }
 
@@ -114,8 +125,33 @@ func (r *Repository) JoinBusiness(
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		now := time.Now()
 
+		// Which business is this code for? Read through the identity door,
+		// which is then closed again before anything is written.
+		var found domain.BusinessInvite
+		if err := identity.Open(tx); err != nil {
+			return err
+		}
+		err := tenant.Unscoped(tx).Select("id", "business_id").
+			Where("code = ? AND used_at IS NULL AND expires_at > ?", code, now).
+			First(&found).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("finding invite: %w", err)
+		}
+		if err := identity.Close(tx); err != nil {
+			return err
+		}
+		if err := identity.DeclareTenant(tx, found.BusinessID.String()); err != nil {
+			return err
+		}
+
 		// Same reasoning as CreateBusinessWithOwner: a fresh tenant.Unscoped(tx)
-		// before every statement, never reused across more than one.
+		// before every statement, never reused across more than one. The claim
+		// is still the conditional UPDATE: the read above only located the
+		// business, and two people redeeming one code at once must still see
+		// exactly one of them succeed.
 		var invite domain.BusinessInvite
 		claim := tenant.Unscoped(tx).Model(&invite).
 			Clauses(clause.Returning{}). // so the claimed row comes back in the same round trip
@@ -184,6 +220,25 @@ func (r *Repository) UpdateBusiness(ctx context.Context, d businessDetails) (*do
 		return nil, err
 	}
 	return b, nil
+}
+
+// SetPassword stores a new password hash and ends every session that began
+// before validAfter (see internal/session).
+func (r *Repository) SetPassword(ctx context.Context, userID uuid.UUID, hash string, mustChange bool, validAfter time.Time) error {
+	res := r.db.WithContext(ctx).Model(&domain.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]any{
+			"password_hash":        hash,
+			"must_change_password": mustChange, // in a map, so false is written, not skipped
+			"sessions_valid_after": validAfter,
+		})
+	if res.Error != nil {
+		return fmt.Errorf("setting password: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *Repository) GetUser(ctx context.Context, userID uuid.UUID) (*domain.User, error) {

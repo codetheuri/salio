@@ -3,6 +3,7 @@ package business_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -429,5 +430,51 @@ func TestTimeZone_AnUpdateThatLeavesItOutKeepsIt(t *testing.T) {
 	}
 	if b.TimeZone != "Africa/Lagos" {
 		t.Fatalf("time_zone after an update without it = %q, want Africa/Lagos", b.TimeZone)
+	}
+}
+
+func TestPasswords_TheRulesAroundChangingAndResetting(t *testing.T) {
+	s, db := newService(t)
+	owner := register(t, s, "0711000150")
+	ctx := tenant.WithTenant(context.Background(), owner.User.BusinessID)
+
+	if _, err := s.ChangePassword(ctx, owner.User.ID, "not the password", "a new password"); !errors.Is(err, business.ErrWrongPassword) {
+		t.Errorf("wrong current password: got %v", err)
+	}
+	if _, err := s.ChangePassword(ctx, owner.User.ID, "correct horse battery staple", "correct horse battery staple"); !errors.Is(err, business.ErrSamePassword) {
+		t.Errorf("same password: got %v", err)
+	}
+	if _, err := s.ResetStaffPassword(ctx, owner.User.ID, owner.User.ID); !errors.Is(err, business.ErrCannotResetSelf) {
+		t.Errorf("resetting your own: got %v", err)
+	}
+
+	// A second owner cannot be reset by the first: either could otherwise lock
+	// the other out of their own business.
+	coOwner := &domain.User{Name: "Co-owner", Phone: "0711000151", PasswordHash: "x", Role: domain.RoleOwner, IsActive: true}
+	if err := db.WithContext(ctx).Create(coOwner).Error; err != nil {
+		t.Fatalf("co-owner: %v", err)
+	}
+	if _, err := s.ResetStaffPassword(ctx, owner.User.ID, coOwner.ID); !errors.Is(err, business.ErrCannotResetOwner) {
+		t.Errorf("resetting another owner: got %v", err)
+	}
+
+	staff := &domain.User{Name: "Staff", Phone: "0711000152", PasswordHash: "x", Role: domain.RoleStaff, IsActive: true}
+	if err := db.WithContext(ctx).Create(staff).Error; err != nil {
+		t.Fatalf("staff: %v", err)
+	}
+	temp, err := s.ResetStaffPassword(ctx, owner.User.ID, staff.ID)
+	if err != nil || len(temp) != 10 || strings.ContainsAny(temp, "0O1IL") {
+		t.Fatalf("temporary password %q, %v: want 10 characters without look-alikes", temp, err)
+	}
+	got, err := s.Me(ctx, staff.ID)
+	if err != nil || !got.MustChangePassword || got.SessionsValidAfter == nil {
+		t.Fatalf("after a reset: must_change=%v sessions_valid_after=%v, %v", got.MustChangePassword, got.SessionsValidAfter, err)
+	}
+	// The staff member signs in with it, then chooses their own.
+	if _, err := s.ChangePassword(ctx, staff.ID, temp, "my own password"); err != nil {
+		t.Fatalf("changing from the temporary password: %v", err)
+	}
+	if got, _ := s.Me(ctx, staff.ID); got.MustChangePassword {
+		t.Fatal("must_change_password is still set after choosing a new one")
 	}
 }

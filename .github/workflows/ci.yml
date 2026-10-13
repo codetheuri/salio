@@ -1,0 +1,94 @@
+# Continuous integration for both backends.
+#
+# Replaces the original go.yml, which ran `go build ./...` at the repository
+# root — where there is no Go module — with Go 1.20, and only for main. It
+# could not build anything, so it never checked anything.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server-v2:
+    name: server-v2 (format, vet, test with PostgreSQL, vulnerabilities)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server-v2
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          # The tests' default DSN (internal/testsupport): root:root@127.0.0.1:5434/salio_v2_test.
+          # A superuser on purpose — the tests create databases and the
+          # restricted role that internal/server's tests run the API as.
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: salio_v2_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U root -d salio_v2_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server-v2/go.mod
+          cache-dependency-path: server-v2/go.sum
+
+      - name: Formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then echo "Not gofmt-ed:"; echo "$unformatted"; exit 1; fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      # REQUIRE_DB_TESTS turns "no database, skipping" into a failure, so a
+      # green build can never mean the database tests did not run.
+      - name: Test
+        env:
+          REQUIRE_DB_TESTS: "1"
+        run: go test -race -count=1 ./...
+
+      - name: Known vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  server-v2-image:
+    name: server-v2 (container image builds)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t salio-api:ci server-v2
+
+  server-v1:
+    name: server (v1, build and vet)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - run: go build ./...
+      - run: go vet ./...

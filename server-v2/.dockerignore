@@ -1,0 +1,8 @@
+# Never send secrets or local build output into the build context.
+.env
+**/.env
+tmp/
+bin/
+coverage*
+*.log
+.git

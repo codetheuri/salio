@@ -178,6 +178,34 @@ func (h *Handler) DeactivateStaff(ctx context.Context, in *StaffIDInput) (*Messa
 // One place for this mapping so a handler cannot forget a case and let an
 // internal error message reach a client — action is logged with detail; the
 // client gets something it can act on.
+func (h *Handler) ChangePassword(ctx context.Context, in *ChangePasswordInput) (*AuthOutput, error) {
+	sub, ok := authz.SubjectFromContext(ctx)
+	if !ok {
+		return nil, huma.Error401Unauthorized("authentication required")
+	}
+	a, err := h.service.ChangePassword(ctx, sub.UserID, in.Body.CurrentPassword, in.Body.NewPassword)
+	if err != nil {
+		return nil, h.mapError(err, "changing the password")
+	}
+	return authResponse(a, "Password changed. Other devices have been signed out."), nil
+}
+
+func (h *Handler) ResetStaffPassword(ctx context.Context, in *StaffIDInput) (*ResetPasswordOutput, error) {
+	sub, ok := authz.SubjectFromContext(ctx)
+	if !ok {
+		return nil, huma.Error401Unauthorized("authentication required")
+	}
+	temporary, err := h.service.ResetStaffPassword(ctx, sub.UserID, in.UserID)
+	if err != nil {
+		return nil, h.mapError(err, "resetting a staff password")
+	}
+	resp := &ResetPasswordOutput{}
+	resp.Body.Success = true
+	resp.Body.Message = "Give this temporary password to the staff member. They will choose their own when they sign in."
+	resp.Body.Data.TemporaryPassword = temporary
+	return resp, nil
+}
+
 func (h *Handler) mapError(err error, action string) error {
 	switch {
 	case errors.Is(err, ErrNotFound):
@@ -194,6 +222,9 @@ func (h *Handler) mapError(err error, action string) error {
 		return huma.Error401Unauthorized(err.Error())
 	case errors.Is(err, ErrInviteUnusable):
 		return huma.Error400BadRequest(err.Error())
+	case errors.Is(err, ErrWrongPassword), errors.Is(err, ErrSamePassword),
+		errors.Is(err, ErrCannotResetSelf), errors.Is(err, ErrCannotResetOwner), errors.Is(err, ErrResetInactive):
+		return huma.Error422UnprocessableEntity(err.Error())
 	case errors.Is(err, ErrCannotRemoveSelf), errors.Is(err, ErrLastOwner),
 		errors.Is(err, domain.ErrInvalidTimeZone):
 		return huma.Error422UnprocessableEntity(err.Error())

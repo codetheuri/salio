@@ -118,6 +118,16 @@ type User struct {
 	// never actually go away without taking ledger history with it.
 	IsActive bool `json:"is_active" gorm:"not null;default:true"`
 
+	// SessionsValidAfter ends every session started before it: a token issued
+	// earlier is refused. Moved by a password change or reset; nil means every
+	// unexpired token is good. See internal/session.
+	SessionsValidAfter *time.Time `json:"-"`
+
+	// MustChangePassword is set when an owner resets this user's password. Until
+	// it is cleared by choosing a new one, the only things the user can do are
+	// read their profile and change the password.
+	MustChangePassword bool `json:"must_change_password" gorm:"not null;default:false"`
+
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

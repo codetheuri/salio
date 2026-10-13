@@ -699,6 +699,22 @@ The four schema-shaping items from the product review, added before the mobile r
 - Pull and push carry `suppliers` and `supplier_transactions`.
 - There is a new conflict reason, `unknown_supplier`.
 
+### Phase 7d — Production readiness: RLS actually on, sessions, deployment (2026-10-13)
+
+Full write-up, with the reasoning: [`09-operations.md`](09-operations.md). In short:
+
+- **Row-level security had never been switched on.** The API never declared `app.tenant_id`, and every run used a superuser, which RLS exempts silently. Run as a restricted role, registration failed. Fixed in one place, `internal/tenantconn`: one connection per signed-in request, shop declared on it, cleared on release. `internal/identity` is the only path that reads users and invites before the shop is known, through a SELECT-only policy. Migration `00009` makes every policy treat a cleared setting (`''`, which used to make the uuid cast *error*) as "no shop".
+- **Sessions can end.** `internal/session` checks every signed-in request: deactivated users are refused at once (before, they kept access for up to 30 days), tokens older than a password change or reset are refused, and a pending forced change blocks everything else. New routes: `PUT /users/me/password`, and an owner-only `POST /staff/{id}/reset-password` (staff only, one-time temporary password).
+- **`internal/server`** builds the API for both `cmd/api` and an end-to-end test that **runs as a restricted role over HTTP**. That test was verified to fail when either fix is removed.
+- **Deployment:**
+  - two database roles, owner (migrations) and app (everything else), with default privileges, in `deploy/postgres/roles.sql`;
+  - a distroless image (~75 MB) and `deploy/compose.yaml` (db → migrate as owner → api + scheduled `syncgc` as app), verified from an empty volume;
+  - `REQUIRE_RLS` refuses a bypassing role, and `MIGRATE_ON_BOOT` is off in production.
+- **CI** replaced: the old workflow could not build anything. Toolchain pinned to `go1.26.9` after the `x/crypto` upgrade; `govulncheck` reports nothing reachable.
+- Tusk `testdb` lock fix on branch `fix/testdb-migrate-under-lock` (needs a release before Salio's workaround can go).
+
+**Still open before real shops:** HTTPS in front of the API, automated and restore-tested backups, and the v1 → v2 data move (deliberately deferred until the live v1 server is moved).
+
 ---
 
 ### Phase 8 — Mobile field-test backlog

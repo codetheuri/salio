@@ -1,4 +1,4 @@
-.PHONY: import-v1 import-v1-dry import-v1-verify sync-gc sync-gc-dry create-admin dev run build test test-unit test-integration test-db-setup coverage vet migrate-up migrate-down migrate-reset migrate-status clean help
+.PHONY: db-roles docker-build docker-up docker-down import-v1 import-v1-dry import-v1-verify sync-gc sync-gc-dry create-admin dev run build test test-unit test-integration test-db-setup coverage vet migrate-up migrate-down migrate-reset migrate-status clean help
 
 include .env
 export
@@ -6,13 +6,14 @@ export
 # ==============================================================================
 # Development commands
 
-## dev: run the application with hot-reloading using Air
-dev:
+## dev: apply migrations, then run with hot-reloading using Air
+## (migrations first: the API connects as the app role, which cannot change the schema)
+dev: migrate-up
 	@echo "Starting hot-reload server..."
 	@go run github.com/air-verse/air@latest
 
-## run: run the application without hot-reloading
-run:
+## run: apply migrations, then run the application without hot-reloading
+run: migrate-up
 	go run ./cmd/api
 
 ## build: build the production binary
@@ -57,7 +58,14 @@ vet:
 # migrated data; they are seeded from pkg/rbac on every server start, so there
 # is no auth-sync command here the way Tusk's own CLI has one.
 
-## migrate-up: apply all pending database migrations
+## db-roles: create the owner and app database roles (once; needs DB_ADMIN_URL, a superuser)
+db-roles:
+	psql "$(DB_ADMIN_URL)" -v db_name="$(DB_NAME)" \
+		-v owner_role="$(MIGRATION_DB_USER)" -v owner_password="$(MIGRATION_DB_PASS)" \
+		-v app_role="$(DB_USER)" -v app_password="$(DB_PASS)" \
+		-f deploy/postgres/roles.sql
+
+## migrate-up: apply all pending database migrations (as MIGRATION_DB_USER when set)
 migrate-up:
 	go run ./cmd/migrate up
 
@@ -99,6 +107,21 @@ sync-gc:
 ## sync-gc-dry: report what sync-gc would collect, deleting nothing
 sync-gc-dry:
 	go run ./cmd/syncgc -age $(or $(AGE),2160h) -dry-run
+
+# ==============================================================================
+# Containers (see deploy/compose.yaml and docs/09-operations.md)
+
+## docker-build: build the production image
+docker-build:
+	docker build -t salio-api:local .
+
+## docker-up: start database, migration, API and sweep (needs deploy/.env)
+docker-up:
+	docker compose -f deploy/compose.yaml up -d --build
+
+## docker-down: stop the stack (data is kept in the pgdata volume)
+docker-down:
+	docker compose -f deploy/compose.yaml down
 
 ## clean: remove binary and temporary files
 clean:

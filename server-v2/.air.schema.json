@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Air (Go live reload) configuration",
+  "description": "For github.com/air-verse/air. Exists because the public schema catalog maps the file name .air.toml to Posit's Air, an unrelated R formatter, so editors flagged every key here as invalid. Known keys are type-checked; unknown ones are allowed so a newer Air option is not reported as an error.",
+  "type": "object",
+  "properties": {
+    "root": { "type": "string" },
+    "testdata_dir": { "type": "string" },
+    "tmp_dir": { "type": "string" },
+    "build": {
+      "type": "object",
+      "properties": {
+        "cmd": { "type": "string" },
+        "bin": { "type": "string" },
+        "full_bin": { "type": "string" },
+        "args_bin": { "type": "array", "items": { "type": "string" } },
+        "delay": { "type": "integer", "minimum": 0 },
+        "exclude_dir": { "type": "array", "items": { "type": "string" } },
+        "exclude_file": { "type": "array", "items": { "type": "string" } },
+        "exclude_regex": { "type": "array", "items": { "type": "string" } },
+        "exclude_unchanged": { "type": "boolean" },
+        "include_dir": { "type": "array", "items": { "type": "string" } },
+        "include_ext": { "type": "array", "items": { "type": "string" } },
+        "include_file": { "type": "array", "items": { "type": "string" } },
+        "follow_symlink": { "type": "boolean" },
+        "kill_delay": { "type": ["string", "integer"] },
+        "log": { "type": "string" },
+        "poll": { "type": "boolean" },
+        "poll_interval": { "type": "integer" },
+        "pre_cmd": { "type": "array", "items": { "type": "string" } },
+        "post_cmd": { "type": "array", "items": { "type": "string" } },
+        "rerun": { "type": "boolean" },
+        "rerun_delay": { "type": "integer" },
+        "send_interrupt": { "type": "boolean" },
+        "stop_on_error": { "type": "boolean" }
+      }
+    },
+    "color": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "log": {
+      "type": "object",
+      "properties": {
+        "main_only": { "type": "boolean" },
+        "silent": { "type": "boolean" },
+        "time": { "type": "boolean" }
+      }
+    },
+    "misc": {
+      "type": "object",
+      "properties": {
+        "clean_on_exit": { "type": "boolean" }
+      }
+    },
+    "proxy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "app_port": { "type": "integer" },
+        "proxy_port": { "type": "integer" }
+      }
+    },
+    "screen": {
+      "type": "object",
+      "properties": {
+        "clear_on_rebuild": { "type": "boolean" },
+        "keep_scroll": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -1,0 +1,95 @@
+# Salio v2 on one machine: PostgreSQL, a one-off migration, the API, and the
+# scheduled tombstone sweep.
+#
+#   cp deploy/.env.example deploy/.env      # then fill in every secret
+#   docker compose -f deploy/compose.yaml up -d --build
+#
+# Order matters and is enforced: the database must be healthy, then the
+# migration runs (as the OWNER role) and must succeed, and only then do the API
+# and the sweep start (as the APP role, under row-level security).
+
+name: salio
+
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${SALIO_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_SUPERUSER}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD}
+      SALIO_OWNER_USER: ${SALIO_OWNER_USER}
+      SALIO_OWNER_PASSWORD: ${SALIO_OWNER_PASSWORD}
+      SALIO_APP_USER: ${SALIO_APP_USER}
+      SALIO_APP_PASSWORD: ${SALIO_APP_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-salio-roles.sh:ro
+      - ./postgres/roles.sql:/salio/roles.sql:ro
+    healthcheck:
+      # Over TCP (-h 127.0.0.1), not the local socket. On first start the
+      # image runs a temporary, socket-only server for the init scripts; a
+      # socket check calls that "healthy", the migration connects, and the
+      # server restarts underneath it ("connection refused"). The temporary
+      # server never listens on TCP, so this only passes for the real one.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_SUPERUSER} -d ${SALIO_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Not published to the host: only the containers below talk to it.
+
+  migrate:
+    build: ..
+    image: salio-api:local
+    entrypoint: ["/migrate", "up"]
+    environment: &db_env
+      APP_MODE: production
+      DB_DRIVER: postgres
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${SALIO_DB_NAME}
+      DB_USER: ${SALIO_APP_USER}
+      DB_PASS: ${SALIO_APP_PASSWORD}
+      # Private network between containers; use require/verify-full when the
+      # database is on another machine.
+      DB_SSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET}
+      MIGRATION_DB_USER: ${SALIO_OWNER_USER}
+      MIGRATION_DB_PASS: ${SALIO_OWNER_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: salio-api:local
+    restart: unless-stopped
+    environment:
+      <<: *db_env
+      MIGRATION_DB_USER: ""
+      MIGRATION_DB_PASS: ""
+      SERVER_PORT: "8090"
+      APP_VERSION: ${APP_VERSION:-2.0.0}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      LOG_LEVEL: info
+    ports:
+      - "${API_PORT:-8090}:8090"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  syncgc:
+    image: salio-api:local
+    entrypoint: ["/syncgc", "-every", "24h"]
+    restart: unless-stopped
+    environment:
+      <<: *db_env
+      MIGRATION_DB_USER: ""
+      MIGRATION_DB_PASS: ""
+      LOG_LEVEL: info
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
