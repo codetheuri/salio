@@ -1,0 +1,141 @@
+# Salio v2 API, for the server that already runs PostgreSQL and Nginx Proxy
+# Manager on the Docker network "tigerforge-db" (v1 runs there too, untouched).
+#
+#   First time only, creates the two database roles in the existing database:
+#     docker compose --profile setup run --rm v2-roles
+#
+#   Every deploy:
+#     docker compose up -d --build
+#
+#   Then in Nginx Proxy Manager: <v2 domain> -> http://172.20.0.40:8090
+#
+# This file holds real passwords (as asked). Keep the repository private and
+# rotate them if it is ever shared: anything committed stays in git history.
+#
+# Why the API does not use the shared superuser, even though it could connect
+# as one: PostgreSQL silently exempts superusers from row-level security, the
+# database-level wall between one shop's data and another's. The API refuses to
+# start as one (REQUIRE_RLS). So the shared superuser is used ONCE, by the
+# "setup" job below, to create two ordinary roles; after that only they are used:
+#   salio_owner  changes the schema; used by v2-migrate only
+#   salio_app    reads and writes rows; used by v2-api and v2-syncgc
+#
+# To run as the shared superuser anyway (not recommended; rehearsed and works):
+# give v2-api DB_USER/DB_PASS of the superuser, add
+# REQUIRE_RLS: "false" and MIGRATE_ON_BOOT: "true", and delete v2-migrate and the
+# depends_on lines. Tenant isolation is then two layers instead of three.
+
+name: salio-v2
+
+x-settings:
+  db_host: &db_host postgres            # the shared PostgreSQL container, by name
+  db_name: &db_name salio_dbv2          # already created on the server
+  superuser: &superuser legendroot      # setup job only
+  superuser_password: &superuser_password l3g3ndaryHub
+  owner_user: &owner_user salio_owner
+  owner_password: &owner_password 2dd95bb49606854d9966134e306ca801803225519ed1787c
+  app_user: &app_user salio_app
+  app_password: &app_password fe027deb60e72e718c5b1aa09172bd6c6fb67f5d8cf8389a
+  jwt_secret: &jwt_secret 04HylYYkJtWuHahXRU/XubbCeQtA0LRRjHbii3g+GomwYz3UVaXE74nMsoslddQQ
+
+x-api-env: &api_env
+  APP_MODE: production
+  DB_DRIVER: postgres
+  DB_HOST: *db_host
+  DB_PORT: "5432"
+  DB_NAME: *db_name
+  DB_USER: *app_user
+  DB_PASS: *app_password
+  DB_SSLMODE: disable                   # private Docker network
+  JWT_SECRET: *jwt_secret
+  LOG_LEVEL: info
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+services:
+  # Runs once per deploy as the schema owner, then exits. The API never holds
+  # the owner's password, so a compromised API cannot drop a table.
+  v2-migrate:
+    build: .
+    image: salio-v2-api:local
+    container_name: salio_v2_migrate
+    entrypoint: ["/migrate", "up"]
+    environment:
+      <<: *api_env
+      MIGRATION_DB_USER: *owner_user
+      MIGRATION_DB_PASS: *owner_password
+    networks:
+      shared:
+        ipv4_address: 172.20.0.42
+    logging: *logging
+    restart: "no"
+
+  v2-api:
+    image: salio-v2-api:local
+    container_name: salio_v2_api
+    restart: unless-stopped
+    environment:
+      <<: *api_env
+      SERVER_PORT: "8090"
+      APP_VERSION: "2.0.0"
+    expose: ["8090"]                    # not published: only the proxy reaches it
+    networks:
+      shared:
+        ipv4_address: 172.20.0.40
+    logging: *logging
+    depends_on:
+      v2-migrate:
+        condition: service_completed_successfully
+
+  # Clears old deletion markers once a day. Safe to remove for the first weeks.
+  v2-syncgc:
+    image: salio-v2-api:local
+    container_name: salio_v2_syncgc
+    entrypoint: ["/syncgc", "-every", "24h"]
+    restart: unless-stopped
+    environment: *api_env
+    networks:
+      shared:
+        ipv4_address: 172.20.0.41
+    logging: *logging
+    depends_on:
+      v2-migrate:
+        condition: service_completed_successfully
+
+  # One-off, only with --profile setup. Creates the two roles in the database
+  # that already exists, as the shared superuser. Safe to run again.
+  v2-roles:
+    profiles: ["setup"]
+    image: postgres:15-alpine
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        psql -v ON_ERROR_STOP=1
+        -v db_name="$$DB_NAME"
+        -v owner_role="$$OWNER_USER" -v owner_password="$$OWNER_PASSWORD"
+        -v app_role="$$APP_USER" -v app_password="$$APP_PASSWORD"
+        -f /roles.sql
+        && psql -At -c "SELECT rolname || ' superuser=' || rolsuper || ' bypassrls=' || rolbypassrls FROM pg_roles WHERE rolname IN ('$$OWNER_USER', '$$APP_USER') ORDER BY 1"
+    environment:
+      PGHOST: *db_host
+      PGDATABASE: *db_name
+      PGUSER: *superuser
+      PGPASSWORD: *superuser_password
+      DB_NAME: *db_name
+      OWNER_USER: *owner_user
+      OWNER_PASSWORD: *owner_password
+      APP_USER: *app_user
+      APP_PASSWORD: *app_password
+    volumes:
+      - ./deploy/postgres/roles.sql:/roles.sql:ro
+    networks:
+      - shared
+
+networks:
+  shared:
+    external: true
+    name: tigerforge-db

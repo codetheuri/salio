@@ -91,6 +91,40 @@ The image (`Dockerfile`) is ~75 MB. Everything is compiled statically into a **d
 
 Verified end to end on 2026-10-13 from an empty volume: all 31 feature checks and all 22 session checks pass against the container.
 
+### On a server that already runs v1 (shared PostgreSQL)
+
+When the server already has a PostgreSQL container and Nginx Proxy Manager on a shared Docker network (here `tigerforge-db`), v2 joins that network instead of starting its own database. The file is **`server-v2/docker-compose.yml`**. v1 is not touched.
+
+| | v1 (live) | v2 |
+|---|---|---|
+| Database | `salio_db` | `salio_dbv2`, same PostgreSQL container |
+| Database user | the shared superuser | `salio_owner` (migrations) and `salio_app` (everything else) |
+| Container names | `salio_api` | `salio_v2_api`, `salio_v2_syncgc`, `salio_v2_migrate` |
+| Address on the network | `172.20.0.15` | `.40` api, `.41` syncgc, `.42` migrate |
+| Port | `8080`, published | `8090`, **not** published: only the proxy reaches it |
+| Domain | v1's | its own, through Nginx Proxy Manager |
+
+```bash
+cd server-v2
+# 1. Put the shared PostgreSQL password into docker-compose.yml (superuser_password).
+docker network inspect tigerforge-db                       # 2. check .40-.42 are free
+docker compose --profile setup run --rm v2-roles           # 3. once: creates the two roles in salio_dbv2
+docker compose up -d --build                               # 4. every deploy
+```
+
+Then, in Nginx Proxy Manager, add a proxy host: the v2 domain, scheme `http`, forward host `172.20.0.40`, port `8090`, with a Let's Encrypt certificate and Force SSL. That is the HTTPS item below, done.
+
+**Three services, because they run on three different schedules.** `v2-migrate` runs once per deploy as the schema owner and exits (it is a job, not a server). `v2-api` runs all the time. `v2-syncgc` wakes once a day to clear old deletion markers, and is safe to remove for the first weeks. The migration is separate so that the API never holds the owner's password: a compromised API then cannot drop a table. A fourth, `v2-roles`, exists only under `--profile setup` and is not started by `up`.
+
+Why each choice:
+
+- **The shared superuser is used once, not by the API.** PostgreSQL silently exempts superusers from row-level security, and the API refuses to start as one (`REQUIRE_RLS`). `v2-roles` connects as the shared superuser to create two ordinary roles; after that only those are used. Rehearsed: the API as the shared superuser exits with "row-level security is not enforced for this database role". Running as the superuser anyway needs `REQUIRE_RLS: "false"` and `MIGRATE_ON_BOOT: "true"` (the comment in the file says how); it works, and tenant isolation drops from three layers to two.
+- **Service names `v2-*`.** On a shared network every container answers to its service name. v1 also has a service called `api`; two containers with one name make DNS hand out either, so a v2 request could reach v1.
+- **Fixed addresses.** Only the proxy needs one (`.40`); the others have them so a `docker network inspect` shows who is who. "Address already in use" means two containers were given the same one: `docker network inspect <network>` lists who holds each.
+- **Passwords are in the compose file,** by the owner's choice for a private repository. Anything committed stays in git history: rotate them if the repository is ever shared. (`deploy/compose.yaml` is the separate setup for a machine with no PostgreSQL yet; it takes its secrets from `deploy/.env`.)
+
+Rehearsed end to end on 2026-10-18 on a throwaway network and database, from this file: the setup job (twice, idempotent), migration as the owner (all 21 tables owned by `salio_owner`), register, sign in and sync over the container's fixed address, and the sweep. Not yet run on the real server.
+
 **Before real shops use it**, still to do:
 
 - **HTTPS.** Put a reverse proxy (Caddy or nginx) in front of port 8090. The API speaks plain HTTP.
