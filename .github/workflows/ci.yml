@@ -1,4 +1,4 @@
-# Continuous integration for both backends.
+# Continuous integration for both backends and the mobile app.
 #
 # Replaces the original go.yml, which ran `go build ./...` at the repository
 # root — where there is no Go module — with Go 1.20, and only for main. It
@@ -92,3 +92,45 @@ jobs:
           cache-dependency-path: server/go.sum
       - run: go build ./...
       - run: go vet ./...
+
+  mobile-v2:
+    name: mobile-v2 (format, analyze, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-v2
+    steps:
+      - uses: actions/checkout@v4
+
+      # AGP 9 needs JDK 17 or newer.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # The exact Flutter release pinned in pubspec.yaml (docs/10, D18).
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: mobile-v2/pubspec.yaml
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      # Includes the layout tests (every screen, size, text size and
+      # language) and the shared vectors in ../testdata/shared.
+      - name: Test
+        run: flutter test
+
+      # A real Gradle build: flavours, manifest and resources. Debug, because
+      # the release key is never on CI.
+      - name: Build (dev, one APK per processor type)
+        run: flutter build apk --debug --flavor dev --split-per-abi
+
+      - name: Every APK has the pubspec build number as its version code
+        run: scripts/check-version-codes.sh

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HTTPS only: tokens and ledgers cross the internet. The dev flavour
+     replaces this file to allow a server on the laptop. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

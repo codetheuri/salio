@@ -1,0 +1,56 @@
+name: salio
+description: "Salio: the shop's debt book, offline first."
+publish_to: 'none'
+
+# Version name, then the build number after the +. The build number is
+# Android's version code: every APK of a release has this one number,
+# whatever its processor type (docs/10, D19), and it must go up with every
+# release a phone installs.
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+  # The exact Flutter release, the same on every machine and in CI
+  # (docs/10, D18). Change it here and in .fvmrc together.
+  flutter: 3.44.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  flutter_riverpod: ^3.4.3
+  # Held at 17: go_router 18 moved to the separate material_ui package, while
+  # the app and flutter_localizations use Flutter's built-in Material. Mixing
+  # the two gives pages a different Theme from the app's. Move together once
+  # flutter_localizations has moved (docs/10, M0 outcome).
+  go_router: ^17.5.0
+  # Whatever version flutter_localizations requires.
+  intl: any
+  logging: ^1.3.0
+  package_info_plus: ^10.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  # Generates AppLocalizations from lib/app/l10n/*.arb (see l10n.yaml).
+  generate: true
+
+  # Roboto is bundled rather than taken from the phone, so text looks and
+  # measures the same on every phone (some makers replace the system font)
+  # and in the layout tests, which load these same files. Roboto has no
+  # 600 weight; Flutter draws w600 with the 700 file.
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700

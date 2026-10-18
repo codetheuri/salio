@@ -1,0 +1,40 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Salio",
+
+  "sectionHome": "Home",
+  "@sectionHome": { "description": "Bottom bar and side rail. One word: five labels share a 320 dp phone." },
+  "sectionCustomers": "Customers",
+  "@sectionCustomers": { "description": "Bottom bar and side rail. One word." },
+  "sectionSales": "Sales",
+  "@sectionSales": { "description": "Bottom bar and side rail. One word." },
+  "sectionStock": "Stock",
+  "@sectionStock": { "description": "Bottom bar and side rail: products that ran out, and purchase orders. One word." },
+  "sectionSuppliers": "Suppliers",
+  "@sectionSuppliers": { "description": "Side rail and the More page; owners only." },
+  "sectionReports": "Reports",
+  "@sectionReports": { "description": "Side rail and the More page." },
+  "sectionMore": "More",
+  "@sectionMore": { "description": "Bottom bar and side rail. One word." },
+
+  "placeholderBody": "This part of Salio is being built.",
+  "@placeholderBody": { "description": "Shown on a section whose screen does not exist yet (development builds)." },
+
+  "pressBackAgainToClose": "Press back again to close Salio",
+
+  "moreSections": "More sections",
+  "@moreSections": { "description": "Heading on the More page above the sections that do not fit in a phone's bottom bar." },
+
+  "aboutTitle": "About this app",
+  "aboutVersion": "Version {version} (build {build})",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": { "type": "String", "example": "2.0.3" },
+      "build": { "type": "String", "example": "15" }
+    }
+  },
+  "aboutEnvironment": "Environment",
+  "@aboutEnvironment": { "description": "Which server family this build talks to: dev, staging or prod. For support." },
+  "aboutServer": "Server"
+}

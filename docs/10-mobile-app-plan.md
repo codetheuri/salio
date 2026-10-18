@@ -1,6 +1,6 @@
 # 10 — Salio mobile app v2: execution plan
 
-**Status:** proposed on 2026-10-14. Nothing in this plan is built yet.
+**Status:** proposed on 2026-10-14. M0 (foundations) done on 2026-10-19, in `mobile-v2/`; see the outcome note under M0 in §10.
 **Builds on:** [08 — backend rewrite](08-tusk-rewrite-plan.md) (server-v2, complete) and [09 — operations](09-operations.md) (security model, deployment).
 **Borrows from:** the DairyGo app (`/var/www/html/startup/Dairy/mobile`), which already solved self-updating, layout testing and slow networks with real users.
 
@@ -771,6 +771,44 @@ Estimates are working days for one developer working with Claude. They will be r
   - A signed dev build installs on the reference phone.
   - The layout tests run on every size, at both text sizes, in both languages.
 
+> **M0 outcome (2026-10-19, branch `mobile/m0-foundations`).**
+>
+> **Built:**
+> - `mobile-v2/`, app ID `ke.co.urizon.salio`, with dev, staging and prod flavours (`.dev` and `.staging` suffixes, "Salio Dev", "Salio Staging").
+>   - Dev points at server-v2 on the laptop (`http://127.0.0.1:8090` through `adb reverse`).
+>   - Staging and prod point at `https://apis.salio.urizon.co.ke`.
+>   - `--dart-define=API_URL=` points any build elsewhere, but plain HTTP is accepted in dev only, both by the app and by Android's network security config.
+> - Android settings: min API 24 and target 36, written out rather than inherited from Flutter. Backup and device-to-device transfer are off.
+> - A release build stops without the release key. `scripts/create-release-key.sh` creates the key.
+> - Riverpod 3, go_router 17, and the translations generated from English and Swahili ARB files.
+> - The adaptive shell: the bottom bar under 600 dp, the rail from 600 dp, rail labels from 1200 dp.
+> - Placeholder sections, and a More page with the version, the environment and the server.
+> - The permission table mirrors `rbac.go` and is pinned by `testdata/shared/role_permissions.json`, read by tests on both sides.
+> - Strict analyzer settings, and a `mobile-v2` CI job.
+>
+> **Tests:** 58 tests, about a minute.
+> - The layout tests run 13 role-and-screen pairs × 8 sizes × 2 text sizes × 2 languages, plus DairyGo's safe-area devices. They were checked against a deliberate overflow, which they caught and named per size.
+> - Also: ARB parity, colour contrast and the environment rules.
+>
+> **What changed from the plan:**
+> - **D19 is confirmed.** Flutter's plugin sets `versionCodeOverride = ABI × 1000 + N` in a variant callback registered when the plugin is applied. `build.gradle.kts` registers a second callback that runs after it and restores N. Every split APK has version code N, and `scripts/check-version-codes.sh` checks this in CI.
+>   - In `afterEvaluate` the same override fails: Gradle has already locked the value.
+> - **Sentry is not in the app yet.** `sentry_flutter` 10 requires API 26 (Android 8), against our 24.
+>   - Logging goes through `package:logging` in one file (`core/logging/app_logging.dart`), so the chosen service is added there.
+>   - This is now part of decision 3 in §13.
+> - **go_router is held at 17.** go_router 18 moved to the new `material_ui` package, while the app and `flutter_localizations` use Flutter's built-in Material. Mixing the two would give pages a different `Theme`. Move when `flutter_localizations` has moved.
+> - **Roboto is bundled** (400, 500, 700, from the Flutter SDK). Some phone makers replace the system font, and the layout tests must measure the same font the phones draw.
+> - **`textSecondary` is #616161, not #757575.** The old colour measures 4.2 : 1 on the background, under 4.5. A contrast test now checks every text colour.
+>
+> **Not done yet:**
+> - **On the developer's side:**
+>   - create the release key and back it up twice (`scripts/create-release-key.sh`);
+>   - install a signed build on a phone (none was connected);
+>   - put Flutter on `PATH`.
+> - **Waiting on later milestones:**
+>   - an emulator and FVM itself;
+>   - the reference phone (before M1's speed checks).
+
 **M1 — Walking skeleton (6–9 days)**
 
 - **Sign in:** creates the account's file and stores the token.
@@ -946,6 +984,13 @@ After v2.0 come the v2.1 features in §2.4.
    - **Sentry's free tier:** recommended, the simplest.
    - **Self-hosted GlitchTip:** free, but one more thing to run.
    - **Firebase Crashlytics:** free, but ties the app to Firebase.
+
+   Found in M0: the current Sentry Flutter SDK (10.x, which GlitchTip also uses) requires Android 8 (API 26), while D17 sets Android 7 (API 24). Choosing Sentry or GlitchTip therefore means one of three things:
+   - raise the minimum to API 26;
+   - use the older 9.x SDK;
+   - keep Android 7 phones without crash reports.
+
+   Decide before the beta (M8). Until then the app logs locally only.
 4. **The text-size ceiling:** 1.3×, as in DairyGo (recommended for v2.0), or higher at the cost of more layout work.
 5. **The production addresses** for the API and the download page, for example `api.<domain>` and `<domain>/app`.
 6. **The sample shop:** is it worth it for your sales visits? Recommended: yes.

@@ -1,0 +1,24 @@
+{
+  "@@locale": "sw",
+
+  "appTitle": "Salio",
+
+  "sectionHome": "Nyumbani",
+  "sectionCustomers": "Wateja",
+  "sectionSales": "Mauzo",
+  "sectionStock": "Bidhaa",
+  "sectionSuppliers": "Wasambazaji",
+  "sectionReports": "Ripoti",
+  "sectionMore": "Zaidi",
+
+  "placeholderBody": "Sehemu hii ya Salio inajengwa.",
+
+  "pressBackAgainToClose": "Bonyeza nyuma tena kufunga Salio",
+
+  "moreSections": "Sehemu zaidi",
+
+  "aboutTitle": "Kuhusu programu hii",
+  "aboutVersion": "Toleo {version} (namba {build})",
+  "aboutEnvironment": "Mazingira",
+  "aboutServer": "Seva"
+}

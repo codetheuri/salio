@@ -61,7 +61,15 @@ The existing `server/` stays live and untouched until the replacement reaches pa
 
 **Running server-v2** — security model, the two database roles, Docker deployment and CI: [`docs/09-operations.md`](docs/09-operations.md). It must never run as a superuser: PostgreSQL silently exempts superusers from row-level security, which is how server-v2 ran from Phase 3 until 2026-10-13 without RLS ever being exercised.
 
-**Mobile app v2** — [`docs/10-mobile-app-plan.md`](docs/10-mobile-app-plan.md) is the plan: a new app in `mobile-v2/` (Riverpod, Drift, one database file per account), copying DairyGo's self-updater and layout tests. The Flutter SDK is installed at `/home/joseph/flutter/bin/flutter` but is not on `PATH`.
+**Mobile app v2** — [`docs/10-mobile-app-plan.md`](docs/10-mobile-app-plan.md) is the plan: a new app in `mobile-v2/` (Riverpod, Drift, one database file per account), copying DairyGo's self-updater and layout tests. Each milestone adds an outcome note under it in §10. The Flutter SDK (3.44.4, pinned) is installed at `/home/joseph/flutter/bin/flutter` but is not on `PATH`. App ID `ke.co.urizon.salio`; flavours `dev` (laptop server through `adb reverse tcp:8090 tcp:8090`), `staging`, `prod` (`https://apis.salio.urizon.co.ke`, live since 2026-10-19). [`mobile-v2/README.md`](mobile-v2/README.md) has the commands:
+
+```bash
+# mobile-v2/
+flutter run --flavor dev                       # add --dart-define=API_URL=https://apis.salio.urizon.co.ke for the live server
+dart format lib test && flutter analyze --fatal-infos && flutter test
+```
+
+Rules the phone repeats from the server are pinned by data in `testdata/shared/`, read by both the Go and the Dart tests.
 
 **Known defects** are catalogued in the plan (§5, §8) and in `docs/feedback.txt`, which holds raw notes from a three-business field test. Two matter most:
 

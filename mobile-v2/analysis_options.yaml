@@ -1,0 +1,43 @@
+# Stricter than Flutter's defaults (docs/10, M0). CI runs
+# `flutter analyze --fatal-infos`, so every rule here blocks a merge.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    # No silent `dynamic`: a JSON value has to be cast before it is used,
+    # which is where a wrong server field shows up as an error instead of a
+    # crash at a shop counter.
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # A forgotten await loses the error and the ordering; in a ledger that
+    # means a save that silently did not happen.
+    unawaited_futures: error
+    missing_return: error
+  exclude:
+    - lib/app/l10n/generated/**
+
+linter:
+  rules:
+    - always_declare_return_types
+    - avoid_dynamic_calls
+    - avoid_print
+    - avoid_slow_async_io
+    - cancel_subscriptions
+    - close_sinks
+    - directives_ordering
+    - discarded_futures
+    - only_throw_errors
+    - prefer_const_constructors
+    - prefer_final_fields
+    - prefer_final_locals
+    - prefer_single_quotes
+    - sort_child_properties_last
+    - test_types_in_equals
+    - throw_in_finally
+    - unawaited_futures
+    - unnecessary_await_in_return
+    - unnecessary_lambdas
+    - unnecessary_statements
+    - use_super_parameters
