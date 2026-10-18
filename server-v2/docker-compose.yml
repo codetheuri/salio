@@ -83,6 +83,9 @@ services:
       <<: *api_env
       SERVER_PORT: "8090"
       APP_VERSION: "2.0.0"
+      # /docs (interactive) and /openapi.json. Off by default in production;
+      # on while the mobile app is being built against it.
+      DOCS_ENABLED: "true"
     expose: ["8090"]                    # not published: only the proxy reaches it
     networks:
       shared:
