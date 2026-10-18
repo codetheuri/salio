@@ -1,8 +1,9 @@
 # Salio v2 API, for the server that already runs PostgreSQL and Nginx Proxy
 # Manager on the Docker network "tigerforge-db" (v1 runs there too, untouched).
 #
-#   First time only, creates the two database roles in the existing database:
-#     docker compose --profile setup run --rm v2-roles
+#   First time only, creates the two database roles in salio_dbv2, through
+#   the PostgreSQL container that is already running (nothing new is pulled):
+#     deploy/postgres/apply-roles.sh            # container "postgres", user "legendroot"
 #
 #   Every deploy:
 #     docker compose up -d --build
@@ -15,13 +16,15 @@
 # Why the API does not use the shared superuser, even though it could connect
 # as one: PostgreSQL silently exempts superusers from row-level security, the
 # database-level wall between one shop's data and another's. The API refuses to
-# start as one (REQUIRE_RLS). So the shared superuser is used ONCE, by the
-# "setup" job below, to create two ordinary roles; after that only they are used:
+# start as one (REQUIRE_RLS). So the shared superuser is used ONCE, by
+# deploy/postgres/apply-roles.sh, to create two ordinary roles; after that only
+# they are used:
 #   salio_owner  changes the schema; used by v2-migrate only
 #   salio_app    reads and writes rows; used by v2-api and v2-syncgc
 #
 # To run as the shared superuser anyway (not recommended; rehearsed and works):
-# give v2-api DB_USER/DB_PASS of the superuser, add
+# give v2-api DB_USER/DB_PASS of the superuser (its password then goes in this
+# file), add
 # REQUIRE_RLS: "false" and MIGRATE_ON_BOOT: "true", and delete v2-migrate and the
 # depends_on lines. Tenant isolation is then two layers instead of three.
 
@@ -30,8 +33,6 @@ name: salio-v2
 x-settings:
   db_host: &db_host postgres            # the shared PostgreSQL container, by name
   db_name: &db_name salio_dbv2          # already created on the server
-  superuser: &superuser legendroot      # setup job only
-  superuser_password: &superuser_password l3g3ndaryHub
   owner_user: &owner_user salio_owner
   owner_password: &owner_password 2dd95bb49606854d9966134e306ca801803225519ed1787c
   app_user: &app_user salio_app
@@ -105,35 +106,6 @@ services:
     depends_on:
       v2-migrate:
         condition: service_completed_successfully
-
-  # One-off, only with --profile setup. Creates the two roles in the database
-  # that already exists, as the shared superuser. Safe to run again.
-  v2-roles:
-    profiles: ["setup"]
-    image: postgres:15-alpine
-    entrypoint: ["sh", "-c"]
-    command:
-      - >-
-        psql -v ON_ERROR_STOP=1
-        -v db_name="$$DB_NAME"
-        -v owner_role="$$OWNER_USER" -v owner_password="$$OWNER_PASSWORD"
-        -v app_role="$$APP_USER" -v app_password="$$APP_PASSWORD"
-        -f /roles.sql
-        && psql -At -c "SELECT rolname || ' superuser=' || rolsuper || ' bypassrls=' || rolbypassrls FROM pg_roles WHERE rolname IN ('$$OWNER_USER', '$$APP_USER') ORDER BY 1"
-    environment:
-      PGHOST: *db_host
-      PGDATABASE: *db_name
-      PGUSER: *superuser
-      PGPASSWORD: *superuser_password
-      DB_NAME: *db_name
-      OWNER_USER: *owner_user
-      OWNER_PASSWORD: *owner_password
-      APP_USER: *app_user
-      APP_PASSWORD: *app_password
-    volumes:
-      - ./deploy/postgres/roles.sql:/roles.sql:ro
-    networks:
-      - shared
 
 networks:
   shared:
