@@ -1,40 +1,135 @@
 {
   "@@locale": "en",
-
   "appTitle": "Salio",
-
   "sectionHome": "Home",
-  "@sectionHome": { "description": "Bottom bar and side rail. One word: five labels share a 320 dp phone." },
+  "@sectionHome": {
+    "description": "Bottom bar and side rail. One word: five labels share a 320 dp phone."
+  },
   "sectionCustomers": "Customers",
-  "@sectionCustomers": { "description": "Bottom bar and side rail. One word." },
+  "@sectionCustomers": {
+    "description": "Bottom bar and side rail. One word."
+  },
   "sectionSales": "Sales",
-  "@sectionSales": { "description": "Bottom bar and side rail. One word." },
+  "@sectionSales": {
+    "description": "Bottom bar and side rail. One word."
+  },
   "sectionStock": "Stock",
-  "@sectionStock": { "description": "Bottom bar and side rail: products that ran out, and purchase orders. One word." },
+  "@sectionStock": {
+    "description": "Bottom bar and side rail: products that ran out, and purchase orders. One word."
+  },
   "sectionSuppliers": "Suppliers",
-  "@sectionSuppliers": { "description": "Side rail and the More page; owners only." },
+  "@sectionSuppliers": {
+    "description": "Side rail and the More page; owners only."
+  },
   "sectionReports": "Reports",
-  "@sectionReports": { "description": "Side rail and the More page." },
+  "@sectionReports": {
+    "description": "Side rail and the More page."
+  },
   "sectionMore": "More",
-  "@sectionMore": { "description": "Bottom bar and side rail. One word." },
-
+  "@sectionMore": {
+    "description": "Bottom bar and side rail. One word."
+  },
   "placeholderBody": "This part of Salio is being built.",
-  "@placeholderBody": { "description": "Shown on a section whose screen does not exist yet (development builds)." },
-
+  "@placeholderBody": {
+    "description": "Shown on a section whose screen does not exist yet (development builds)."
+  },
   "pressBackAgainToClose": "Press back again to close Salio",
-
   "moreSections": "More sections",
-  "@moreSections": { "description": "Heading on the More page above the sections that do not fit in a phone's bottom bar." },
-
+  "@moreSections": {
+    "description": "Heading on the More page above the sections that do not fit in a phone's bottom bar."
+  },
   "aboutTitle": "About this app",
   "aboutVersion": "Version {version} (build {build})",
   "@aboutVersion": {
     "placeholders": {
-      "version": { "type": "String", "example": "2.0.3" },
-      "build": { "type": "String", "example": "15" }
+      "version": {
+        "type": "String",
+        "example": "2.0.3"
+      },
+      "build": {
+        "type": "String",
+        "example": "15"
+      }
     }
   },
   "aboutEnvironment": "Environment",
-  "@aboutEnvironment": { "description": "Which server family this build talks to: dev, staging or prod. For support." },
-  "aboutServer": "Server"
+  "@aboutEnvironment": {
+    "description": "Which server family this build talks to: dev, staging or prod. For support."
+  },
+  "aboutServer": "Server",
+  "signInTitle": "Sign in to your shop",
+  "signInPhone": "Phone number",
+  "signInPassword": "Password",
+  "signInButton": "Sign in",
+  "signInAgain": "Your records are safe on this phone. Sign in again to keep syncing.",
+  "@signInAgain": {
+    "description": "Shown when the server ended the session; the reason follows if the server gave one."
+  },
+  "errorOffline": "No connection. Check your bundle or Wi-Fi and try again.",
+  "errorTimeout": "The server took too long to answer. Try again.",
+  "errorServer": "Something went wrong on the server. Try again later.",
+  "errorUnexpected": "That did not work. Try again.",
+  "fieldRequired": "Required",
+  "amountInvalid": "Enter an amount, like 1500 or 1500.50",
+  "amountPositive": "The amount must be more than zero",
+  "save": "Save",
+  "cancel": "Cancel",
+  "customersEmpty": "No customers yet. Tap + to add your first customer.",
+  "customerAdd": "Add customer",
+  "customerName": "Name",
+  "customerPhone": "Phone (optional)",
+  "balanceOwes": "Owes",
+  "@balanceOwes": {
+    "description": "Label beside a positive balance: the customer owes the shop. Colour is never the only signal."
+  },
+  "balanceAdvance": "Advance",
+  "@balanceAdvance": {
+    "description": "Label beside a negative balance: the customer paid ahead."
+  },
+  "balanceCleared": "Cleared",
+  "@balanceCleared": {
+    "description": "Label beside a zero balance."
+  },
+  "entriesEmpty": "No debts or payments yet.",
+  "recordDebt": "Record debt",
+  "debtAmount": "Amount (KES)",
+  "debtDescription": "What was taken",
+  "entryDebt": "Debt",
+  "entryPayment": "Payment",
+  "unsent": "Not sent yet",
+  "@unsent": {
+    "description": "Badge on a record saved on this phone that the server has not accepted yet."
+  },
+  "syncNow": "Sync now",
+  "syncing": "Syncing…",
+  "syncNever": "Not synced yet",
+  "syncWaiting": "{count, plural, =0{Everything is sent} =1{1 record waiting to send} other{{count} records waiting to send}}",
+  "@syncWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncLast": "Last synced {time}",
+  "@syncLast": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Tue 14 Oct, 10:15"
+      }
+    }
+  },
+  "syncOffline": "Saved on this phone. It will sync when there is a connection.",
+  "syncSignInAgain": "Sign in again to sync",
+  "accountTitle": "Account",
+  "signOut": "Sign out",
+  "signOutUnsent": "{count, plural, =1{1 record is not sent yet. It will be sent the next time you sign in on this phone.} other{{count} records are not sent yet. They will be sent the next time you sign in on this phone.}}",
+  "@signOutUnsent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

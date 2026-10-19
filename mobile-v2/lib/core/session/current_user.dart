@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'permissions.dart';
+import 'session_controller.dart';
 
 /// The person using the app, as far as screens need to know.
 class SessionUser {
@@ -19,8 +20,13 @@ class SessionUser {
   bool can(String permission) => permissions.contains(permission);
 }
 
-/// Who is signed in. Until sign-in exists (M1) the app shows every screen
-/// as an owner would see it; the layout tests replace this for each role.
-final currentUserProvider = Provider<SessionUser>(
-  (ref) => SessionUser.ofRole('Preview', Role.owner),
-);
+/// Who is signed in, as far as screens need to know. Permissions come from
+/// the role table until the server sends them (docs/10, B5). Signed out,
+/// nothing is allowed.
+final currentUserProvider = Provider<SessionUser>((ref) {
+  final account = ref.watch(sessionProvider).value?.account;
+  if (account == null) {
+    return const SessionUser(name: '', role: Role.staff, permissions: {});
+  }
+  return SessionUser.ofRole(account.name, account.role);
+});

@@ -149,44 +149,47 @@ List<String> _unsafeControls(WidgetTester tester, _Device device) {
 void main() {
   setUpAll(loadFonts);
 
-  for (final role in routesByRole.keys) {
-    for (final route in routesByRole[role]!) {
-      testWidgets('${role.name} $route keeps controls clear of system areas', (
-        tester,
-      ) async {
-        final problems = <String>[];
+  final cases = [
+    for (final role in routesByRole.keys)
+      for (final route in routesByRole[role]!) (role, route),
+    for (final route in signedOutRoutes) (null, route),
+  ];
 
-        for (final entry in _devices.entries) {
-          final device = entry.value;
-          const dpr = 3.0;
-          tester.view.devicePixelRatio = dpr;
-          tester.view.physicalSize = device.size * dpr;
-          final insets = FakeViewPadding(
-            left: device.system.left * dpr,
-            top: device.system.top * dpr,
-            right: device.system.right * dpr,
-            bottom: device.system.bottom * dpr,
-          );
-          tester.view.padding = insets;
-          tester.view.viewPadding = insets;
+  for (final (role, route) in cases) {
+    testWidgets('${role?.name ?? 'signed-out'} $route keeps controls clear '
+        'of system areas', (tester) async {
+      final problems = <String>[];
 
-          final app = await AppUnderTest.open(tester, role: role, route: route);
-          try {
-            await _scrollToEnd(tester);
-            for (final p in _unsafeControls(tester, device).toSet()) {
-              problems.add('${entry.key}: $p');
-            }
-            for (final e in app.errors.toSet()) {
-              problems.add('${entry.key}: $e');
-            }
-          } finally {
-            await app.close();
+      for (final entry in _devices.entries) {
+        final device = entry.value;
+        const dpr = 3.0;
+        tester.view.devicePixelRatio = dpr;
+        tester.view.physicalSize = device.size * dpr;
+        final insets = FakeViewPadding(
+          left: device.system.left * dpr,
+          top: device.system.top * dpr,
+          right: device.system.right * dpr,
+          bottom: device.system.bottom * dpr,
+        );
+        tester.view.padding = insets;
+        tester.view.viewPadding = insets;
+
+        final app = await AppUnderTest.open(tester, role: role, route: route);
+        try {
+          await _scrollToEnd(tester);
+          for (final p in _unsafeControls(tester, device).toSet()) {
+            problems.add('${entry.key}: $p');
           }
+          for (final e in app.errors.toSet()) {
+            problems.add('${entry.key}: $e');
+          }
+        } finally {
+          await app.close();
         }
+      }
 
-        resetView(tester);
-        expect(problems, isEmpty, reason: problems.join('\n'));
-      });
-    }
+      resetView(tester);
+      expect(problems, isEmpty, reason: problems.join('\n'));
+    });
   }
 }

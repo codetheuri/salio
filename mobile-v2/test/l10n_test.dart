@@ -12,8 +12,11 @@ Map<String, dynamic> _arb(String locale) =>
 Set<String> _messages(Map<String, dynamic> arb) =>
     arb.keys.where((k) => !k.startsWith('@')).toSet();
 
-Set<String> _placeholders(String message) =>
-    RegExp(r'\{(\w+)').allMatches(message).map((m) => m.group(1)!).toSet();
+/// Names in `{name}` or `{name, plural, …}`. Not the words inside a plural
+/// branch, such as `=1{1 record}`.
+Set<String> _placeholders(String message) => RegExp(
+  r'\{(\w+)(?=[,}])',
+).allMatches(message).map((m) => m.group(1)!).toSet();
 
 void main() {
   final en = _arb('en');

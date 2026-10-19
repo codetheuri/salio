@@ -1,0 +1,24 @@
+{
+  "_comment": "Money on the wire is a decimal string of shillings and cents; both sides hold whole cents. money.Parse / Amount.String in server-v2, Money.parse / Money.toWire in mobile-v2.",
+  "parse": [
+    { "text": "0", "cents": 0 },
+    { "text": "1500", "cents": 150000 },
+    { "text": "1500.5", "cents": 150050 },
+    { "text": "1500.50", "cents": 150050 },
+    { "text": "0.07", "cents": 7 },
+    { "text": ".5", "cents": 50 },
+    { "text": " 12.30 ", "cents": 1230 },
+    { "text": "+3", "cents": 300 },
+    { "text": "-0.05", "cents": -5 },
+    { "text": "92233720368547758.07", "cents": 9223372036854775807 }
+  ],
+  "invalid": ["", "  ", "1.005", "abc", "--5", "1.", "1,000", "1e3", "12.3.4", "-", "+", "0x10", "92233720368547758.08"],
+  "wire": [
+    { "cents": 0, "text": "0.00" },
+    { "cents": 7, "text": "0.07" },
+    { "cents": 150050, "text": "1500.50" },
+    { "cents": 150000, "text": "1500.00" },
+    { "cents": -5, "text": "-0.05" },
+    { "cents": -123456, "text": "-1234.56" }
+  ]
+}

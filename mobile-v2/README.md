@@ -64,6 +64,18 @@ flutter test                       # everything, about a minute
 flutter test test/layout           # every screen × 8 sizes × 2 text sizes × 2 languages × 2 roles
 ```
 
+**Live tests**: simulated phones (the app's own database, sync and network
+code) against a real server-v2 (docs/10, §8.2):
+
+```bash
+scripts/live-server.sh &                     # a throwaway server-v2 on :8091
+SALIO_LIVE_URL=http://127.0.0.1:8091 flutter test test/live
+```
+
+The script creates its own database (`salio_v2_live`) and roles in the test
+PostgreSQL on port 5434, so the dev and test databases are not touched.
+Without `SALIO_LIVE_URL` the live tests are skipped.
+
 The layout tests fail on any overflow and name the screen size, the text
 size and the file and line. To look at the screens:
 
@@ -73,7 +85,8 @@ flutter test test/layout/layout_test.dart --update-goldens --dart-define=SCREENS
 ```
 
 CI (`.github/workflows/ci.yml`, job `mobile-v2`) runs all of this, builds the
-dev APKs, and checks their version codes with `scripts/check-version-codes.sh`.
+dev APKs, and checks their version codes and native libraries with
+`scripts/check-apks.sh`. The `mobile-v2-live` job runs the live tests.
 
 ## The release key
 
@@ -104,12 +117,30 @@ flutter build apk --release --flavor prod --split-per-abi
 ```text
 lib/
   app/        app.dart, environment, router, adaptive shell, theme, translations
-  core/       layout rules, logging, session and permissions, shared widgets
+  core/       database (drift), sync engine, network, money, server clock,
+              session and accounts, layout rules, logging, shared widgets
   features/   one folder per feature: data → domain → presentation
 test/
   layout/     the layout harness and tests (from DairyGo)
-scripts/      create-release-key.sh, check-version-codes.sh
+  live/       simulated phones against a real server-v2
+  support/    the simulated phone, seeded data, fakes
+drift_schemas/ every database schema version, for migration tests
+scripts/      create-release-key.sh, check-apks.sh, live-server.sh
 ```
 
 Screens never touch the database or the network; controllers (Riverpod) call
 repositories (docs/10, §4.1).
+
+## Data on the phone
+
+Each account that signs in gets its own database file,
+`accounts/<user id>.db`, so one shop's records can never appear on another's
+screens (docs/10, D5). The token is in Android's secure storage. Signing out
+keeps the file and anything not yet sent.
+
+After changing a table in `lib/core/database/tables.dart`:
+
+```bash
+dart run build_runner build            # regenerates app_database.g.dart (committed)
+dart run drift_dev make-migrations     # after raising schemaVersion: saves the new schema
+```

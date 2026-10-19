@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/session/session_controller.dart';
+import '../core/sync/sync_controller.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'router/app_router.dart';
 import 'theme/app_colors.dart';
@@ -22,11 +26,37 @@ class AppLocale extends Notifier<Locale?> {
 /// font-size setting is followed up to here.
 const maxTextScale = 1.3;
 
-class SalioApp extends ConsumerWidget {
+class SalioApp extends ConsumerStatefulWidget {
   const SalioApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SalioApp> createState() => _SalioAppState();
+}
+
+class _SalioAppState extends ConsumerState<SalioApp> {
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // Back in the app: sync, so the other phones' records show.
+    _lifecycle = AppLifecycleListener(
+      onResume: () {
+        if (ref.read(sessionProvider).value?.canSync ?? false) {
+          unawaited(ref.read(syncProvider.notifier).syncNow());
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp.router(
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       debugShowCheckedModeBanner: false,

@@ -791,7 +791,7 @@ Estimates are working days for one developer working with Claude. They will be r
 > - Also: ARB parity, colour contrast and the environment rules.
 >
 > **What changed from the plan:**
-> - **D19 is confirmed.** Flutter's plugin sets `versionCodeOverride = ABI × 1000 + N` in a variant callback registered when the plugin is applied. `build.gradle.kts` registers a second callback that runs after it and restores N. Every split APK has version code N, and `scripts/check-version-codes.sh` checks this in CI.
+> - **D19 is confirmed.** Flutter's plugin sets `versionCodeOverride = ABI × 1000 + N` in a variant callback registered when the plugin is applied. `build.gradle.kts` registers a second callback that runs after it and restores N. Every split APK has version code N, and `scripts/check-apks.sh` checks this in CI.
 >   - In `afterEvaluate` the same override fails: Gradle has already locked the value.
 > - **Sentry is not in the app yet.** `sentry_flutter` 10 requires API 26 (Android 8), against our 24.
 >   - Logging goes through `package:logging` in one file (`core/logging/app_logging.dart`), so the chosen service is added there.

@@ -1,8 +1,6 @@
 {
   "@@locale": "sw",
-
   "appTitle": "Salio",
-
   "sectionHome": "Nyumbani",
   "sectionCustomers": "Wateja",
   "sectionSales": "Mauzo",
@@ -10,15 +8,49 @@
   "sectionSuppliers": "Wasambazaji",
   "sectionReports": "Ripoti",
   "sectionMore": "Zaidi",
-
   "placeholderBody": "Sehemu hii ya Salio inajengwa.",
-
   "pressBackAgainToClose": "Bonyeza nyuma tena kufunga Salio",
-
   "moreSections": "Sehemu zaidi",
-
   "aboutTitle": "Kuhusu programu hii",
   "aboutVersion": "Toleo {version} (namba {build})",
   "aboutEnvironment": "Mazingira",
-  "aboutServer": "Seva"
+  "aboutServer": "Seva",
+  "signInTitle": "Ingia kwenye duka lako",
+  "signInPhone": "Namba ya simu",
+  "signInPassword": "Nenosiri",
+  "signInButton": "Ingia",
+  "signInAgain": "Rekodi zako ziko salama kwenye simu hii. Ingia tena ili kuendelea kusawazisha.",
+  "errorOffline": "Hakuna mtandao. Angalia bando au Wi-Fi kisha ujaribu tena.",
+  "errorTimeout": "Seva imechelewa kujibu. Jaribu tena.",
+  "errorServer": "Kuna hitilafu kwenye seva. Jaribu tena baadaye.",
+  "errorUnexpected": "Haikufanikiwa. Jaribu tena.",
+  "fieldRequired": "Inahitajika",
+  "amountInvalid": "Weka kiasi, kama 1500 au 1500.50",
+  "amountPositive": "Kiasi lazima kiwe zaidi ya sifuri",
+  "save": "Hifadhi",
+  "cancel": "Ghairi",
+  "customersEmpty": "Bado hakuna wateja. Gusa + kuongeza mteja wako wa kwanza.",
+  "customerAdd": "Ongeza mteja",
+  "customerName": "Jina",
+  "customerPhone": "Simu (si lazima)",
+  "balanceOwes": "Anadaiwa",
+  "balanceAdvance": "Malipo ya awali",
+  "balanceCleared": "Amelipa yote",
+  "entriesEmpty": "Bado hakuna madeni wala malipo.",
+  "recordDebt": "Andika deni",
+  "debtAmount": "Kiasi (KES)",
+  "debtDescription": "Kilichochukuliwa",
+  "entryDebt": "Deni",
+  "entryPayment": "Malipo",
+  "unsent": "Bado haijatumwa",
+  "syncNow": "Sawazisha sasa",
+  "syncing": "Inasawazisha…",
+  "syncNever": "Bado haijasawazishwa",
+  "syncWaiting": "{count, plural, =0{Kila kitu kimetumwa} =1{Rekodi 1 inasubiri kutumwa} other{Rekodi {count} zinasubiri kutumwa}}",
+  "syncLast": "Ilisawazishwa {time}",
+  "syncOffline": "Imehifadhiwa kwenye simu hii. Itasawazishwa mtandao ukipatikana.",
+  "syncSignInAgain": "Ingia tena ili kusawazisha",
+  "accountTitle": "Akaunti",
+  "signOut": "Toka",
+  "signOutUnsent": "{count, plural, =1{Rekodi 1 bado haijatumwa. Itatumwa utakapoingia tena kwenye simu hii.} other{Rekodi {count} bado hazijatumwa. Zitatumwa utakapoingia tena kwenye simu hii.}}"
 }

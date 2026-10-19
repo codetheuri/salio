@@ -78,6 +78,11 @@ func Parse(s string) (Amount, error) {
 	case '+':
 		s = s[1:]
 	}
+	// A sign on its own. Checked again because the check above ran before the
+	// sign came off: without it, "-" read as zero.
+	if s == "" {
+		return 0, fmt.Errorf("money: a sign with no amount")
+	}
 
 	whole, frac, hasFrac := strings.Cut(s, ".")
 	if whole == "" {

@@ -13,17 +13,30 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:salio/app/app.dart';
 import 'package:salio/app/router/app_router.dart';
 import 'package:salio/app/shell/app_sections.dart';
+import 'package:salio/core/database/app_database.dart';
+import 'package:salio/core/database/database_provider.dart';
+import 'package:salio/core/network/api_provider.dart';
 import 'package:salio/core/session/current_user.dart';
 import 'package:salio/core/session/permissions.dart';
+import 'package:salio/core/session/session_controller.dart';
 
-/// Every main screen a role can open.
+import '../support/fixtures.dart';
+
+/// Every screen a role can open: each section, and the screens inside
+/// them, on the seeded data.
 Map<Role, List<String>> get routesByRole => {
   for (final role in Role.values)
     role: [
       for (final s in AppSection.values)
         if (s.visibleTo(SessionUser.ofRole('Test', role))) s.path,
+      '/customers/new',
+      '/customers/$longCustomerId',
+      '/customers/$longCustomerId/debt',
     ],
 };
+
+/// Screens shown to nobody signed in.
+const signedOutRoutes = ['/sign-in'];
 
 const locales = [Locale('en'), Locale('sw')];
 
@@ -104,14 +117,17 @@ void resetView(WidgetTester tester) {
 class AppUnderTest {
   final WidgetTester tester;
   final ProviderContainer container;
+  final AppDatabase db;
   final List<String> errors = [];
   final FlutterExceptionHandler? _previousHandler;
 
-  AppUnderTest._(this.tester, this.container, this._previousHandler);
+  AppUnderTest._(this.tester, this.container, this.db, this._previousHandler);
 
+  /// The app as [role] sees it, or signed out when [role] is null, on the
+  /// seeded database and with no network.
   static Future<AppUnderTest> open(
     WidgetTester tester, {
-    required Role role,
+    required Role? role,
     required String route,
     Locale locale = const Locale('en'),
   }) async {
@@ -122,14 +138,19 @@ class AppUnderTest {
       buildNumber: '1',
       buildSignature: '',
     );
+    final db = await seededDatabase();
     final container = ProviderContainer(
       overrides: [
-        currentUserProvider.overrideWithValue(SessionUser.ofRole('Test', role)),
+        sessionProvider.overrideWith(
+          () => FixedSession(role == null ? null : sessionFor(role)),
+        ),
+        databaseProvider.overrideWithValue(db),
+        httpAdapterProvider.overrideWithValue(OfflineAdapter()),
       ],
     );
     container.read(appLocaleProvider.notifier).set(locale);
 
-    final app = AppUnderTest._(tester, container, FlutterError.onError);
+    final app = AppUnderTest._(tester, container, db, FlutterError.onError);
     FlutterError.onError = (details) {
       // The error's first line plus the widget's source location.
       final where =
@@ -162,5 +183,6 @@ class AppUnderTest {
     // Flush timers, such as a snack bar's.
     await tester.pump(const Duration(seconds: 5));
     container.dispose();
+    await db.close();
   }
 }
