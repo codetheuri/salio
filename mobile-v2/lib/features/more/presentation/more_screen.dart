@@ -14,6 +14,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/session/current_user.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/sync/sync_controller.dart';
+import '../../app_update/presentation/widgets/app_update_tile.dart';
 
 /// The More page: the account and its sync, on a phone the sections that do
 /// not fit in the bottom bar, and what support needs to know about this
@@ -50,6 +51,7 @@ class MoreScreen extends ConsumerWidget {
               const Divider(),
             ],
             _Heading(l10n.aboutTitle),
+            const AppUpdateTile(),
             ListTile(
               leading: const Icon(Icons.info_outline),
               title: Text(
@@ -114,6 +116,8 @@ class _AccountSection extends ConsumerWidget {
     final String syncLine;
     if (!session.canSync) {
       syncLine = l10n.syncSignInAgain;
+    } else if (status.blockedByUpdate) {
+      syncLine = l10n.syncBlockedByUpdate;
     } else if (status.running) {
       syncLine = l10n.syncing;
     } else if (status.failure == ApiFailure.offline ||

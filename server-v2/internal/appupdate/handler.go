@@ -25,8 +25,18 @@ const maxDownloadTime = 2 * time.Hour
 var pageFiles embed.FS
 
 var pageTemplate = template.Must(template.New("index.html").Funcs(template.FuncMap{
-	"mb": func(size int64) string { return fmt.Sprintf("%.0f MB", float64(size)/(1<<20)) },
+	"mb": megabytes,
 }).ParseFS(pageFiles, "page/index.html"))
+
+// megabytes writes a size for people: "18 MB", or "0.3 MB" below 10 MB,
+// where whole megabytes would round a small file down to nothing.
+func megabytes(size int64) string {
+	mb := float64(size) / (1 << 20)
+	if mb < 10 {
+		return fmt.Sprintf("%.1f MB", mb)
+	}
+	return fmt.Sprintf("%.0f MB", mb)
+}
 
 // Handler serves releases.
 type Handler struct {

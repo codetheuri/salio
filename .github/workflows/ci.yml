@@ -195,6 +195,14 @@ jobs:
           SALIO_LIVE_URL: http://127.0.0.1:8091
         run: flutter test test/live
 
+      # server-v2's OpenAPI document against the app's snapshot (B11): an
+      # API change fails here until test/contract/openapi.json is refreshed,
+      # so it shows up in the pull request for the app's side to be checked.
+      - name: API contract snapshot
+        env:
+          SALIO_LIVE_URL: http://127.0.0.1:8091
+        run: scripts/contract.sh
+
       - name: Server log
         if: always()
         run: cat live-server.log

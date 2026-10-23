@@ -131,6 +131,22 @@ Rehearsed end to end on 2026-10-18 on a throwaway network and database, from thi
 - **CORS.** Set `ALLOWED_ORIGINS` only if a browser front end will call the API. The mobile app does not need it.
 - **Secrets.** `deploy/.env` must stay off git (it is ignored) and readable only by the deploy user.
 
+### App releases
+
+server-v2 serves the Android app itself (docs/10, §6.3):
+
+- `GET /api/v1/app/version`: the latest release, for the in-app updater;
+- `/app`: the download page to share;
+- `/app/download/{abi}`: the APK, resumable.
+
+All three are public, because an app has to update before it can sign in.
+
+**Where releases come from.** They live in `server-v2/releases/` next to `docker-compose.yml`, mounted **read-only** into the API at `/releases` (`APP_RELEASES_DIR`). Nothing is uploaded through the API, so a stolen password cannot replace the app. `mobile-v2/scripts/release.sh` writes the folder; copy the APKs first and `latest.json` last (the script does this with `SALIO_RELEASE_TARGET` set). The API rereads `latest.json` when it changes, so there's no restart. Until the first release, the version endpoint answers 404 and the page says nothing is published.
+
+**Staged rollout.** `rollout_percent` in `latest.json` limits the in-app offer to that share of phones. Widen it with `mobile-v2/scripts/set-rollout.sh 50`. `min_build` reaches every phone; below it, phones stop syncing until they update, but keep working.
+
+**Long downloads.** With Tusk v2.0.0, the request logger stops the download handler from extending the 60 s write timeout, so a download is cut every minute. The app resumes it by itself, so it only takes longer. Tusk v2.0.1 fixes it (§6).
+
 ### Migrations
 
 Each schema change is a new file in `server-v2/database/migrations/`. In production, the `migrate` step applies pending files as the owner on every `up`. Locally, `make migrate-up` does the same. Never edit a migration that has already run anywhere; add a new one.
@@ -166,6 +182,11 @@ Registration now requires an 8-character password. It said "at least 8" but acce
   - `govulncheck`
 - **server-v2-image:** the Docker image builds.
 - **server (v1):** build and vet.
+- **mobile-v2:**
+  - format, analyzer and generated-code checks;
+  - all tests, including the layout tests;
+  - a dev build, with `scripts/check-apks.sh`.
+- **mobile-v2-live:** the app's live scenarios against a real server-v2, started by `mobile-v2/scripts/live-server.sh`.
 
 The old `go.yml` ran at the repository root, which has no Go module, with Go 1.20, and only for `main`. It never checked anything.
 
@@ -175,7 +196,9 @@ The old `go.yml` ran at the repository root, which has no Go module, with Go 1.2
 
 ## 6. Follow-ups
 
-- **Tusk:** `testdb.ConnectWith` migrated before taking its test lock. Fixed on Tusk branch `fix/testdb-migrate-under-lock`. Once released, delete the workaround in `server-v2/internal/testsupport`.
+- **Tusk v2.0.1**, on the Tusk branch `fix/testdb-migrate-under-lock`, carries two fixes. Push the branch, merge it, tag `v2.0.1`, then upgrade server-v2:
+  - `testdb.ConnectWith` migrated before taking its test lock. After the upgrade, delete the workaround in `server-v2/internal/testsupport`.
+  - The request logger hid the connection from `http.ResponseController` (no `Unwrap`). Every handler was stuck with the 60 s write timeout and could not flush, which cut APK downloads. After the upgrade, the skip at the end of `TestDownload` in `internal/appupdate` stops triggering.
 - **Candidate for Tusk:** `internal/tenantconn` (one connection per request, with the shop declared) is generic. Any Tusk application that turns on RLS needs it. Consider moving it into `pkg/tenant`.
 - **Backups and HTTPS** (§3).
 - **Data move from v1:** deliberately not rehearsed yet. It belongs with the move of the live v1 server.

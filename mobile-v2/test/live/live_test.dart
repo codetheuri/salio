@@ -14,6 +14,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salio/core/network/api_client.dart';
 import 'package:salio/core/network/api_exception.dart';
+import 'package:salio/features/app_update/data/app_update_service.dart';
+
+import '../support/fake_app_update.dart';
 
 import '../support/phone.dart';
 
@@ -77,6 +80,25 @@ Future<({Phone a, Phone b})> _newShop({int pageSizeB = 200}) async {
 
 void main() {
   group('live', skip: _skip, () {
+    test('the updater finds, downloads and checks the published release, '
+        'before anyone signs in', () async {
+      final dir = Directory.systemTemp.createTempSync('updates');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final service = AppUpdateService(
+        Dio(BaseOptions(baseUrl: _url!)),
+        FakeInstaller(dir: dir.path),
+      );
+      final release = await service.fetchLatest();
+      expect(release, isNotNull);
+      expect(release!.build, 999);
+      expect(release.rolloutPercent, 100);
+      expect(release.notesIn('sw'), 'Toleo la majaribio');
+      final path = await service.download(release, 'arm64');
+      expect(File(path).lengthSync(), release.files['arm64']!.size);
+      // And again: already there, nothing downloaded twice.
+      expect(await service.downloaded(release, 'arm64'), path);
+    });
+
     test('1: a debt recorded offline on phone A appears on phone B', () async {
       final shop = await _newShop();
 

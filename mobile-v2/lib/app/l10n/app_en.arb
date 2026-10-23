@@ -131,5 +131,96 @@
         "type": "int"
       }
     }
-  }
+  },
+  "updateAvailable": "Version {version} is ready",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.0.3"
+      }
+    }
+  },
+  "updateSize": "{size} MB · Wi-Fi is best on a slow connection",
+  "@updateSize": {
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "18"
+      }
+    }
+  },
+  "updateButton": "Update",
+  "updateLater": "Later",
+  "updateDownloading": "Downloading update… {percent}%",
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateDownloadingDetail": "{received} of {total} MB · you can keep working",
+  "@updateDownloadingDetail": {
+    "placeholders": {
+      "received": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "updateStop": "Stop",
+  "updatePermissionTitle": "Allow Salio to install the update",
+  "updatePermissionDetail": "Turn on \"Allow from this source\", then press Back.",
+  "@updatePermissionDetail": {
+    "description": "\"Allow from this source\" is Android's own wording on the settings screen; keep it in English."
+  },
+  "updateAllow": "Allow",
+  "updateReadyTitle": "Version {version} is ready to install",
+  "@updateReadyTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.0.3"
+      }
+    }
+  },
+  "updateReadyDetail": "Tap Restart: Salio closes and opens again, updated. Your records stay on this phone.",
+  "updateRestart": "Restart",
+  "updateInstallingTitle": "Updating Salio…",
+  "updateInstallingDetail": "Salio closes and opens again. If Android asks, tap Update. If it stays closed, open Salio from its icon.",
+  "updateFailedTitle": "Update not finished",
+  "updateTryAgain": "Try again",
+  "updateRequiredTitle": "Update to keep syncing",
+  "updateRequiredDetail": "This version can no longer sync. Your records are safe on this phone, and you can keep working.",
+  "updateErrorCheck": "Could not check for updates. Check your connection and try again.",
+  "updateErrorStopped": "The download stopped. Tap Update to continue where it stopped.",
+  "updateErrorDamaged": "The download was damaged. Tap Update to download it again.",
+  "updateErrorUnavailable": "This update is not available for this phone.",
+  "updateErrorCouldNotStart": "Could not start the update. Download Salio from {page} instead.",
+  "@updateErrorCouldNotStart": {
+    "placeholders": {
+      "page": {
+        "type": "String",
+        "example": "apis.salio.urizon.co.ke/app"
+      }
+    }
+  },
+  "updateErrorRefused": "Android did not install the update. Tap Try again.",
+  "appVersionTitle": "App version {version}",
+  "@appVersionTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.0.3"
+      }
+    }
+  },
+  "appUpToDate": "Up to date",
+  "appChecking": "Checking for updates…",
+  "appCheck": "Check",
+  "appCheckHint": "Tap Check to look for a new version",
+  "syncBlockedByUpdate": "Update the app to keep syncing. Your records are safe on this phone."
 }

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 
+import '../../features/app_update/presentation/app_update_controller.dart';
 import '../database/app_database.dart';
 import '../database/database_provider.dart';
 import '../network/api_exception.dart';
@@ -29,7 +30,15 @@ class SyncStatus {
   /// Why the last sync stopped, or null when it finished.
   final ApiFailure? failure;
 
-  const SyncStatus({this.running = false, this.failure});
+  /// This app version may no longer sync: it must update first. Records
+  /// made meanwhile wait on the phone (docs/10, D12).
+  final bool blockedByUpdate;
+
+  const SyncStatus({
+    this.running = false,
+    this.failure,
+    this.blockedByUpdate = false,
+  });
 }
 
 /// Runs syncs: when the app starts, a few seconds after each change, every
@@ -73,6 +82,13 @@ class SyncController extends Notifier<SyncStatus> {
   Future<void> syncNow() async {
     final session = ref.read(sessionProvider).value;
     if (session == null || !session.canSync || state.running) return;
+    // A version the server no longer accepts does not try: what it would
+    // send may be in a shape the server now reads differently. The ledger
+    // keeps working; records wait until the update.
+    if (ref.read(appUpdateProvider).required) {
+      state = const SyncStatus(blockedByUpdate: true);
+      return;
+    }
     state = const SyncStatus(running: true);
     try {
       await ref.read(syncEngineProvider).sync();

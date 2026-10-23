@@ -1,0 +1,6677 @@
+{
+  "components": {
+    "schemas": {
+      "AgeingOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AgeingView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "AgeingRow": {
+        "additionalProperties": false,
+        "properties": {
+          "credit_limit": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "days_0_30": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "days_31_60": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "days_61_90": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "days_oldest": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "days_over_90": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next_due": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "oldest_unpaid": {
+            "description": "Date of the oldest debt not yet paid off",
+            "format": "date-time",
+            "type": "string"
+          },
+          "over_limit": {
+            "type": "boolean"
+          },
+          "overdue": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "name",
+          "days_0_30",
+          "days_31_60",
+          "days_61_90",
+          "days_over_90",
+          "total",
+          "oldest_unpaid",
+          "days_oldest",
+          "overdue",
+          "over_limit"
+        ],
+        "type": "object"
+      },
+      "AgeingView": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "customers_over_limit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "days_0_30": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "days_31_60": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "days_61_90": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "days_over_90": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "overdue": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/AgeingRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "rows",
+          "days_0_30",
+          "days_31_60",
+          "days_61_90",
+          "days_over_90",
+          "total",
+          "overdue",
+          "customers_over_limit"
+        ],
+        "type": "object"
+      },
+      "AuthOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DataStruct"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "BusinessOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BusinessView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "BusinessView": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "has_logo": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "time_zone": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "time_zone",
+          "has_logo",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "ChangePasswordInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "current_password": {
+            "maxLength": 72,
+            "minLength": 1,
+            "type": "string"
+          },
+          "new_password": {
+            "description": "At least 8 characters",
+            "maxLength": 72,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "type": "object"
+      },
+      "CollectionsOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CollectionsView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "CollectionsView": {
+        "additionalProperties": false,
+        "properties": {
+          "advances_held": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "bank": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "cash": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "customers_in_credit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "daily": {
+            "description": "One row per day, including days with nothing collected",
+            "items": {
+              "$ref": "#/components/schemas/DailyCollection"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mpesa": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "payment_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/StaffActivity"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total_collected": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "unrecorded": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "total_collected",
+          "payment_count",
+          "cash",
+          "mpesa",
+          "bank",
+          "unrecorded",
+          "daily",
+          "advances_held",
+          "customers_in_credit",
+          "staff"
+        ],
+        "type": "object"
+      },
+      "CreateEntryInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Decimal string, e.g. \"45000.00\"",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "description": {
+            "description": "e.g. \"Invoice 4471: 20 x DAP 50kg\"",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "due_date": {
+            "description": "Bills only: YYYY-MM-DD it must be paid by",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "payment_method": {
+            "description": "Required for a payment",
+            "enum": [
+              "cash",
+              "mpesa",
+              "bank"
+            ],
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "description": "Bills only: the order this delivery was for",
+            "type": "string"
+          },
+          "reference": {
+            "description": "M-Pesa code or bank reference",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "supplier_id": {
+            "type": "string"
+          },
+          "transaction_date": {
+            "description": "YYYY-MM-DD; defaults to today",
+            "type": "string"
+          },
+          "type": {
+            "description": "bill: goods received on credit. payment: the shop paying.",
+            "enum": [
+              "bill",
+              "payment"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "supplier_id",
+          "type",
+          "amount",
+          "description"
+        ],
+        "type": "object"
+      },
+      "CreateInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "CreateInputBody1": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Decimal string, e.g. \"1500.50\"",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "description": {
+            "description": "What the debt or payment was for",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "due_date": {
+            "description": "Debts only: YYYY-MM-DD the customer agreed to pay by",
+            "type": "string"
+          },
+          "payment_method": {
+            "description": "Required for a payment; not allowed on a debt",
+            "enum": [
+              "cash",
+              "mpesa",
+              "bank"
+            ],
+            "type": "string"
+          },
+          "reference": {
+            "description": "Payments by M-Pesa or bank: the M-Pesa code (e.g. SJK4X7Y2PQ) or bank reference",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "transaction_date": {
+            "description": "YYYY-MM-DD; defaults to today",
+            "type": "string"
+          },
+          "type": {
+            "description": "debt or payment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "type",
+          "amount",
+          "description"
+        ],
+        "type": "object"
+      },
+      "CreateInputBody2": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "The sale total, decimal string, e.g. \"3500.00\"",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "customer_id": {
+            "description": "Required for credit, optional for cash",
+            "type": "string"
+          },
+          "due_date": {
+            "description": "Credit sales only: YYYY-MM-DD the customer agreed to pay by",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "payment_method": {
+            "description": "How it was paid; credit puts the amount on the customer's account",
+            "enum": [
+              "cash",
+              "mpesa",
+              "bank",
+              "credit"
+            ],
+            "type": "string"
+          },
+          "product_name": {
+            "description": "As the shop names it, e.g. \"DAP 50kg\"",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "quantity": {
+            "description": "A count of goods, up to three decimal places.",
+            "examples": [
+              "2",
+              "0.5"
+            ],
+            "oneOf": [
+              {
+                "pattern": "^[0-9]+(\\.[0-9]{1,3})?$",
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "reference": {
+            "description": "M-Pesa code or bank reference, for a sale paid that way",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "sale_date": {
+            "description": "YYYY-MM-DD; defaults to today",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_name",
+          "quantity",
+          "amount",
+          "payment_method"
+        ],
+        "type": "object"
+      },
+      "CreateInputBody3": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "description": "e.g. \"Elgon Kenya — Ruiru depot\"",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "CreateOrderInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/OrderLineInput"
+            },
+            "minItems": 1,
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "ordered_on": {
+            "description": "YYYY-MM-DD; defaults to today",
+            "type": "string"
+          },
+          "supplier_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "supplier_phone": {
+            "maxLength": 50,
+            "type": "string"
+          }
+        },
+        "required": [
+          "supplier_name",
+          "lines"
+        ],
+        "type": "object"
+      },
+      "CreateRequestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "needed_on": {
+            "description": "YYYY-MM-DD the product ran out; defaults to today",
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "product_name": {
+            "description": "e.g. \"Duodip 20ml\"",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_name"
+        ],
+        "type": "object"
+      },
+      "CustomerOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CustomerView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "CustomerView": {
+        "additionalProperties": false,
+        "properties": {
+          "available_credit": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "balance": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "credit_limit": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "over_limit": {
+            "type": "boolean"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "balance",
+          "over_limit",
+          "created_by",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "DailyCollection": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "bank": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "cash": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mpesa": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "unrecorded": {
+            "description": "Payments recorded before the method was asked for",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "count",
+          "amount",
+          "cash",
+          "mpesa",
+          "bank",
+          "unrecorded"
+        ],
+        "type": "object"
+      },
+      "DailySales": {
+        "additionalProperties": false,
+        "properties": {
+          "bank": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "cash": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "credit": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mpesa": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "count",
+          "total",
+          "cash",
+          "mpesa",
+          "bank",
+          "credit"
+        ],
+        "type": "object"
+      },
+      "DataReleaseInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ReleaseInfo"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "DataStruct": {
+        "additionalProperties": false,
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserView"
+          }
+        },
+        "required": [
+          "token",
+          "user"
+        ],
+        "type": "object"
+      },
+      "DataStruct1": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "expires_at"
+        ],
+        "type": "object"
+      },
+      "DataStruct2": {
+        "additionalProperties": false,
+        "properties": {
+          "temporary_password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "temporary_password"
+        ],
+        "type": "object"
+      },
+      "DebtorView": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "days_since_last_activity": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "last_activity": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "name",
+          "balance",
+          "last_activity",
+          "days_since_last_activity"
+        ],
+        "type": "object"
+      },
+      "DueOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DueView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "DueRow": {
+        "additionalProperties": false,
+        "properties": {
+          "customer_id": {
+            "type": "string"
+          },
+          "days_overdue": {
+            "description": "Days since the earliest missed due date; 0 when nothing is overdue",
+            "format": "int64",
+            "type": "integer"
+          },
+          "due_soon": {
+            "description": "Falling due today or within the window",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "earliest_due": {
+            "description": "The oldest due date still unpaid",
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "overdue": {
+            "description": "Owed and past the agreed due date",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "total_owed": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "name",
+          "overdue",
+          "due_soon",
+          "total_owed",
+          "days_overdue"
+        ],
+        "type": "object"
+      },
+      "DueView": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "due_soon": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "overdue": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/DueRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "within_days": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "as_of",
+          "within_days",
+          "rows",
+          "overdue",
+          "due_soon"
+        ],
+        "type": "object"
+      },
+      "EntriesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EntryView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "EntryOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/EntryView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "EntryView": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "type": "boolean"
+          },
+          "payment_method": {
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "supplier_id": {
+            "type": "string"
+          },
+          "transaction_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "supplier_id",
+          "user_id",
+          "type",
+          "amount",
+          "description",
+          "transaction_date",
+          "created_at",
+          "is_deleted"
+        ],
+        "type": "object"
+      },
+      "ErrorModel": {
+        "additionalProperties": false,
+        "properties": {
+          "errors": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "type": "object"
+      },
+      "InviteOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DataStruct1"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "JoinBusinessInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "description": "Invite code from the owner",
+            "maxLength": 10,
+            "minLength": 4,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 2,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 72,
+            "minLength": 8,
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "minLength": 9,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "phone",
+          "password"
+        ],
+        "type": "object"
+      },
+      "ListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CustomerView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaStruct"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "ListOutputBody1": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "ListOutputBody2": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SaleView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "per_page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "total",
+          "page",
+          "per_page"
+        ],
+        "type": "object"
+      },
+      "ListOutputBody3": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SupplierView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "LoginInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "password": {
+            "maxLength": 72,
+            "minLength": 1,
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "minLength": 9,
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "password"
+        ],
+        "type": "object"
+      },
+      "MessageOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "type": "object"
+      },
+      "MetaStruct": {
+        "additionalProperties": false,
+        "properties": {
+          "page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "per_page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total_pages": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "page",
+          "per_page",
+          "total",
+          "total_pages"
+        ],
+        "type": "object"
+      },
+      "OrderLineInput": {
+        "additionalProperties": false,
+        "properties": {
+          "product_name": {
+            "description": "Or an extra product not noted as a request",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "quantity": {
+            "description": "How many to order",
+            "examples": [
+              "2",
+              "0.5"
+            ],
+            "oneOf": [
+              {
+                "pattern": "^[0-9]+(\\.[0-9]{1,3})?$",
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "stock_request_id": {
+            "description": "A pending request to order",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quantity"
+        ],
+        "type": "object"
+      },
+      "OrderListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "OrderOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PurchaseOrderView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "PayableRow": {
+        "additionalProperties": false,
+        "properties": {
+          "due_soon": {
+            "description": "Bills due today or within the window",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "next_due": {
+            "description": "The next due date not yet passed",
+            "format": "date-time",
+            "type": "string"
+          },
+          "oldest_bill": {
+            "description": "Date of the oldest bill not fully paid",
+            "format": "date-time",
+            "type": "string"
+          },
+          "overdue": {
+            "description": "Bills past their due date",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "owed": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "supplier_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "supplier_id",
+          "name",
+          "owed",
+          "overdue",
+          "due_soon",
+          "oldest_bill"
+        ],
+        "type": "object"
+      },
+      "PayablesOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PayablesView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "PayablesView": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "due_soon": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "overdue": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "owed": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "prepayments_held": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PayableRow"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "within_days": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "as_of",
+          "within_days",
+          "rows",
+          "owed",
+          "overdue",
+          "due_soon",
+          "prepayments_held"
+        ],
+        "type": "object"
+      },
+      "Period": {
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object"
+      },
+      "ProductSales": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "count": {
+            "description": "Number of separate sales",
+            "format": "int64",
+            "type": "integer"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "description": "A count of goods, up to three decimal places.",
+            "examples": [
+              "2",
+              "0.5"
+            ],
+            "oneOf": [
+              {
+                "pattern": "^[0-9]+(\\.[0-9]{1,3})?$",
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "required": [
+          "product_name",
+          "quantity",
+          "amount",
+          "count"
+        ],
+        "type": "object"
+      },
+      "PullOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PullView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "PullView": {
+        "additionalProperties": false,
+        "properties": {
+          "customers": {
+            "items": {
+              "$ref": "#/components/schemas/SyncCustomer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "resync_required": {
+            "type": "boolean"
+          },
+          "sales": {
+            "items": {
+              "$ref": "#/components/schemas/SyncSale"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "server_time": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "stock_requests": {
+            "items": {
+              "$ref": "#/components/schemas/SyncStockRequest"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "supplier_transactions": {
+            "items": {
+              "$ref": "#/components/schemas/SyncSupplierTransaction"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/SyncSupplier"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/SyncTransaction"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "customers",
+          "transactions",
+          "sales",
+          "stock_requests",
+          "suppliers",
+          "supplier_transactions",
+          "next_cursor",
+          "has_more",
+          "resync_required",
+          "server_time"
+        ],
+        "type": "object"
+      },
+      "PurchaseOrderLineView": {
+        "additionalProperties": false,
+        "properties": {
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "description": "A count of goods, up to three decimal places.",
+            "examples": [
+              "2",
+              "0.5"
+            ],
+            "oneOf": [
+              {
+                "pattern": "^[0-9]+(\\.[0-9]{1,3})?$",
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "stock_request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_name",
+          "quantity"
+        ],
+        "type": "object"
+      },
+      "PurchaseOrderView": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderLineView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "notes": {
+            "type": "string"
+          },
+          "order_number": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "ordered_on": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reference": {
+            "description": "Human-readable number, e.g. PO-0007",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "supplier_name": {
+            "type": "string"
+          },
+          "supplier_phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reference",
+          "order_number",
+          "supplier_name",
+          "status",
+          "ordered_on",
+          "created_by",
+          "created_at",
+          "lines"
+        ],
+        "type": "object"
+      },
+      "PushInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "customers": {
+            "items": {
+              "$ref": "#/components/schemas/SyncCustomer"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "operation_id": {
+            "description": "Client-generated UUID, identical across retries of this batch.",
+            "type": "string"
+          },
+          "sales": {
+            "items": {
+              "$ref": "#/components/schemas/SyncSale"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "stock_requests": {
+            "items": {
+              "$ref": "#/components/schemas/SyncStockRequest"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "supplier_transactions": {
+            "items": {
+              "$ref": "#/components/schemas/SyncSupplierTransaction"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/SyncSupplier"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/SyncTransaction"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "operation_id"
+        ],
+        "type": "object"
+      },
+      "PushOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PushView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "PushView": {
+        "additionalProperties": false,
+        "properties": {
+          "applied_customers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "applied_sales": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "applied_stock_requests": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "applied_supplier_transactions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "applied_suppliers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "applied_transactions": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "conflicts": {
+            "items": {
+              "$ref": "#/components/schemas/SyncConflict"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "server_time": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id",
+          "applied_customers",
+          "applied_transactions",
+          "applied_sales",
+          "applied_stock_requests",
+          "applied_suppliers",
+          "applied_supplier_transactions",
+          "conflicts",
+          "replayed",
+          "server_time"
+        ],
+        "type": "object"
+      },
+      "RegisterBusinessInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "business_name": {
+            "description": "Name of the shop",
+            "maxLength": 255,
+            "minLength": 2,
+            "type": "string"
+          },
+          "business_type": {
+            "description": "Kiosk, agrovet, hardware, and so on",
+            "maxLength": 100,
+            "type": "string"
+          },
+          "name": {
+            "description": "The owner's name",
+            "maxLength": 255,
+            "minLength": 2,
+            "type": "string"
+          },
+          "password": {
+            "description": "At least 8 characters",
+            "maxLength": 72,
+            "minLength": 8,
+            "type": "string"
+          },
+          "phone": {
+            "description": "Used to sign in",
+            "maxLength": 50,
+            "minLength": 9,
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "IANA zone, e.g. Africa/Nairobi. Defaults to Africa/Nairobi.",
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "business_name",
+          "name",
+          "phone",
+          "password"
+        ],
+        "type": "object"
+      },
+      "ReleaseFile": {
+        "additionalProperties": false,
+        "properties": {
+          "sha256": {
+            "description": "SHA-256 of the APK, checked by the app before installing",
+            "type": "string"
+          },
+          "size": {
+            "description": "Size in bytes",
+            "format": "int64",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Download path, relative to the API host",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "sha256",
+          "size"
+        ],
+        "type": "object"
+      },
+      "ReleaseInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "build": {
+            "description": "The build number; every APK of this release has it as its Android version code. Higher is newer.",
+            "examples": [
+              15
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "files": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ReleaseFile"
+            },
+            "description": "By phone type: arm64 (most phones), armv7 (older phones), x86_64 (emulators)",
+            "type": "object"
+          },
+          "min_build": {
+            "description": "Apps below this build must update before they can sync. Applies to every phone, whatever the rollout.",
+            "examples": [
+              12
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "notes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "What is new, by language: en, and sw when written",
+            "type": "object"
+          },
+          "page_url": {
+            "examples": [
+              "/app"
+            ],
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "rollout_percent": {
+            "description": "Offered to this share of phones (0 to 100), by each phone's fixed bucket",
+            "examples": [
+              100
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "version": {
+            "examples": [
+              "2.0.3"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "build",
+          "min_build",
+          "rollout_percent",
+          "notes",
+          "published_at",
+          "page_url",
+          "files"
+        ],
+        "type": "object"
+      },
+      "RequestListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/StockRequestView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "RequestOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StockRequestView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "ResetPasswordOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DataStruct2"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "SaleOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SaleView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "SaleView": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "debt_transaction_id": {
+            "type": "string"
+          },
+          "due_date": {
+            "description": "Credit sales: when it is to be paid by",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "payment_method": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "description": "A count of goods, up to three decimal places.",
+            "examples": [
+              "2",
+              "0.5"
+            ],
+            "oneOf": [
+              {
+                "pattern": "^[0-9]+(\\.[0-9]{1,3})?$",
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "reference": {
+            "description": "M-Pesa code or bank reference",
+            "type": "string"
+          },
+          "sale_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "product_name",
+          "quantity",
+          "amount",
+          "payment_method",
+          "sale_date",
+          "created_at",
+          "is_deleted"
+        ],
+        "type": "object"
+      },
+      "SalesReportOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SalesReportView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "SalesReportView": {
+        "additionalProperties": false,
+        "properties": {
+          "bank_total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "cash_total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "credit_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "credit_total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "daily": {
+            "description": "One row per day, including days with no sales",
+            "items": {
+              "$ref": "#/components/schemas/DailySales"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "mpesa_total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "paid_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "paid_total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "top_products": {
+            "description": "The 10 best-selling products by value",
+            "items": {
+              "$ref": "#/components/schemas/ProductSales"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "count",
+          "total",
+          "paid_total",
+          "paid_count",
+          "cash_total",
+          "mpesa_total",
+          "bank_total",
+          "credit_total",
+          "credit_count",
+          "top_products",
+          "daily"
+        ],
+        "type": "object"
+      },
+      "SetCreditLimitInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "credit_limit": {
+            "description": "Decimal string, e.g. \"5000.00\"; null removes the limit",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "credit_limit"
+        ],
+        "type": "object"
+      },
+      "StaffActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "debts_count": {
+            "description": "Debts entered by hand; credit sales count as sales",
+            "format": "int64",
+            "type": "integer"
+          },
+          "debts_total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "payments_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "payments_total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "sales_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "sales_total": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "role",
+          "is_active",
+          "debts_count",
+          "debts_total",
+          "payments_count",
+          "payments_total",
+          "sales_count",
+          "sales_total"
+        ],
+        "type": "object"
+      },
+      "StaffListOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/UserView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "StatementLine": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "description": "Running balance after this entry; negative means an advance",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "credit": {
+            "description": "Taken off what the customer owes (a payment)",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "debit": {
+            "description": "Added to what the customer owes (a debt)",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "transaction_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "transaction_id",
+          "date",
+          "type",
+          "description",
+          "debit",
+          "credit",
+          "balance"
+        ],
+        "type": "object"
+      },
+      "StatementOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StatementView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "StatementView": {
+        "additionalProperties": false,
+        "properties": {
+          "closing_balance": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "customer_phone": {
+            "type": "string"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/StatementLine"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "opening_balance": {
+            "description": "Balance carried in from before the period",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "standing": {
+            "enum": [
+              "owes",
+              "advance",
+              "settled"
+            ],
+            "type": "string"
+          },
+          "total_credits": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "total_debits": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "customer_id",
+          "customer_name",
+          "period",
+          "opening_balance",
+          "lines",
+          "total_debits",
+          "total_credits",
+          "closing_balance",
+          "standing"
+        ],
+        "type": "object"
+      },
+      "StockRequestView": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "needed_on": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "ordered"
+            ],
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product_name",
+          "needed_on",
+          "user_id",
+          "status",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "SummaryOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SummaryView"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ],
+        "type": "object"
+      },
+      "SummaryView": {
+        "additionalProperties": false,
+        "properties": {
+          "customers_in_credit": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "overdue_debtor_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "overdue_debtors": {
+            "items": {
+              "$ref": "#/components/schemas/DebtorView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "top_debtors": {
+            "items": {
+              "$ref": "#/components/schemas/DebtorView"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "total_advances_held": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "total_collected_last_30_days": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "total_customers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total_outstanding_debt": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "total_customers",
+          "total_outstanding_debt",
+          "total_advances_held",
+          "customers_in_credit",
+          "total_collected_last_30_days",
+          "overdue_debtor_count",
+          "top_debtors",
+          "overdue_debtors"
+        ],
+        "type": "object"
+      },
+      "SupplierBody": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "e.g. \"Elgon Kenya — Ruiru depot\"",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "SupplierOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SupplierView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "SupplierView": {
+        "additionalProperties": false,
+        "properties": {
+          "balance": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "balance",
+          "created_by",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "SyncConflict": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "field": {
+            "description": "set when only one field was rejected",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "table": {
+            "description": "customers, transactions, sales, stock_requests, suppliers or supplier_transactions",
+            "type": "string"
+          }
+        },
+        "required": [
+          "table",
+          "id",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "SyncCustomer": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "credit_limit": {
+            "description": "Decimal string; null is no limit",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "description": "Omit for a live record.",
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "SyncSale": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Decimal string, e.g. \"3500.00\"",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "due_date": {
+            "description": "Credit sales: when it is to be paid by",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "payment_method": {
+            "description": "cash, mpesa, bank or credit",
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "quantity": {
+            "description": "A count of goods, up to three decimal places.",
+            "examples": [
+              "2",
+              "0.5"
+            ],
+            "oneOf": [
+              {
+                "pattern": "^[0-9]+(\\.[0-9]{1,3})?$",
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "reference": {
+            "description": "M-Pesa code or bank reference",
+            "type": "string"
+          },
+          "sale_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "SyncStockRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "type": "boolean"
+          },
+          "needed_on": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "description": "Set by the server; ignored on push",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "SyncSupplier": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "SyncSupplierTransaction": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "type": "boolean"
+          },
+          "payment_method": {
+            "type": "string"
+          },
+          "purchase_order_id": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "supplier_id": {
+            "type": "string"
+          },
+          "transaction_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "description": "bill or payment",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "SyncTransaction": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "Decimal string, e.g. \"1500.50\"",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "description": "Omit for a live entry.",
+            "type": "boolean"
+          },
+          "payment_method": {
+            "description": "Payments: cash, mpesa or bank",
+            "type": "string"
+          },
+          "reference": {
+            "description": "M-Pesa code or bank reference",
+            "type": "string"
+          },
+          "sale_id": {
+            "type": "string"
+          },
+          "transaction_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "description": "debt or payment",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "TransactionOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TransactionView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "TransactionView": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "description": "A decimal amount with at most two decimal places, as a string.",
+            "examples": [
+              "1500.50"
+            ],
+            "pattern": "^-?[0-9]+(\\.[0-9]{1,2})?$",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "due_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_deleted": {
+            "type": "boolean"
+          },
+          "payment_method": {
+            "type": "string"
+          },
+          "reference": {
+            "description": "M-Pesa code or bank reference",
+            "type": "string"
+          },
+          "sale_id": {
+            "type": "string"
+          },
+          "transaction_date": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "customer_id",
+          "user_id",
+          "type",
+          "amount",
+          "transaction_date",
+          "created_at",
+          "is_deleted"
+        ],
+        "type": "object"
+      },
+      "UpdateBusinessInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "description": "e.g. Shop 4, Kiambu Road, Ruiru",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "email": {
+            "description": "Shown on purchase orders and statements",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 2,
+            "type": "string"
+          },
+          "phone": {
+            "description": "Shown on purchase orders and statements",
+            "maxLength": 50,
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "IANA zone, e.g. Africa/Nairobi. Omit to keep the current one.",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "UpdateInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "UpdateMeInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 255,
+            "minLength": 2,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "UpdateRequestInputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "needed_on": {
+            "description": "YYYY-MM-DD",
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "product_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_name"
+        ],
+        "type": "object"
+      },
+      "UserOutputBody": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UserView"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "type": "object"
+      },
+      "UserView": {
+        "additionalProperties": false,
+        "properties": {
+          "business_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "must_change_password": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "business_id",
+          "name",
+          "phone",
+          "role",
+          "is_active",
+          "must_change_password",
+          "created_at"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "description": "Enter token as: Bearer <your_jwt_token>",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "email": "theurij113@gmail.com",
+      "name": "Salio Support"
+    },
+    "description": "Offline-first debt and credit tracking for small retailers.",
+    "title": "Salio API"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/app/version": {
+      "get": {
+        "description": "The latest Android release: version, the minimum build still allowed to sync, the rollout percentage, notes and APK downloads with SHA-256. Public. 404 when nothing is published.",
+        "operationId": "get-app-version",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataReleaseInfo"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Latest mobile app release",
+        "tags": [
+          "Mobile App"
+        ]
+      }
+    },
+    "/api/v1/auth/invite": {
+      "post": {
+        "operationId": "create-invite",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a staff invite",
+        "tags": [
+          "Business"
+        ]
+      }
+    },
+    "/api/v1/auth/join": {
+      "post": {
+        "description": "Redeems an invite code and creates a staff account.",
+        "operationId": "join-business",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinBusinessInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Join a business",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Authenticates by phone and password.",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Sign in",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/register-business": {
+      "post": {
+        "description": "Creates a business and its first owner, and returns a token.",
+        "operationId": "register-business",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterBusinessInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Register a new business",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/business": {
+      "get": {
+        "operationId": "get-business",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get business details",
+        "tags": [
+          "Business"
+        ]
+      },
+      "put": {
+        "operationId": "update-business",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBusinessInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update business details",
+        "tags": [
+          "Business"
+        ]
+      }
+    },
+    "/api/v1/business/logo": {
+      "delete": {
+        "operationId": "delete-business-logo",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remove the business logo",
+        "tags": [
+          "Business"
+        ]
+      },
+      "get": {
+        "operationId": "get-business-logo",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Download the business logo",
+        "tags": [
+          "Business"
+        ]
+      },
+      "put": {
+        "operationId": "upload-business-logo",
+        "requestBody": {
+          "content": {
+            "image/png": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Upload the logo printed on PDFs (PNG or JPEG, up to 512 KB)",
+        "tags": [
+          "Business"
+        ]
+      }
+    },
+    "/api/v1/customers": {
+      "get": {
+        "operationId": "list-customers",
+        "parameters": [
+          {
+            "description": "Filter by name, case-insensitive",
+            "explode": false,
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "description": "Filter by name, case-insensitive",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "per_page",
+            "schema": {
+              "format": "int64",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List customers",
+        "tags": [
+          "Customers"
+        ]
+      },
+      "post": {
+        "operationId": "create-customer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Add a customer",
+        "tags": [
+          "Customers"
+        ]
+      }
+    },
+    "/api/v1/customers/{customerID}": {
+      "delete": {
+        "operationId": "delete-customer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete a customer (owner only, requires a zero balance)",
+        "tags": [
+          "Customers"
+        ]
+      },
+      "get": {
+        "operationId": "get-customer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get a customer, with balance",
+        "tags": [
+          "Customers"
+        ]
+      },
+      "put": {
+        "operationId": "update-customer",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Edit a customer",
+        "tags": [
+          "Customers"
+        ]
+      }
+    },
+    "/api/v1/customers/{customerID}/credit-limit": {
+      "put": {
+        "description": "Advisory: a debt over the limit is still recorded. The app warns before recording one.",
+        "operationId": "set-customer-credit-limit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCreditLimitInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Set or remove a customer's credit limit (owner only)",
+        "tags": [
+          "Customers"
+        ]
+      }
+    },
+    "/api/v1/customers/{customerID}/transactions": {
+      "get": {
+        "operationId": "list-customer-transactions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOutputBody1"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List a customer's ledger",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders": {
+      "get": {
+        "operationId": "list-purchase-orders",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "default": "all",
+              "enum": [
+                "ordered",
+                "cancelled",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List purchase orders, newest first",
+        "tags": [
+          "Stock & Orders"
+        ]
+      },
+      "post": {
+        "operationId": "create-purchase-order",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Place a purchase order, with a quantity for every product (owner only)",
+        "tags": [
+          "Stock & Orders"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders/{orderID}": {
+      "get": {
+        "operationId": "get-purchase-order",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "View one purchase order",
+        "tags": [
+          "Stock & Orders"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders/{orderID}/cancel": {
+      "post": {
+        "operationId": "cancel-purchase-order",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Cancel an order; its products return to the order list (owner only)",
+        "tags": [
+          "Stock & Orders"
+        ]
+      }
+    },
+    "/api/v1/purchase-orders/{orderID}/pdf": {
+      "get": {
+        "operationId": "purchase-order-pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Download a purchase order as a PDF to send to the supplier",
+        "tags": [
+          "Stock & Orders"
+        ]
+      }
+    },
+    "/api/v1/reports/ageing": {
+      "get": {
+        "operationId": "reports-ageing",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgeingOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Unpaid debt by age: 0-30, 31-60, 61-90, over 90 days, per customer",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/ageing/pdf": {
+      "get": {
+        "operationId": "reports-ageing-pdf",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The debt ageing report as a PDF",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/collections": {
+      "get": {
+        "operationId": "reports-collections",
+        "parameters": [
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionsOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Payments collected, advances held, and what each member of staff recorded",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/collections/pdf": {
+      "get": {
+        "operationId": "reports-collections-pdf",
+        "parameters": [
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The collections and staff activity report as a PDF",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/customers/{customerID}/statement": {
+      "get": {
+        "operationId": "reports-customer-statement",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "One customer's statement: opening balance, every entry, running balance",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/customers/{customerID}/statement/pdf": {
+      "get": {
+        "operationId": "reports-customer-statement-pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "customerID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The customer statement as a PDF to hand or send to the customer",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/due": {
+      "get": {
+        "operationId": "reports-due",
+        "parameters": [
+          {
+            "description": "Include debts falling due within this many days",
+            "explode": false,
+            "in": "query",
+            "name": "within_days",
+            "schema": {
+              "default": 7,
+              "description": "Include debts falling due within this many days",
+              "format": "int64",
+              "maximum": 90,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DueOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Who to remind: customers past an agreed due date, or falling due soon",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/payables": {
+      "get": {
+        "operationId": "reports-payables",
+        "parameters": [
+          {
+            "description": "Include debts falling due within this many days",
+            "explode": false,
+            "in": "query",
+            "name": "within_days",
+            "schema": {
+              "default": 7,
+              "description": "Include debts falling due within this many days",
+              "format": "int64",
+              "maximum": 90,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayablesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "What the shop owes its suppliers, and what falls due soon (owner only)",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/sales": {
+      "get": {
+        "operationId": "reports-sales",
+        "parameters": [
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesReportOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Sales over a period: totals, cash vs credit, best sellers, day by day",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/sales/pdf": {
+      "get": {
+        "operationId": "reports-sales-pdf",
+        "parameters": [
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to 30 days before 'to'.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "The sales report as a PDF",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/summary": {
+      "get": {
+        "operationId": "reports-summary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Business dashboard: totals, top debtors, overdue debtors",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/sales": {
+      "get": {
+        "operationId": "list-sales",
+        "parameters": [
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to 30 days ago.",
+            "explode": false,
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to 30 days ago.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+            "explode": false,
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "description": "YYYY-MM-DD, inclusive. Defaults to today.",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this customer's sales",
+            "explode": false,
+            "in": "query",
+            "name": "customer_id",
+            "schema": {
+              "description": "Only this customer's sales",
+              "type": "string"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "format": "int64",
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "explode": false,
+            "in": "query",
+            "name": "per_page",
+            "schema": {
+              "default": 50,
+              "format": "int64",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOutputBody2"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List sales in a date range",
+        "tags": [
+          "Sales"
+        ]
+      },
+      "post": {
+        "operationId": "record-sale",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInputBody2"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaleOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Record a sale, in cash or on a customer's account",
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/sales/{saleID}": {
+      "delete": {
+        "operationId": "void-sale",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saleID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Void a sale, and its debt if sold on credit (owner only)",
+        "tags": [
+          "Sales"
+        ]
+      },
+      "get": {
+        "operationId": "get-sale",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saleID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaleOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "View one sale",
+        "tags": [
+          "Sales"
+        ]
+      }
+    },
+    "/api/v1/staff": {
+      "get": {
+        "operationId": "list-staff",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List staff",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/staff/{userID}": {
+      "delete": {
+        "operationId": "deactivate-staff",
+        "parameters": [
+          {
+            "description": "The staff member",
+            "in": "path",
+            "name": "userID",
+            "required": true,
+            "schema": {
+              "description": "The staff member",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Deactivate a staff member",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/staff/{userID}/reset-password": {
+      "post": {
+        "description": "Signs the staff member out everywhere. They must choose a new password when they next sign in.",
+        "operationId": "reset-staff-password",
+        "parameters": [
+          {
+            "description": "The staff member",
+            "in": "path",
+            "name": "userID",
+            "required": true,
+            "schema": {
+              "description": "The staff member",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPasswordOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Give a staff member a temporary password (owner only)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/stock-requests": {
+      "get": {
+        "operationId": "list-stock-requests",
+        "parameters": [
+          {
+            "explode": false,
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "default": "pending",
+              "enum": [
+                "pending",
+                "ordered",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestListOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List stock requests; pending ones are the draft order",
+        "tags": [
+          "Stock & Orders"
+        ]
+      },
+      "post": {
+        "operationId": "create-stock-request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRequestInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Note a product that has run out and needs ordering",
+        "tags": [
+          "Stock & Orders"
+        ]
+      }
+    },
+    "/api/v1/stock-requests/{requestID}": {
+      "delete": {
+        "operationId": "delete-stock-request",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "requestID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remove a stock request that is not yet ordered",
+        "tags": [
+          "Stock & Orders"
+        ]
+      },
+      "put": {
+        "operationId": "update-stock-request",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "requestID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRequestInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Edit a stock request that is not yet ordered",
+        "tags": [
+          "Stock & Orders"
+        ]
+      }
+    },
+    "/api/v1/supplier-transactions": {
+      "post": {
+        "operationId": "create-supplier-entry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEntryInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Record a supplier bill (goods on credit) or a payment to a supplier",
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/v1/supplier-transactions/{entryID}": {
+      "delete": {
+        "operationId": "void-supplier-entry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entryID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Void a supplier bill or payment",
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "get": {
+        "operationId": "get-supplier-entry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entryID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "View one supplier bill or payment, including a voided one",
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/v1/suppliers": {
+      "get": {
+        "operationId": "list-suppliers",
+        "parameters": [
+          {
+            "description": "Filter by name, case-insensitive",
+            "explode": false,
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "description": "Filter by name, case-insensitive",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListOutputBody3"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List suppliers, with what the shop owes each",
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "post": {
+        "operationId": "create-supplier",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInputBody3"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Add a supplier",
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/v1/suppliers/{supplierID}": {
+      "delete": {
+        "operationId": "delete-supplier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplierID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete a supplier (requires a zero balance)",
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "get": {
+        "operationId": "get-supplier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplierID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get a supplier, with balance",
+        "tags": [
+          "Suppliers"
+        ]
+      },
+      "put": {
+        "operationId": "update-supplier",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplierID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Edit a supplier",
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/v1/suppliers/{supplierID}/transactions": {
+      "get": {
+        "operationId": "list-supplier-entries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "supplierID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntriesOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List a supplier's bills and payments",
+        "tags": [
+          "Suppliers"
+        ]
+      }
+    },
+    "/api/v1/sync/pull": {
+      "get": {
+        "description": "Returns one page of changes ordered by a server-issued cursor. Advance the cursor only to `next_cursor`, and pull again while `has_more` is true. `resync_required` means the cursor is too old to honour: discard local data and pull from 0.",
+        "operationId": "sync-pull",
+        "parameters": [
+          {
+            "description": "Server-issued cursor from the previous pull. 0 for a first sync.",
+            "explode": false,
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "default": 0,
+              "description": "Server-issued cursor from the previous pull. 0 for a first sync.",
+              "format": "int64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum records of each kind per page.",
+            "explode": false,
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 500,
+              "description": "Maximum records of each kind per page.",
+              "format": "int64",
+              "maximum": 2000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PullOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Download changes since a cursor",
+        "tags": [
+          "Sync"
+        ]
+      }
+    },
+    "/api/v1/sync/push": {
+      "post": {
+        "description": "Applies a batch and reports what was not accepted in `conflicts`. Reuse the same `operation_id` when retrying: the outcome is recorded, so a retry replays the original response instead of applying the batch twice.",
+        "operationId": "sync-push",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Upload changes made offline",
+        "tags": [
+          "Sync"
+        ]
+      }
+    },
+    "/api/v1/transactions": {
+      "post": {
+        "operationId": "create-transaction",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInputBody1"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Record a debt or a payment",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/transactions/{transactionID}": {
+      "delete": {
+        "operationId": "void-transaction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "transactionID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Void a transaction (owner only)",
+        "tags": [
+          "Transactions"
+        ]
+      },
+      "get": {
+        "operationId": "get-transaction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "transactionID",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "View one transaction, including a voided one",
+        "tags": [
+          "Transactions"
+        ]
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "operationId": "get-me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get your own profile",
+        "tags": [
+          "Users"
+        ]
+      },
+      "put": {
+        "operationId": "update-me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update your own profile",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/me/password": {
+      "put": {
+        "description": "Signs out every other device. Returns a new token for this one.",
+        "operationId": "change-my-password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordInputBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthOutputBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Change your own password",
+        "tags": [
+          "Users"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Register a business, sign in, join with an invite",
+      "name": "Authentication"
+    },
+    {
+      "description": "Business details and staff invites",
+      "name": "Business"
+    },
+    {
+      "description": "Your own profile and password, and staff management",
+      "name": "Users"
+    },
+    {
+      "description": "Offline-first cursor sync for the mobile client",
+      "name": "Sync"
+    },
+    {
+      "description": "The people who owe the shop money",
+      "name": "Customers"
+    },
+    {
+      "description": "Debts (with optional due date) and payments (cash, M-Pesa or bank); a payment above the balance becomes an advance",
+      "name": "Transactions"
+    },
+    {
+      "description": "What was sold, in cash or on a customer's account",
+      "name": "Sales"
+    },
+    {
+      "description": "Products that ran out, and purchase orders to restock them",
+      "name": "Stock & Orders"
+    },
+    {
+      "description": "Who the shop buys from, and what it owes them (owner only)",
+      "name": "Suppliers"
+    },
+    {
+      "description": "Dashboard, statements, debt ageing, sales and collections, with PDFs",
+      "name": "Reports"
+    },
+    {
+      "description": "The latest Android release, for the in-app updater",
+      "name": "Mobile App"
+    }
+  ]
+}

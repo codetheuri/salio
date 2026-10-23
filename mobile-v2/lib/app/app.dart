@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/session/session_controller.dart';
 import '../core/sync/sync_controller.dart';
+import '../features/app_update/presentation/app_update_controller.dart';
+import '../features/app_update/presentation/widgets/update_bar.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'router/app_router.dart';
 import 'theme/app_colors.dart';
@@ -39,13 +41,20 @@ class _SalioAppState extends ConsumerState<SalioApp> {
   @override
   void initState() {
     super.initState();
-    // Back in the app: sync, so the other phones' records show.
+    // Back in the app: sync, so the other phones' records show, and look
+    // for a new version now and then.
     _lifecycle = AppLifecycleListener(
       onResume: () {
         if (ref.read(sessionProvider).value?.canSync ?? false) {
           unawaited(ref.read(syncProvider.notifier).syncNow());
         }
+        unawaited(ref.read(appUpdateProvider.notifier).onResume());
       },
+    );
+    // Look for a new version once the first screen is up. Works signed out
+    // too: an app that cannot sign in must still be able to update.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(ref.read(appUpdateProvider.notifier).check()),
     );
   }
 
@@ -73,7 +82,8 @@ class _SalioAppState extends ConsumerState<SalioApp> {
       // Android draws apps behind its navigation bar (the back, home and
       // recent buttons). Keeping everything above it here, once, means no
       // screen, sheet or dialog can put a button under those keys; the strip
-      // behind the bar is white, like the bottom bar. From DairyGo.
+      // behind the bar is white, like the bottom bar. From DairyGo. The
+      // update bar sits under every screen, sign-in included.
       builder: (context, child) => ColoredBox(
         color: AppColors.surface,
         child: SafeArea(
@@ -82,7 +92,7 @@ class _SalioAppState extends ConsumerState<SalioApp> {
           right: false,
           child: MediaQuery.withClampedTextScaling(
             maxScaleFactor: maxTextScale,
-            child: child!,
+            child: UpdateBar(child: child!),
           ),
         ),
       ),

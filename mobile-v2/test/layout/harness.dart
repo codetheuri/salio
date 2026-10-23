@@ -20,6 +20,7 @@ import 'package:salio/core/session/current_user.dart';
 import 'package:salio/core/session/permissions.dart';
 import 'package:salio/core/session/session_controller.dart';
 
+import '../support/fake_app_update.dart';
 import '../support/fixtures.dart';
 
 /// Every screen a role can open: each section, and the screens inside
@@ -130,6 +131,7 @@ class AppUnderTest {
     required Role? role,
     required String route,
     Locale locale = const Locale('en'),
+    FakeAppUpdateService? updates,
   }) async {
     PackageInfo.setMockInitialValues(
       appName: 'Salio',
@@ -146,6 +148,8 @@ class AppUnderTest {
         ),
         databaseProvider.overrideWithValue(db),
         httpAdapterProvider.overrideWithValue(OfflineAdapter()),
+        // Never the real update server or Android's installer.
+        ...fakeUpdateOverrides(updates),
       ],
     );
     container.read(appLocaleProvider.notifier).set(locale);

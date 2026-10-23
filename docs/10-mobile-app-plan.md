@@ -1,6 +1,6 @@
 # 10 — Salio mobile app v2: execution plan
 
-**Status:** proposed on 2026-10-14. M0 (foundations) done on 2026-10-19, in `mobile-v2/`; see the outcome note under M0 in §10.
+**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check. See the outcome notes in §10.
 **Builds on:** [08 — backend rewrite](08-tusk-rewrite-plan.md) (server-v2, complete) and [09 — operations](09-operations.md) (security model, deployment).
 **Borrows from:** the DairyGo app (`/var/www/html/startup/Dairy/mobile`), which already solved self-updating, layout testing and slow networks with real users.
 
@@ -819,6 +819,61 @@ Estimates are working days for one developer working with Claude. They will be r
 - **Exit:**
   - Live scenarios 1 and 2 pass in CI.
   - A release published by the script installs on the reference phone (a quiet Wi-Fi download, then Restart), and the app reopens on the new version.
+
+> **M1 outcome (2026-10-24, branch `mobile/m1-walking-skeleton`).**
+>
+> **Built:**
+> - **Sign-in:** each account gets its own drift file, `accounts/<user id>.db`; its token is in secure storage; and the app opens offline.
+> - **Screens:** the customer list with balances, the customer page with each entry's date and time, adding a customer, and recording a debt. Everything is written as pending in the same statement.
+> - **The sync engine (§4.3):**
+>   - frozen push batches;
+>   - each record's version, so an edit made while its batch is in flight is never lost;
+>   - each pull page saved with its cursor in one transaction;
+>   - pending fields kept when the server's copy arrives;
+>   - "now" taken from the server's clock.
+> - **Sync triggers:** at start, 3 s after a change, every 2 minutes, on return to the app, and on the Sync button.
+> - **The updater:**
+>   - **On the server (B1):** server-v2's `internal/appupdate`, with the version endpoint, the `/app` page and resumable downloads.
+>   - **In the app:** DairyGo's updater with the native PackageInstaller bridge, plus a staged rollout by a fixed bucket per phone, and notes in English and Swahili.
+>   - **A required update blocks sync, never the app (D12):** the bar cannot be put off, and the ledger stays usable.
+>   - **Downloads resume by themselves** while they still make progress.
+>   - **Scripts:** `release.sh` (checks, prod build, version-code, native-library and signature checks, manifest, local tag, upload with the manifest last, live check) and `set-rollout.sh`.
+> - **The API contract snapshot (B11):** `test/contract/openapi.json`, refreshed by `scripts/contract.sh` and checked in CI against the live-test server. `test/contract_test.dart` fails if the app sends a field the server does not know, or reads one it no longer sends.
+>
+> **Tests:** 135, all passing, plus a contract check in CI.
+> - **Layout:** every screen for both roles × 8 sizes × 2 text sizes × 2 languages, signed out too. The update bar runs in 5 states under a list, a form, a customer page and sign-in.
+> - **Live:** 5 scenarios against a real server-v2 started by `scripts/live-server.sh`, which runs the API as the restricted role with RLS required:
+>   - 1 and 2;
+>   - a lost answer;
+>   - a server refusal;
+>   - the updater end to end.
+> - **Shared vectors:** money and the role table.
+> - **The guards were tested too:** each of the layout check, the bar check, the contract check and the APK check was seen to fail on a deliberately broken input.
+>
+> **Found and fixed on the way:**
+> - **`money.Parse("-")` returned 0** in server-v2. The shared money vectors caught it.
+> - **No foreign key from entries to customers on the phone.** Pull pages follow one change sequence across tables, so an entry can arrive before an edited customer. A foreign key would fail a new phone's first sync.
+> - **APKs without `libsqlite3.so`.** An incremental build after adding `package:sqlite3` produced them; a clean build is fine. `scripts/check-apks.sh` now fails any APK without the library. Such an APK would install and then crash on its first query.
+> - **Tusk's request logger hid the connection** from `http.ResponseController`, so every handler was stuck with the 60 s write timeout and APK downloads would be cut. It is fixed on the Tusk branch for v2.0.1 (09 §6). Until then the app resumes downloads by itself.
+> - **Drift and widget tests:** in-memory databases in widget tests need `closeStreamsSynchronously`, or closing waits on a timer the fake clock never fires.
+>
+> **Sizes:** release APKs are 21.3 MB (arm64) and 18.9 MB (armv7), under the 25 MB budget.
+>
+> **Changed from the plan:**
+> - **B1 lives in server-v2, not Tusk:** moving it into Tusk needs a Tusk release, and DairyGo would have to move to it. Extract it once both use the same version.
+> - **The release builds with `--flavor prod`.**
+>
+> **Not done yet. M1's exit check on a phone is still open.** It needs the release key, a phone, and the first release on the server:
+> 1. Install build N.
+> 2. Publish N+1.
+> 3. Watch the quiet Wi-Fi download and tap Restart.
+> 4. Check the app reopens on N+1.
+>
+> **Carried to M2, as planned:**
+> - B2 (a conflict returns the server's copy). Until then, a `stale_write`, `immutable` or `already_voided` answer marks the record synced, and the phone can differ from the server until that record changes again.
+> - Resync without emptying the screens. `resync_required` restarts from cursor 0 but does not yet remove rows the server dropped.
+> - Backoff after failures, and syncing when the connection returns.
+> - The "Needs attention" screen.
 
 **M2 — Sync, complete (6–9 days)**
 

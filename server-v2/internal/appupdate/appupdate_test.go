@@ -318,3 +318,16 @@ func TestPage(t *testing.T) {
 		t.Fatalf("stylesheet: %d %s", res.StatusCode, res.Header.Get("Content-Type"))
 	}
 }
+
+func TestMegabytes(t *testing.T) {
+	for size, want := range map[int64]string{
+		300_000:          "0.3 MB",
+		5 << 20:          "5.0 MB",
+		18 << 20:         "18 MB",
+		18<<20 + 600_000: "19 MB",
+	} {
+		if got := megabytes(size); got != want {
+			t.Errorf("megabytes(%d) = %q, want %q", size, got, want)
+		}
+	}
+}

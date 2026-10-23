@@ -76,6 +76,16 @@ The script creates its own database (`salio_v2_live`) and roles in the test
 PostgreSQL on port 5434, so the dev and test databases are not touched.
 Without `SALIO_LIVE_URL` the live tests are skipped.
 
+**The API contract.** `test/contract/openapi.json` is the app's copy of
+server-v2's API, and `test/contract_test.dart` checks the app against it,
+without a server. After a server change, refresh it against the live-test
+server and review the difference:
+
+```bash
+SALIO_LIVE_URL=http://127.0.0.1:8091 scripts/contract.sh            # check
+SALIO_LIVE_URL=http://127.0.0.1:8091 scripts/contract.sh --update   # refresh
+```
+
 The layout tests fail on any overflow and name the screen size, the text
 size and the file and line. To look at the screens:
 
@@ -112,6 +122,34 @@ flavour cannot update each other: uninstall one first.
 flutter build apk --release --flavor prod --split-per-abi
 ```
 
+## Releasing
+
+The app updates itself (docs/10, §6). A release goes out like this:
+
+1. **Server first.** Deploy any server-v2 change the release needs before the app. A newer app on an older server fails its syncs.
+2. **Version.** Raise `version:` in `pubspec.yaml`, for example from `2.0.2+14` to `2.0.3+15`, and commit.
+3. **Release:**
+
+   ```bash
+   SALIO_RELEASE_TARGET=user@server:/path/to/server-v2/releases \
+   SALIO_RELEASE_URL=https://apis.salio.urizon.co.ke \
+   scripts/release.sh --notes-en "Faster customer list" --notes-sw "Orodha ya wateja ni ya haraka" --rollout 10
+   ```
+
+   It refuses a dirty tree, runs the checks, builds and checks the prod APKs, refuses any APK not signed with the Salio key, writes `server-v2/releases/`, uploads the APKs first and the manifest last, confirms the live server offers the new build, and tags `app-v<version>+<build>` locally.
+4. **Widen the rollout** when nothing has gone wrong: `scripts/set-rollout.sh 50`, then `100`.
+
+`--required` makes phones below this build stop syncing until they update. They keep working offline, and their records wait on the phone. Use it only when older apps can no longer sync correctly with the server.
+
+**On the phone.**
+- On Wi-Fi a new version downloads by itself, then a bar offers **Restart**.
+- On mobile data the bar shows the size and waits for **Update**.
+- A download that drops carries on from where it stopped.
+- Every file is checked against its SHA-256 before Android installs it, and Android also checks the signature.
+- On Android 12 and newer, updates after the first install go through without a question.
+
+**Rolling back means rolling forward.** Android won't install a lower version code. To undo a bad release, publish the previous code under a higher build number.
+
 ## Layout
 
 ```text
@@ -125,7 +163,8 @@ test/
   live/       simulated phones against a real server-v2
   support/    the simulated phone, seeded data, fakes
 drift_schemas/ every database schema version, for migration tests
-scripts/      create-release-key.sh, check-apks.sh, live-server.sh
+scripts/      create-release-key.sh, release.sh, set-rollout.sh,
+              check-apks.sh, live-server.sh, contract.sh
 ```
 
 Screens never touch the database or the network; controllers (Riverpod) call

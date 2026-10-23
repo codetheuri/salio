@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Starts a throwaway server-v2 for the app's live tests (docs/10, §8.2):
-# a fresh database, the two roles, migrations, then the API, run as the
-# restricted role with row-level security required, as in production.
+# a fresh database, the two roles, migrations, a small published app
+# release, then the API, run as the restricted role with row-level security
+# required, as in production.
 #
 #   mobile-v2/scripts/live-server.sh            # runs in the foreground
 #   SALIO_LIVE_URL=http://127.0.0.1:8091 flutter test --tags live
@@ -55,6 +56,25 @@ export DB_DRIVER=postgres DB_HOST="${HOST_PORT%%:*}" DB_PORT="${HOST_PORT##*:}" 
   APP_NAME=Salio APP_VERSION=live APP_MODE=dev SERVER_PORT="$PORT" \
   JWT_SECRET=live-tests-only-not-a-real-secret-0123456789 \
   MIGRATE_ON_BOOT=false REQUIRE_RLS=true DOCS_ENABLED=true LOG_LEVEL=warn
+
+# A small published release, so the live tests can run the app's updater
+# against the real endpoints: check, download, checksum.
+RELEASES="$BIN/releases"
+mkdir -p "$RELEASES"
+head -c 300000 /dev/urandom > "$RELEASES/Salio-9.9.9-arm64.apk"
+python3 - "$RELEASES" <<'PY'
+import hashlib, json, os, sys
+d = sys.argv[1]
+name = "Salio-9.9.9-arm64.apk"
+data = open(os.path.join(d, name), "rb").read()
+json.dump({
+    "version": "9.9.9", "build": 999, "min_build": 0, "rollout_percent": 100,
+    "notes": {"en": "Live test release", "sw": "Toleo la majaribio"},
+    "published_at": "2026-10-19T00:00:00Z",
+    "files": {"arm64": {"name": name, "sha256": hashlib.sha256(data).hexdigest(), "size": len(data)}},
+}, open(os.path.join(d, "latest.json"), "w"))
+PY
+export APP_RELEASES_DIR="$RELEASES"
 
 cd "$BIN"
 ./migrate up >/dev/null

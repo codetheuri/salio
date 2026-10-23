@@ -32,9 +32,11 @@ class SyncButton extends ConsumerWidget {
           : Badge(
               isLabelVisible: unsent > 0,
               label: Text('$unsent'),
-              child: Icon(
-                status.failure == null ? Icons.sync : Icons.cloud_off,
-              ),
+              child: Icon(switch (status) {
+                SyncStatus(blockedByUpdate: true) => Icons.sync_problem,
+                SyncStatus(failure: null) => Icons.sync,
+                _ => Icons.cloud_off,
+              }),
             ),
     );
   }
