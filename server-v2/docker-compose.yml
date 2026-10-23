@@ -86,6 +86,12 @@ services:
       # /docs (interactive) and /openapi.json. Off by default in production;
       # on while the mobile app is being built against it.
       DOCS_ENABLED: "true"
+      # The published app (latest.json and the APKs), served at /app and
+      # /api/v1/app/version. Copied in by mobile-v2/scripts/release.sh;
+      # read-only here, so nothing can replace the app through the API.
+      APP_RELEASES_DIR: /releases
+    volumes:
+      - ./releases:/releases:ro
     expose: ["8090"]                    # not published: only the proxy reaches it
     networks:
       shared:

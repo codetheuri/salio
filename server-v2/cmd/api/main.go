@@ -27,6 +27,7 @@ func main() {
 		// security. Development defaults to the opposite of both.
 		MigrateOnBoot: envBool("MIGRATE_ON_BOOT", !cfg.IsProduction()),
 		RequireRLS:    envBool("REQUIRE_RLS", cfg.IsProduction()),
+		ReleasesDir:   envString("APP_RELEASES_DIR", "releases"),
 	})
 	if err != nil {
 		log.Fatal("Server setup failed", err)
@@ -35,6 +36,13 @@ func main() {
 	if err := application.Run(); err != nil {
 		log.Fatal("Server exited with error", err)
 	}
+}
+
+func envString(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }
 
 func envBool(key string, fallback bool) bool {

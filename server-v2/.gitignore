@@ -16,3 +16,6 @@ coverage.html
 # Editor/OS noise.
 .DS_Store
 *.swp
+
+# Published app releases (APKs and latest.json), copied in by mobile-v2/scripts/release.sh
+/releases/
