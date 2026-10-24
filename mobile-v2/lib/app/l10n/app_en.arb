@@ -222,5 +222,109 @@
   "appChecking": "Checking for updates…",
   "appCheck": "Check",
   "appCheckHint": "Tap Check to look for a new version",
-  "syncBlockedByUpdate": "Update the app to keep syncing. Your records are safe on this phone."
+  "syncBlockedByUpdate": "Update the app to keep syncing. Your records are safe on this phone.",
+  "syncFailed": "Not synced. It will try again by itself.",
+  "needsAttention": "Needs attention",
+  "needsAttentionCount": "{count, plural, =1{1 item needs attention} other{{count} items need attention}}",
+  "@needsAttentionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "needsAttentionEmpty": "Nothing needs your attention.",
+  "issueDismiss": "OK",
+  "issueDiscard": "Discard mine",
+  "issueDiscardConfirm": "Discard this phone's version? The server's stays. This cannot be undone.",
+  "issueUseExisting": "Use the existing customer",
+  "issueDuplicatePayment": "This M-Pesa code is already recorded on another payment, so the money is counted once.",
+  "issueDuplicateCustomer": "A customer with this phone number already exists.",
+  "issueDuplicate": "This is already recorded.",
+  "issueForbidden": "Only an owner can do this, so the change was undone.",
+  "issueHasBalance": "Not deleted: the balance is not zero.",
+  "issueAlreadyOrdered": "Already on a purchase order, so it was not changed.",
+  "issueWaitingCustomer": "Waiting for its customer to reach the server.",
+  "issueWaitingSupplier": "Waiting for its supplier to reach the server.",
+  "issueInvalid": "The server could not accept this. Please tell Salio support.",
+  "issueRecordCustomer": "Customer: {name}",
+  "@issueRecordCustomer": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "issueRecordDebt": "Debt of {amount} for {name}",
+  "@issueRecordDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      },
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "issueRecordPayment": "Payment of {amount} from {name}",
+  "@issueRecordPayment": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      },
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "issueRecordSale": "Sale: {name}, {amount}",
+  "@issueRecordSale": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "DAP 50kg"
+      },
+      "amount": {
+        "type": "String",
+        "example": "KES 3,500"
+      }
+    }
+  },
+  "issueRecordSupplier": "Supplier: {name}",
+  "@issueRecordSupplier": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Elgon Kenya"
+      }
+    }
+  },
+  "issueRecordSupplierEntry": "{amount} with {name}",
+  "@issueRecordSupplierEntry": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 5,000"
+      },
+      "name": {
+        "type": "String",
+        "example": "Elgon Kenya"
+      }
+    }
+  },
+  "issueRecordStock": "Stock note: {name}",
+  "@issueRecordStock": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "DAP 50kg"
+      }
+    }
+  },
+  "issueRecordGone": "A record no longer on this phone"
 }

@@ -4,10 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/layout/breakpoints.dart';
 import '../../core/session/current_user.dart';
+import '../../features/sync_issues/data/providers.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_colors.dart';
 import 'app_sections.dart';
 import 'shell_back_handler.dart';
+
+typedef _IconFor =
+    Widget Function(AppSection section, IconData icon, {Color? color});
 
 /// The frame around the main sections. It adapts to the screen width
 /// (docs/10, §2.2):
@@ -41,6 +45,14 @@ class MainShell extends ConsumerWidget {
     final current = AppSection.values[navigationShell.currentIndex];
     final width = MediaQuery.sizeOf(context).width;
     final compact = width < Breakpoints.medium;
+    // A dot on More while something there needs attention.
+    final attention = (ref.watch(syncIssueCountProvider).value ?? 0) > 0;
+    Widget icon(AppSection s, IconData data, {Color? color}) => Badge(
+      isLabelVisible: attention && s == AppSection.more,
+      backgroundColor: AppColors.error,
+      smallSize: 8,
+      child: Icon(data, color: color),
+    );
 
     // The phone's back button on a section never closes the app by surprise.
     return ShellBackHandler(
@@ -50,8 +62,14 @@ class MainShell extends ConsumerWidget {
       goHome: () => navigationShell.goBranch(AppSection.home.branch),
       goMore: () => navigationShell.goBranch(AppSection.more.branch),
       child: compact
-          ? _withBar(l10n, nav, current)
-          : _withRail(l10n, nav, current, extended: width >= Breakpoints.large),
+          ? _withBar(l10n, nav, current, icon)
+          : _withRail(
+              l10n,
+              nav,
+              current,
+              icon,
+              extended: width >= Breakpoints.large,
+            ),
     );
   }
 
@@ -59,6 +77,7 @@ class MainShell extends ConsumerWidget {
     AppLocalizations l10n,
     SectionNavigation nav,
     AppSection current,
+    _IconFor icon,
   ) {
     return Scaffold(
       body: navigationShell,
@@ -72,8 +91,8 @@ class MainShell extends ConsumerWidget {
           destinations: [
             for (final s in nav.bar)
               NavigationDestination(
-                icon: Icon(s.icon),
-                selectedIcon: Icon(s.selectedIcon, color: AppColors.primary),
+                icon: icon(s, s.icon),
+                selectedIcon: icon(s, s.selectedIcon, color: AppColors.primary),
                 label: s.label(l10n),
               ),
           ],
@@ -85,7 +104,8 @@ class MainShell extends ConsumerWidget {
   Widget _withRail(
     AppLocalizations l10n,
     SectionNavigation nav,
-    AppSection current, {
+    AppSection current,
+    _IconFor icon, {
     required bool extended,
   }) {
     final items = nav.rail;
@@ -112,8 +132,9 @@ class MainShell extends ConsumerWidget {
                       destinations: [
                         for (final s in items)
                           NavigationRailDestination(
-                            icon: Icon(s.icon),
-                            selectedIcon: Icon(
+                            icon: icon(s, s.icon),
+                            selectedIcon: icon(
+                              s,
                               s.selectedIcon,
                               color: AppColors.primary,
                             ),

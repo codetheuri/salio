@@ -1,6 +1,6 @@
 # 10 — Salio mobile app v2: execution plan
 
-**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check. See the outcome notes in §10.
+**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check; M2 (complete sync) built on 2026-10-24. See the outcome notes in §10.
 **Builds on:** [08 — backend rewrite](08-tusk-rewrite-plan.md) (server-v2, complete) and [09 — operations](09-operations.md) (security model, deployment).
 **Borrows from:** the DairyGo app (`/var/www/html/startup/Dairy/mobile`), which already solved self-updating, layout testing and slow networks with real users.
 
@@ -529,7 +529,7 @@ The release tools are `mobile-v2/scripts/release.sh`, and a root `ship.sh` like 
 
 1. **Checks:** a clean tree, the tests, the analyzer.
 2. **Build** one APK per processor type, refusing any not signed with the Salio key. The key's fingerprint is in git.
-3. **Deploy the server first. Never the reverse.** The server rejects request fields it does not know (Huma's default), so a newer app on an older server would fail every sync (B14).
+3. **Deploy the server first. Never the reverse.** A server from before B14 (M2) refuses request fields it does not know, so a newer app on it fails every sync. From B14 on, a sync push ignores unknown fields; but a new field the app relies on still only works once the server has it.
 4. **Publish** the APKs first and the manifest last.
 5. **Tag** `app-v2.0.3+15`, and check that the live endpoint answers with the new build.
 
@@ -579,7 +579,7 @@ Sources, checked on 2026-10-14:
 | # | Change | Why | When |
 |---|---|---|---|
 | B1 | App releases: DairyGo's `appupdate` moved into Tusk as `pkg/appupdate`, with staged-rollout percentages, notes in two languages, and a releases volume | Self-update (§6) | P0, M1 |
-| B2 | Each sync conflict includes the server's current copy of the record | Otherwise a refused change stays on the phone forever: the server's row did not change, so no pull ever corrects it | P0, M2 |
+| B2 | Each sync conflict includes the server's current copy of the record | Otherwise a refused change stays on the phone forever: the server's row did not change, so no pull ever corrects it | P0, M2 — **done** |
 | B3 | **Fix Tusk's rate limiter.** See the note after this table | Phone numbers are easy to guess, so sign-in must resist password guessing. Found while writing this plan | P0, before the beta |
 | B4 | An HTTPS reverse proxy (Caddy) with gzip; automated backups with a tested restore (09 §3) | Tokens and ledgers cross the internet; sync pages shrink by about 85%; no data loss | P0, before the beta |
 | B5 | `permissions` in sign-in and `/users/me` | Roles change without an app release | P1, M3 |
@@ -591,7 +591,7 @@ Sources, checked on 2026-10-14:
 | B11 | CI publishes server-v2's OpenAPI document for the app's contract snapshot | Contract changes show up in the app's pull requests | P2, M1 |
 | B12 | The business's payment details ("Till 123456") on its profile | Reminders and statements say how to pay | P1, M7 |
 | B13 | A read-only switch on the v1 server for cutover | Nothing is written to v1 after the final copy (§11) | Cutover |
-| B14 | Sync ignores unknown fields instead of refusing the batch. Huma rejects them by default (`AllowAdditionalPropertiesByDefault` is false) | A server rollback, or mismatched environments, must not stop every newer phone from syncing. Phase 6's own rule is that one bad field never costs a batch. REST stays strict, where strictness catches typos | P1, M2 |
+| B14 | Sync ignores unknown fields instead of refusing the batch. Huma rejects them by default (`AllowAdditionalPropertiesByDefault` is false) | A server rollback, or mismatched environments, must not stop every newer phone from syncing. Phase 6's own rule is that one bad field never costs a batch. REST stays strict, where strictness catches typos | P1, M2 — **done** |
 | B15 | **Phone numbers stored in one format** (E.164, Kenyan by default) for customers, suppliers and sign-in, through one shared function for REST, sync and the v1 import. A migration converts stored numbers and *reports* the duplicates it uncovers rather than merging them | Today `0712 345 678`, `0712345678` and `+254712345678` are three different customers, and three different sign-ins. The sync path does not even trim spaces. Picking customers from contacts makes this common | P1, M3 |
 | — | Release Tusk v2.0.1 (the testdb lock fix) and remove Salio's workaround | Housekeeping (09 §6) | Any time |
 
@@ -884,6 +884,70 @@ Estimates are working days for one developer working with Claude. They will be r
 - **Exit:**
   - Live scenarios 3–7, 10 and 13 pass.
   - The fake-server failure tests pass: killed mid-push, duplicate answers, timeouts, a 500, a moved clock.
+
+> **M2 outcome (2026-10-24, branch `mobile/m2-sync`, cut from M1's).**
+>
+> **Built on the server:**
+> - **B2:** a push answer has `current`, the server's copy of every record a conflict names, in the shape a pull sends. It is read when the answer is sent, replays included, so a replay never hands back a copy older than one the phone has since pulled. Supplier copies go only to users who may read suppliers.
+> - **B14:** a sync push ignores fields the server does not know, in the body and in every record. REST stays strict. Tested through the real router as the restricted role.
+> - **Quantity vectors:** `testdata/shared/quantity.json`, read by Go and Dart.
+>
+> **Built in the app:**
+> - **The database, schema 2:** sales, stock notes, suppliers and supplier entries; `resync_seen`; `sync_issues.server_copy`. Indexes are now declared on the tables, so the schema snapshots include them. The upgrade from schema 1 is tested with data: unsent records, a frozen push and the cursor all come through.
+> - **The engine, for all six kinds.** What differs between kinds is one table (`sync_kinds.dart`); the engine is written once.
+>   - **Order:** customers and suppliers go before anything that points to them, across batches.
+>   - **Conflicts,** by the §4.3 table:
+>     - `stale_write`, `immutable` and `already_voided` take the server's copy silently;
+>     - `forbidden`, `has_balance` and `already_ordered` take it with a note;
+>     - `unknown_customer` and `unknown_supplier` wait, and go again once the parent is accepted;
+>     - everything else is kept aside, including any reason a newer server adds. Nothing is dropped silently.
+>   - **Resync without emptying the screens:** every page is saved and marked, and only when the last one is in are synced rows that were not seen removed. Unsent and refused records stay. A resync cut short carries on from its last page.
+>   - **A role change resyncs:** the engine is told the role and compares it with the last sync's.
+>   - **Page sizes adapt:** they start at 200, double while pages arrive within 5 s (up to 2,000), and halve after a timeout, up to three times.
+>   - **Unknown lists and fields** from a newer server are ignored.
+> - **When it runs:** after failures it waits 5 s, 15 s, 1 minute, then every 5 minutes. The 2-minute heartbeat pauses during a wait. A returning connection, or the Sync button, syncs at once.
+> - **The balance self-check:** at most hourly, when nothing is unsent, the phone compares what it is owed, and the advances it holds, with `/reports/summary`. A difference seen twice in a row is logged as severe. It goes to crash reporting once that is chosen (§13).
+> - **Screens:**
+>   - **"Needs attention"** (`/more/attention`) words every reason in English and Swahili, with **OK**, **Discard mine** and **Use the existing customer**. Discarding puts the server's copy back, or removes a record the server never had.
+>   - **On More:** a "needs attention" tile and a red dot on More.
+>   - **Badges:** a red mark on refused records, beside the cloud on unsent ones.
+>   - **A sync line** for failures other than being offline.
+> - **Repositories:** editing and deleting customers, payments with method and code, and voids. Their screens come in M3; the live scenarios use them now.
+>
+> **Tests:** 185, all passing (135 at M1), and the full server-v2 suite.
+> - **Fake-server failure tests:** 20 (`test/sync/`, `test/support/fake_server.dart`):
+>   - killed mid-push;
+>   - lost and replayed answers;
+>   - timeouts, a 500 on push and part way through a pull;
+>   - a phone clock three hours wrong;
+>   - each conflict class;
+>   - resync, including one cut short;
+>   - a role change;
+>   - every kind both ways.
+> - **Other new tests:** the controller's waits and connection handling (4), the Needs attention screen and its actions (4), and migrations (2).
+> - **The Needs attention screen** joins the layout tests on all 8 sizes × 2 text scales × 2 languages, seeded with one issue of each kind.
+> - **Live:** 11 scenarios. New ones: 4, 5, 6, 7, 10 (with `scripts/live-gc.sh`, the real sweep on aged deletions) and 13 (three phones, 500 random operations, one answer in five lost; every phone ends with the server's balances).
+> - **The contract test** now covers all six kinds, `current`, the summary and B14. Against the old snapshot it failed, as it should, until the snapshot was refreshed.
+> - **Guards broken on purpose and seen to fail:**
+>   - marking any version synced;
+>   - skipping the resync sweep;
+>   - dropping a migration step;
+>   - B14 turned off;
+>   - the stale contract.
+>
+> **Found and fixed on the way:**
+> - **`quantity.Parse("-")` returned 0** in server-v2, the same bug money had. The new vectors caught it on their first run.
+> - **The schema 1 snapshot was stale.** It was saved in M0, before M1 removed the foreign key from entries and added three indexes. No schema 1 database exists outside tests, so it was regenerated from M1's actual tables. Without that, the upgrade test would have checked against a schema no phone ever had.
+> - **The 2-minute heartbeat cut the waits after failures short,** so a phone with no signal would have kept trying every 2 minutes. The controller test caught it.
+> - **A page-size limit below 25 crashed the clamp.** Only tests use such sizes.
+>
+> **Changed from the plan:**
+> - **`unknown_sale` refuses rather than waits:** nothing on the phone can make that sale reach the server.
+> - **The role comes from sign-in** until B5 (M3) sends live permissions. The engine already takes whatever it is given.
+> - **An interrupted resync restarts from zero** when its cursor is still at or below the horizon, because the server refuses such a cursor. That costs data, never records.
+> - **"Use the existing customer" matches the exact phone number** until B15 (M3) stores one format.
+>
+> **Not done:** background sync through WorkManager, which the plan calls a bonus; nothing depends on it. M1's on-phone check is still open.
 
 **M3 — Customers and the ledger (6–9 days)**
 

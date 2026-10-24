@@ -75,6 +75,13 @@ SALIO_LIVE_URL=http://127.0.0.1:8091 flutter test test/live
 The script creates its own database (`salio_v2_live`) and roles in the test
 PostgreSQL on port 5434, so the dev and test databases are not touched.
 Without `SALIO_LIVE_URL` the live tests are skipped.
+Scenario 10 runs `scripts/live-gc.sh`, which ages the live database's
+deletions and runs the real tombstone sweep, so a phone is told to resync.
+It refuses any database whose name lacks "live".
+
+**The sync engine's failure tests** (`test/sync/`) run the engine against
+`test/support/fake_server.dart`, which can lose answers, time out, fail with
+a 500, replay a push and forget deletions. They need no server.
 
 **The API contract.** `test/contract/openapi.json` is the app's copy of
 server-v2's API, and `test/contract_test.dart` checks the app against it,
@@ -159,12 +166,14 @@ lib/
               session and accounts, layout rules, logging, shared widgets
   features/   one folder per feature: data → domain → presentation
 test/
+  database/   every schema upgrade path, with data
   layout/     the layout harness and tests (from DairyGo)
   live/       simulated phones against a real server-v2
+  sync/       the sync engine against a failing fake server
   support/    the simulated phone, seeded data, fakes
 drift_schemas/ every database schema version, for migration tests
 scripts/      create-release-key.sh, release.sh, set-rollout.sh,
-              check-apks.sh, live-server.sh, contract.sh
+              check-apks.sh, live-server.sh, live-gc.sh, contract.sh
 ```
 
 Screens never touch the database or the network; controllers (Riverpod) call
@@ -183,3 +192,19 @@ After changing a table in `lib/core/database/tables.dart`:
 dart run build_runner build            # regenerates app_database.g.dart (committed)
 dart run drift_dev make-migrations     # after raising schemaVersion: saves the new schema
 ```
+
+`make-migrations` also writes the helpers in `test/database/generated/`, and
+the step functions in `app_database.steps.dart` that `onUpgrade` uses. Add
+data checks for the new step to `test/database/generated/app/migration_test.dart`:
+unsent records, a frozen push and the cursor must come through every
+upgrade. Declare indexes with `@TableIndex` on the table, not in SQL, so the
+snapshots include them.
+
+**Sync, in one paragraph** (docs/10, §4.3). Every write marks its record
+pending. A push freezes a batch, operation id and exact body, and a retry
+sends that body again. The answer marks only the version sent as synced,
+takes the server's copy (`current`, B2) for a conflict the server won, and
+keeps anything else aside in `sync_issues` for **More → Needs attention**.
+A pull saves each page with its cursor in one transaction. A resync pulls
+everything again and only then removes what the server no longer has. What
+differs between the six kinds of record is in `lib/core/sync/sync_kinds.dart`.

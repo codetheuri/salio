@@ -38,6 +38,13 @@ class FixedSession extends SessionController {
 
   @override
   Future<void> signOut() async => state = const AsyncData(null);
+
+  @override
+  Future<void> endedByServer(String reason) async {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(Session(current.account, null, endedReason: reason));
+  }
 }
 
 /// An in-memory database with customers whose names and amounts push the
@@ -117,6 +124,51 @@ Future<AppDatabase> seededDatabase() async {
     '0700111222',
   );
   await entry('0197a000-0000-7000-8000-00000000000c', 'payment', 20000, 'Cash');
+  // One issue of each sort the Needs attention screen words differently,
+  // on records with the longest names: a refused payment, a duplicate
+  // customer the phone can merge, notes the server undid a change, a
+  // record waiting for its customer, and one no longer on the phone.
+  const duplicate = '0197a000-0000-7000-8000-00000000000d';
+  await customer(duplicate, 'Otieno', '0700111222');
+  await (db.update(db.customers)..where((c) => c.id.equals(duplicate))).write(
+    const CustomersCompanion(syncState: Value(SyncState.refused)),
+  );
+  await entry(
+    longCustomerId,
+    'payment',
+    99999999,
+    'M-Pesa',
+    state: SyncState.refused,
+  );
+  Future<void> issue(String table, String id, String reason) => db
+      .into(db.syncIssues)
+      .insert(
+        SyncIssuesCompanion.insert(
+          recordTable: table,
+          recordId: id,
+          reason: reason,
+          createdAt: t,
+        ),
+      );
+  await issue(
+    'transactions',
+    '0197a000-0000-7000-8000-${n.toString().padLeft(12, '0')}',
+    'duplicate',
+  );
+  await issue('customers', duplicate, 'duplicate');
+  await issue('customers', longCustomerId, 'has_balance');
+  await issue(
+    'transactions',
+    '0197a000-0000-7000-8000-000000000001',
+    'forbidden',
+  );
+  await issue(
+    'transactions',
+    '0197a000-0000-7000-8000-000000000003',
+    'unknown_customer',
+  );
+  await issue('sales', 'gone', 'invalid');
+
   for (var i = 0; i < 12; i++) {
     final id =
         '0197a000-0000-7000-8000-0000000001${i.toString().padLeft(2, '0')}';

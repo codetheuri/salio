@@ -1,15 +1,16 @@
 // The app against its snapshot of server-v2's API (test/contract/openapi.json,
 // refreshed by scripts/contract.sh). The live tests prove the app works with
 // a real server; this proves, without one, that what the app sends and reads
-// is in the contract. It matters most for what the app sends: server-v2
-// rejects fields it does not know (docs/10, B14), so one extra key in a sync
-// record would fail every push.
+// is in the contract. It matters most for what the app sends: server-v2's
+// REST routes reject fields they do not know, and a sync push ignores them
+// (B14), so an extra key there would be silently lost rather than refused.
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salio/core/database/app_database.dart';
+import 'package:salio/core/sync/sync_kinds.dart';
 import 'package:salio/core/sync/wire.dart';
 
 final _doc =
@@ -34,6 +35,7 @@ void main() {
       ('get', '/api/v1/business'),
       ('get', '/api/v1/sync/pull'),
       ('post', '/api/v1/sync/push'),
+      ('get', '/api/v1/reports/summary'),
       ('get', '/api/v1/app/version'),
     ]) {
       expect(
@@ -88,11 +90,104 @@ void main() {
     expect(_properties('SyncTransaction'), containsAll(json.keys));
   });
 
+  test('a pushed sale, stock note, supplier and supplier entry have only '
+      'fields the server knows', () {
+    final sale = Wire.sale(
+      SaleRow(
+        id: 's',
+        customerId: 'c',
+        userId: 'u',
+        productName: 'DAP',
+        quantity: 1500,
+        amountCents: 350000,
+        paymentMethod: 'credit',
+        reference: 'r',
+        dueDate: _t,
+        notes: 'n',
+        saleDate: _t,
+        createdAt: _t,
+        updatedAt: _t,
+        isDeleted: false,
+        syncState: SyncState.pending,
+        localVersion: 1,
+      ),
+    );
+    expect(_properties('SyncSale'), containsAll(sale.keys));
+    final note = Wire.stockRequest(
+      StockRequestRow(
+        id: 'r',
+        userId: 'u',
+        productName: 'Duodip',
+        neededOn: _t,
+        notes: 'n',
+        purchaseOrderId: 'po',
+        createdAt: _t,
+        updatedAt: _t,
+        isDeleted: false,
+        syncState: SyncState.pending,
+        localVersion: 1,
+      ),
+    );
+    expect(_properties('SyncStockRequest'), containsAll(note.keys));
+    final supplier = Wire.supplier(
+      SupplierRow(
+        id: 's',
+        name: 'Elgon',
+        phone: '07',
+        notes: 'n',
+        createdBy: 'u',
+        createdAt: _t,
+        updatedAt: _t,
+        isDeleted: false,
+        syncState: SyncState.pending,
+        localVersion: 1,
+      ),
+    );
+    expect(_properties('SyncSupplier'), containsAll(supplier.keys));
+    final bill = Wire.supplierEntry(
+      SupplierEntryRow(
+        id: 'b',
+        supplierId: 's',
+        userId: 'u',
+        type: 'bill',
+        amountCents: 100,
+        description: 'd',
+        transactionDate: _t,
+        dueDate: _t,
+        paymentMethod: 'bank',
+        reference: 'r',
+        purchaseOrderId: 'po',
+        createdAt: _t,
+        updatedAt: _t,
+        isDeleted: false,
+        syncState: SyncState.pending,
+        localVersion: 1,
+      ),
+    );
+    expect(_properties('SyncSupplierTransaction'), containsAll(bill.keys));
+  });
+
   test('a push batch has only fields the server knows', () {
     expect(
       _properties('PushInputBody'),
-      containsAll(['operation_id', 'customers', 'transactions']),
+      containsAll(['operation_id', for (final kind in syncKinds) kind.wire]),
     );
+  });
+
+  // B14: a newer app's extra field costs nothing on an older server. Were
+  // this lost, one new field would fail every push from every newer phone.
+  test('the server ignores push fields it does not know', () {
+    for (final schema in [
+      'PushInputBody',
+      'SyncCustomer',
+      'SyncTransaction',
+      'SyncSale',
+      'SyncStockRequest',
+      'SyncSupplier',
+      'SyncSupplierTransaction',
+    ]) {
+      expect(_schema(schema)['additionalProperties'], isTrue, reason: schema);
+    }
   });
 
   test('what the app reads from the server is in the contract', () {
@@ -107,9 +202,16 @@ void main() {
         'server_time',
       ]),
     );
+    final kinds = [for (final kind in syncKinds) kind.wire];
+    expect(_properties('PullView'), containsAll(kinds));
     expect(
       _properties('PushView'),
-      containsAll(['conflicts', 'replayed', 'server_time']),
+      containsAll(['conflicts', 'current', 'replayed', 'server_time']),
+    );
+    expect(_properties('ServerCopies'), containsAll(kinds));
+    expect(
+      _properties('SummaryView'),
+      containsAll(['total_outstanding_debt', 'total_advances_held']),
     );
     expect(
       _properties('SyncConflict'),

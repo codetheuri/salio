@@ -13,12 +13,14 @@ import '../../features/customers/presentation/customer_screen.dart';
 import '../../features/customers/presentation/customers_screen.dart';
 import '../../features/ledger/presentation/record_debt_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
+import '../../features/sync_issues/presentation/needs_attention_screen.dart';
 import '../shell/app_sections.dart';
 import '../shell/main_shell.dart';
 
 abstract final class AppRoutes {
   static const splash = '/splash';
   static const signIn = '/sign-in';
+  static const needsAttention = '/more/attention';
 }
 
 /// The router is created once. Changes to who is signed in reach it through
@@ -114,6 +116,12 @@ GoRoute _sectionRoute(AppSection section) => switch (section) {
   AppSection.more => GoRoute(
     path: section.path,
     builder: (context, state) => const MoreScreen(),
+    routes: [
+      GoRoute(
+        path: 'attention',
+        builder: (context, state) => const NeedsAttentionScreen(),
+      ),
+    ],
   ),
   _ => GoRoute(
     path: section.path,

@@ -145,6 +145,8 @@ All three are public, because an app has to update before it can sign in.
 
 **Staged rollout.** `rollout_percent` in `latest.json` limits the in-app offer to that share of phones. Widen it with `mobile-v2/scripts/set-rollout.sh 50`. `min_build` reaches every phone; below it, phones stop syncing until they update, but keep working.
 
+**Deploy server-v2 before the app that needs it.** Since M2 the app reads the server's copy of each refused record from a push answer (`current`, B2). A server without it still works with that app: refused records are then kept as the phone had them until they next change. A server from before B14 also refuses any push field it does not know, so an app that sends a new field fails every sync until the server has it. The production server needs the M2 server changes before the first M2 build goes out.
+
 **Long downloads.** With Tusk v2.0.0, the request logger stops the download handler from extending the 60 s write timeout, so a download is cut every minute. The app resumes it by itself, so it only takes longer. Tusk v2.0.1 fixes it (§6).
 
 ### Migrations

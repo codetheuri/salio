@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/l10n/generated/app_localizations.dart';
 import '../../../app/router/app_router.dart';
 import '../../../app/shell/app_sections.dart';
+import '../../../app/theme/app_colors.dart';
 import '../../../core/app_info.dart';
 import '../../../core/format/dates.dart';
 import '../../../core/layout/breakpoints.dart';
@@ -15,6 +16,7 @@ import '../../../core/session/current_user.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/sync/sync_controller.dart';
 import '../../app_update/presentation/widgets/app_update_tile.dart';
+import '../../sync_issues/data/providers.dart';
 
 /// The More page: the account and its sync, on a phone the sections that do
 /// not fit in the bottom bar, and what support needs to know about this
@@ -111,6 +113,7 @@ class _AccountSection extends ConsumerWidget {
     final status = ref.watch(syncProvider);
     final unsent = ref.watch(unsentCountProvider).value ?? 0;
     final last = ref.watch(lastSyncProvider).value;
+    final attention = ref.watch(syncIssueCountProvider).value ?? 0;
     final locale = Localizations.localeOf(context).toLanguageTag();
 
     final String syncLine;
@@ -123,6 +126,8 @@ class _AccountSection extends ConsumerWidget {
     } else if (status.failure == ApiFailure.offline ||
         status.failure == ApiFailure.timeout) {
       syncLine = l10n.syncOffline;
+    } else if (status.failure != null) {
+      syncLine = l10n.syncFailed;
     } else {
       syncLine = last == null
           ? l10n.syncNever
@@ -154,7 +159,7 @@ class _AccountSection extends ConsumerWidget {
                   onPressed: status.running
                       ? null
                       : () => unawaited(
-                          ref.read(syncProvider.notifier).syncNow(),
+                          ref.read(syncProvider.notifier).syncNow(reset: true),
                         ),
                   child: Text(l10n.syncNow),
                 )
@@ -163,6 +168,13 @@ class _AccountSection extends ConsumerWidget {
                   child: Text(l10n.signInButton),
                 ),
         ),
+        if (attention > 0)
+          ListTile(
+            leading: const Icon(Icons.error_outline, color: AppColors.error),
+            title: Text(l10n.needsAttentionCount(attention)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go(AppRoutes.needsAttention),
+          ),
         ListTile(
           leading: const Icon(Icons.logout),
           title: Text(l10n.signOut),

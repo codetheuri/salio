@@ -154,9 +154,7 @@
     },
     {
       "id": 1,
-      "references": [
-        0
-      ],
+      "references": [],
       "type": "table",
       "data": {
         "name": "ledger_entries",
@@ -236,25 +234,9 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "defaultConstraints": "REFERENCES customers (id)",
-            "dialectAwareDefaultConstraints": {
-              "sqlite": "REFERENCES customers (id)"
-            },
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": [
-              {
-                "foreign_key": {
-                  "to": {
-                    "table": "customers",
-                    "column": "id"
-                  },
-                  "initially_deferred": false,
-                  "on_update": null,
-                  "on_delete": null
-                }
-              }
-            ]
+            "dsl_features": []
           },
           {
             "name": "user_id",
@@ -548,6 +530,67 @@
         "without_rowid": false,
         "constraints": []
       }
+    },
+    {
+      "id": 5,
+      "references": [
+        0
+      ],
+      "type": "index",
+      "data": {
+        "on": 0,
+        "name": "customers_sync_state",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "sync_state",
+            "order_by": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "references": [
+        1
+      ],
+      "type": "index",
+      "data": {
+        "on": 1,
+        "name": "ledger_entries_customer",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "customer_id",
+            "order_by": null
+          },
+          {
+            "column": "is_deleted",
+            "order_by": null
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "references": [
+        1
+      ],
+      "type": "index",
+      "data": {
+        "on": 1,
+        "name": "ledger_entries_sync_state",
+        "sql": null,
+        "unique": false,
+        "columns": [
+          {
+            "column": "sync_state",
+            "order_by": null
+          }
+        ]
+      }
     }
   ],
   "fixed_sql": [
@@ -565,7 +608,7 @@
       "sql": [
         {
           "dialect": "sqlite",
-          "sql": "CREATE TABLE IF NOT EXISTS \"ledger_entries\" (\"id\" TEXT NOT NULL, \"created_at\" TEXT NOT NULL, \"updated_at\" TEXT NOT NULL, \"is_deleted\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_deleted\" IN (0, 1)), \"sync_state\" INTEGER NOT NULL, \"local_version\" INTEGER NOT NULL DEFAULT 0, \"customer_id\" TEXT NOT NULL REFERENCES customers (id), \"user_id\" TEXT NOT NULL, \"type\" TEXT NOT NULL, \"amount_cents\" INTEGER NOT NULL, \"description\" TEXT NULL, \"transaction_date\" TEXT NOT NULL, \"payment_method\" TEXT NULL, \"reference\" TEXT NULL, \"due_date\" TEXT NULL, \"sale_id\" TEXT NULL, PRIMARY KEY (\"id\"));"
+          "sql": "CREATE TABLE IF NOT EXISTS \"ledger_entries\" (\"id\" TEXT NOT NULL, \"created_at\" TEXT NOT NULL, \"updated_at\" TEXT NOT NULL, \"is_deleted\" INTEGER NOT NULL DEFAULT 0 CHECK (\"is_deleted\" IN (0, 1)), \"sync_state\" INTEGER NOT NULL, \"local_version\" INTEGER NOT NULL DEFAULT 0, \"customer_id\" TEXT NOT NULL, \"user_id\" TEXT NOT NULL, \"type\" TEXT NOT NULL, \"amount_cents\" INTEGER NOT NULL, \"description\" TEXT NULL, \"transaction_date\" TEXT NOT NULL, \"payment_method\" TEXT NULL, \"reference\" TEXT NULL, \"due_date\" TEXT NULL, \"sale_id\" TEXT NULL, PRIMARY KEY (\"id\"));"
         }
       ]
     },
@@ -593,6 +636,33 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE TABLE IF NOT EXISTS \"sync_issues\" (\"id\" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, \"record_table\" TEXT NOT NULL, \"record_id\" TEXT NOT NULL, \"field\" TEXT NULL, \"reason\" TEXT NOT NULL, \"detail\" TEXT NULL, \"created_at\" TEXT NOT NULL);"
+        }
+      ]
+    },
+    {
+      "name": "customers_sync_state",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX customers_sync_state ON customers (sync_state)"
+        }
+      ]
+    },
+    {
+      "name": "ledger_entries_customer",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX ledger_entries_customer ON ledger_entries (customer_id, is_deleted)"
+        }
+      ]
+    },
+    {
+      "name": "ledger_entries_sync_state",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE INDEX ledger_entries_sync_state ON ledger_entries (sync_state)"
         }
       ]
     }

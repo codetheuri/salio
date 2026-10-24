@@ -20,7 +20,8 @@ class SyncButton extends ConsumerWidget {
       tooltip: status.running ? l10n.syncing : l10n.syncNow,
       onPressed: status.running
           ? null
-          : () => unawaited(ref.read(syncProvider.notifier).syncNow()),
+          : () =>
+                unawaited(ref.read(syncProvider.notifier).syncNow(reset: true)),
       icon: status.running
           ? const SizedBox.square(
               dimension: 20,

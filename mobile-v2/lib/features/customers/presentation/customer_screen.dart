@@ -9,6 +9,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/format/dates.dart';
 import '../../../core/layout/breakpoints.dart';
 import '../../../core/money/money.dart';
+import '../../../core/widgets/sync_badge.dart';
 import '../data/providers.dart';
 
 /// One customer: their balance and their entries, newest first. Every entry
@@ -171,15 +172,7 @@ class _EntryTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (entry.syncState != SyncState.synced) ...[
-            const SizedBox(width: AppSpacing.xs),
-            Icon(
-              Icons.cloud_upload_outlined,
-              size: 16,
-              semanticLabel: l10n.unsent,
-              color: AppColors.textSecondary,
-            ),
-          ],
+          SyncBadge(entry.syncState),
         ],
       ),
       trailing: ConstrainedBox(

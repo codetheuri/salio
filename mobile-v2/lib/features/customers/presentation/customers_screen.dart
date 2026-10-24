@@ -7,6 +7,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../core/layout/breakpoints.dart';
 import '../../../core/widgets/money_text.dart';
+import '../../../core/widgets/sync_badge.dart';
 import '../../../core/widgets/sync_button.dart';
 import '../data/customer_repository.dart';
 import '../data/providers.dart';
@@ -60,7 +61,6 @@ class _CustomerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final c = item.customer;
     return ListTile(
       leading: CircleAvatar(
@@ -75,15 +75,7 @@ class _CustomerTile extends StatelessWidget {
           Flexible(
             child: Text(c.name, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
-          if (item.isUnsent) ...[
-            const SizedBox(width: AppSpacing.xs),
-            Icon(
-              Icons.cloud_upload_outlined,
-              size: 16,
-              semanticLabel: l10n.unsent,
-              color: AppColors.textSecondary,
-            ),
-          ],
+          SyncBadge(item.syncState),
         ],
       ),
       subtitle: c.phone == null

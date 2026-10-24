@@ -9,6 +9,7 @@ import 'package:dio/io.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:salio/core/database/app_database.dart';
+import 'package:salio/core/money/money.dart';
 import 'package:salio/core/network/api_client.dart';
 import 'package:salio/core/session/account_store.dart';
 import 'package:salio/core/sync/sync_engine.dart';
@@ -16,6 +17,7 @@ import 'package:salio/core/time/server_clock.dart';
 import 'package:salio/features/auth/data/auth_api.dart';
 import 'package:salio/features/customers/data/customer_repository.dart';
 import 'package:salio/features/ledger/data/ledger_repository.dart';
+import 'package:salio/features/sync_issues/data/sync_issue_repository.dart';
 
 /// Wraps an adapter so a test can act around each request: run something
 /// while the server is answering, or lose the answer on its way back.
@@ -109,6 +111,25 @@ class Phone {
     for (final c in await customers.watchAll().first)
       c.customer.name: c.balanceCents,
   };
+
+  /// Balances as the server computes them, by name.
+  Future<Map<String, int>> serverBalances() async {
+    final list = await api.get('/customers', query: {'per_page': 100}) as List;
+    return {
+      for (final c in list.cast<Map<String, dynamic>>())
+        c['name'] as String: Money.parse(c['balance'] as String),
+    };
+  }
+
+  Future<List<SyncIssueRow>> issues() => db.select(db.syncIssues).get();
+
+  SyncIssueRepository get attention => SyncIssueRepository(db);
+
+  Future<CustomerRow> customer(String id) =>
+      (db.select(db.customers)..where((c) => c.id.equals(id))).getSingle();
+
+  /// Syncs as the signed-in role, as the app does.
+  Future<SyncReport> syncNow() => sync.sync(access: account.role.name);
 
   Future<int> pendingCount() async {
     final c = await (db.select(

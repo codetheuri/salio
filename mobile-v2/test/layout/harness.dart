@@ -19,6 +19,7 @@ import 'package:salio/core/network/api_provider.dart';
 import 'package:salio/core/session/current_user.dart';
 import 'package:salio/core/session/permissions.dart';
 import 'package:salio/core/session/session_controller.dart';
+import 'package:salio/core/sync/sync_controller.dart';
 
 import '../support/fake_app_update.dart';
 import '../support/fixtures.dart';
@@ -33,6 +34,7 @@ Map<Role, List<String>> get routesByRole => {
       '/customers/new',
       '/customers/$longCustomerId',
       '/customers/$longCustomerId/debt',
+      '/more/attention',
     ],
 };
 
@@ -148,6 +150,7 @@ class AppUnderTest {
         ),
         databaseProvider.overrideWithValue(db),
         httpAdapterProvider.overrideWithValue(OfflineAdapter()),
+        connectionChangesProvider.overrideWithValue(const Stream.empty()),
         // Never the real update server or Android's installer.
         ...fakeUpdateOverrides(updates),
       ],
