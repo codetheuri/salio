@@ -85,7 +85,7 @@ type RegisterBusinessInput struct {
 		BusinessType string `json:"business_type,omitempty" maxLength:"100" doc:"Kiosk, agrovet, hardware, and so on"`
 		Name         string `json:"name" required:"true" minLength:"2" maxLength:"255" doc:"The owner's name"`
 		Phone        string `json:"phone" required:"true" minLength:"9" maxLength:"50" doc:"Used to sign in"`
-		Password     string `json:"password" required:"true" minLength:"8" maxLength:"72" doc:"At least 8 characters"`
+		Password     string `json:"password" required:"true" minLength:"5" maxLength:"72" doc:"At least 5 characters"`
 
 		// The app sends the phone's own zone, so a shop outside Kenya gets
 		// the right dates from its first entry without a settings visit.
@@ -105,7 +105,7 @@ type JoinBusinessInput struct {
 		Code     string `json:"code" required:"true" minLength:"4" maxLength:"10" doc:"Invite code from the owner"`
 		Name     string `json:"name" required:"true" minLength:"2" maxLength:"255"`
 		Phone    string `json:"phone" required:"true" minLength:"9" maxLength:"50"`
-		Password string `json:"password" required:"true" minLength:"8" maxLength:"72"`
+		Password string `json:"password" required:"true" minLength:"5" maxLength:"72" doc:"At least 5 characters"`
 	}
 }
 
@@ -152,7 +152,7 @@ type LogoOutput struct {
 type ChangePasswordInput struct {
 	Body struct {
 		CurrentPassword string `json:"current_password" required:"true" minLength:"1" maxLength:"72"`
-		NewPassword     string `json:"new_password" required:"true" minLength:"8" maxLength:"72" doc:"At least 8 characters"`
+		NewPassword     string `json:"new_password" required:"true" minLength:"5" maxLength:"72" doc:"At least 5 characters"`
 	}
 }
 
