@@ -8,6 +8,8 @@ import (
 	"github.com/codetheuri/tusk/v2/pkg/logger"
 	"github.com/codetheuri/tusk/v2/pkg/query"
 	"github.com/danielgtaylor/huma/v2"
+
+	"salio/server-v2/internal/phone"
 )
 
 type Handler struct {
@@ -97,6 +99,9 @@ func (h *Handler) mapError(err error, action string) error {
 		return huma.Error409Conflict(err.Error())
 	case errors.Is(err, ErrNegativeCreditLimit):
 		return huma.Error422UnprocessableEntity(err.Error())
+	case errors.Is(err, phone.ErrInvalid):
+		return huma.Error422UnprocessableEntity(err.Error(),
+			&huma.ErrorDetail{Location: "body.phone", Message: err.Error()})
 	default:
 		h.log.Error("customer module error while "+action, err)
 		return huma.Error500InternalServerError("Something went wrong. Please try again.")

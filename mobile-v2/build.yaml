@@ -1,0 +1,15 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # ISO-8601 text with milliseconds, in UTC. Drift's default is whole
+          # seconds, which would put two edits made in the same second in an
+          # arbitrary order.
+          store_date_time_values_as_text: true
+          # Every schema version is kept in drift_schemas/ and each upgrade
+          # path is tested (docs/10, §4.2).
+          databases:
+            app: lib/core/database/app_database.dart
+          schema_dir: drift_schemas/
+          test_dir: test/database/generated/

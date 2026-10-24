@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dev flavour only: allows plain HTTP, to reach server-v2 running on the
+     laptop (http://127.0.0.1:8090 through `adb reverse`, or the laptop's
+     address on the Wi-Fi). Staging and prod use the HTTPS-only main copy. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

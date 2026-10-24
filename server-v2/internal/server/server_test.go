@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,6 +19,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 
+	"salio/server-v2/internal/domain"
+	"salio/server-v2/internal/rbac"
 	"salio/server-v2/internal/server"
 	"salio/server-v2/internal/testsupport"
 )
@@ -278,4 +281,158 @@ func TestAPI_SessionsEnd(t *testing.T) {
 			t.Fatalf("deactivated staff GET %s = %d, want 401", path, status)
 		}
 	}
+}
+
+// B2 and B14 through the real router, as the restricted role: a push may carry
+// fields this server does not know, and a refused record comes back as the
+// server holds it, supplier records only to those who may read them.
+func TestAPI_SyncIgnoresUnknownFieldsAndReturnsTheServersCopy(t *testing.T) {
+	c := startAsRestrictedRole(t)
+	owner := c.register("Ruiru Agrovet", "0716000001", "owner-pass-1")
+	code := data(c.mustOK("POST", "/auth/invite", owner, nil))["code"].(string)
+	joined := data(c.mustOK("POST", "/auth/join", "", map[string]any{
+		"code": code, "name": "Staff", "phone": "0716000002", "password": "staff-pass-1",
+	}))
+	staff := joined["token"].(string)
+	staffID := joined["user"].(map[string]any)["id"].(string)
+
+	// REST stays strict.
+	if status, _ := c.do("POST", "/customers", staff, map[string]any{"name": "Wanjiku", "nickname": "Shiku"}); status != http.StatusUnprocessableEntity {
+		t.Fatalf("REST create with an unknown field = %d, want 422", status)
+	}
+
+	// Sync does not: unknown fields at the top and inside a record.
+	cid := uuid.NewString()
+	now := time.Now().UTC().Format(time.RFC3339)
+	push := data(c.mustOK("POST", "/sync/push", staff, map[string]any{
+		"operation_id":  uuid.NewString(),
+		"loyalty_cards": []any{map[string]any{"id": uuid.NewString()}},
+		"customers": []map[string]any{{
+			"id": cid, "name": "Wanjiku", "nickname": "Shiku", "created_by": staffID,
+			"created_at": now, "updated_at": now,
+		}},
+	}))
+	if push["applied_customers"].(float64) != 1 {
+		t.Fatalf("push with unknown fields = %v", push)
+	}
+
+	// Staff may not delete: refused, with the live customer to put back.
+	refused := data(c.mustOK("POST", "/sync/push", staff, map[string]any{
+		"operation_id": uuid.NewString(),
+		"customers": []map[string]any{{
+			"id": cid, "name": "Wanjiku", "is_deleted": true, "updated_at": now,
+			"changed_fields": []string{"is_deleted"},
+		}},
+	}))
+	current := refused["current"].(map[string]any)
+	copies := current["customers"].([]any)
+	if len(refused["conflicts"].([]any)) != 1 || len(copies) != 1 {
+		t.Fatalf("refused delete = %v", refused)
+	}
+	if got := copies[0].(map[string]any); got["id"] != cid || got["is_deleted"] != false || got["name"] != "Wanjiku" {
+		t.Fatalf("server's copy = %v, want the live customer", got)
+	}
+
+	// A supplier the owner made, edited by staff: refused, and its copy is
+	// not handed to someone who may not read suppliers.
+	sid := data(c.mustOK("POST", "/suppliers", owner, map[string]any{"name": "Elgon Kenya"}))["id"].(string)
+	refused = data(c.mustOK("POST", "/sync/push", staff, map[string]any{
+		"operation_id": uuid.NewString(),
+		"suppliers":    []map[string]any{{"id": sid, "name": "Renamed", "updated_at": now}},
+	}))
+	current = refused["current"].(map[string]any)
+	if len(refused["conflicts"].([]any)) != 1 || len(current["suppliers"].([]any)) != 0 {
+		t.Fatalf("staff supplier push = %v, want one conflict and no copy", refused)
+	}
+}
+
+// B5 and B15 through the real router, as the restricted role: sign-in and
+// /users/me carry the permissions the routes check, and every phone number
+// is stored in one form whichever way it was typed, by REST and by sync.
+func TestAPI_PermissionsAndOnePhoneForm(t *testing.T) {
+	c := startAsRestrictedRole(t)
+
+	registered := data(c.mustOK("POST", "/auth/register-business", "", map[string]any{
+		"business_name": "Ruiru Agrovet", "name": "Owner", "phone": "0717 000 001", "password": "owner-pass-1",
+	}))
+	owner := registered["token"].(string)
+	user := registered["user"].(map[string]any)
+	if user["phone"] != "+254717000001" {
+		t.Fatalf("stored login phone = %v, want +254717000001", user["phone"])
+	}
+	if got := strings.Join(toStrings(user["permissions"]), ","); got != strings.Join(sorted(rbac.PermissionsFor(domain.RoleOwner)), ",") {
+		t.Fatalf("owner permissions at sign-up = %s", got)
+	}
+
+	// The same login, typed three other ways.
+	for _, typed := range []string{"+254717000001", "717000001", "254 717 000 001"} {
+		c.mustOK("POST", "/auth/login", "", map[string]any{"phone": typed, "password": "owner-pass-1"})
+	}
+	if status, _ := c.do("POST", "/auth/register-business", "", map[string]any{
+		"business_name": "Copy", "name": "Someone", "phone": "+254717000001", "password": "whatever-1",
+	}); status != http.StatusConflict {
+		t.Fatalf("registering the same number in another form = %d, want 409", status)
+	}
+	if status, out := c.do("POST", "/auth/register-business", "", map[string]any{
+		"business_name": "Copy", "name": "Someone", "phone": "0712 34A 678", "password": "whatever-1",
+	}); status != http.StatusUnprocessableEntity {
+		t.Fatalf("registering an unreadable number = %d %v, want 422", status, out)
+	}
+
+	code := data(c.mustOK("POST", "/auth/invite", owner, nil))["code"].(string)
+	joined := data(c.mustOK("POST", "/auth/join", "", map[string]any{
+		"code": code, "name": "Staff", "phone": "0717000002", "password": "staff-pass-1",
+	}))
+	staff := joined["token"].(string)
+	staffID := joined["user"].(map[string]any)["id"].(string)
+	me := data(c.mustOK("GET", "/users/me", staff, nil))
+	if got := strings.Join(toStrings(me["permissions"]), ","); got != strings.Join(sorted(rbac.PermissionsFor(domain.RoleStaff)), ",") {
+		t.Fatalf("staff permissions from /users/me = %s", got)
+	}
+
+	// Customers: REST and sync store one form, and see one number as one.
+	rest := data(c.mustOK("POST", "/customers", staff, map[string]any{"name": "Wanjiku", "phone": "0722 111 222"}))
+	if rest["phone"] != "+254722111222" {
+		t.Fatalf("REST customer phone = %v", rest["phone"])
+	}
+	if status, _ := c.do("POST", "/customers", staff, map[string]any{"name": "Copy", "phone": "+254722111222"}); status != http.StatusConflict {
+		t.Fatalf("the same customer number in another form = %d, want 409", status)
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	push := data(c.mustOK("POST", "/sync/push", staff, map[string]any{
+		"operation_id": uuid.NewString(),
+		"customers": []map[string]any{
+			{"id": uuid.NewString(), "name": "Otieno", "phone": "0733 444 555", "created_by": staffID, "created_at": now, "updated_at": now},
+			{"id": uuid.NewString(), "name": "Bad", "phone": "call me", "created_by": staffID, "created_at": now, "updated_at": now},
+		},
+	}))
+	conflicts := push["conflicts"].([]any)
+	if push["applied_customers"].(float64) != 1 || len(conflicts) != 1 ||
+		conflicts[0].(map[string]any)["field"] != "phone" {
+		t.Fatalf("sync push = %v, want Otieno applied and Bad refused on phone", push)
+	}
+	pulled := data(c.mustOK("GET", "/sync/pull?cursor=0", owner, nil))
+	found := false
+	for _, row := range pulled["customers"].([]any) {
+		if r := row.(map[string]any); r["name"] == "Otieno" {
+			found = r["phone"] == "+254733444555"
+		}
+	}
+	if !found {
+		t.Fatalf("Otieno's phone was not stored as +254733444555: %v", pulled["customers"])
+	}
+}
+
+func toStrings(v any) []string {
+	var out []string
+	for _, s := range v.([]any) {
+		out = append(out, s.(string))
+	}
+	return out
+}
+
+func sorted(s []string) []string {
+	out := slices.Clone(s)
+	slices.Sort(out)
+	return out
 }

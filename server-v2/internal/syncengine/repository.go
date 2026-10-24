@@ -371,6 +371,62 @@ func claimOperation(ctx context.Context, tx *gorm.DB, businessID, operationID uu
 	return false, &view, nil
 }
 
+// CurrentCopies reads the server's copy of every record the conflicts name,
+// deleted ones included, so the device can replace what it holds.
+func (r *Repository) CurrentCopies(ctx context.Context, conflicts []SyncConflict, includeSuppliers bool) (ServerCopies, error) {
+	out := ServerCopies{
+		Customers: []SyncCustomer{}, Transactions: []SyncTransaction{},
+		Sales: []SyncSale{}, StockRequests: []SyncStockRequest{},
+		Suppliers: []SyncSupplier{}, SupplierTransactions: []SyncSupplierTransaction{},
+	}
+	if len(conflicts) == 0 {
+		return out, nil
+	}
+	businessID, err := tenant.MustFromContext(ctx)
+	if err != nil {
+		return out, err
+	}
+
+	// One id per record, however many of its fields conflicted.
+	ids := map[string][]uuid.UUID{}
+	for _, c := range conflicts {
+		if !slices.Contains(ids[c.Table], c.ID) {
+			ids[c.Table] = append(ids[c.Table], c.ID)
+		}
+	}
+
+	err = errors.Join(
+		copiesOf(ctx, r.db, businessID, ids["customers"], customerView, &out.Customers),
+		copiesOf(ctx, r.db, businessID, ids["transactions"], transactionView, &out.Transactions),
+		copiesOf(ctx, r.db, businessID, ids["sales"], saleView, &out.Sales),
+		copiesOf(ctx, r.db, businessID, ids["stock_requests"], stockRequestView, &out.StockRequests),
+	)
+	if err == nil && includeSuppliers {
+		err = errors.Join(
+			copiesOf(ctx, r.db, businessID, ids["suppliers"], supplierView, &out.Suppliers),
+			copiesOf(ctx, r.db, businessID, ids["supplier_transactions"], supplierTransactionView, &out.SupplierTransactions),
+		)
+	}
+	if err != nil {
+		return out, fmt.Errorf("reading the server's copies: %w", err)
+	}
+	return out, nil
+}
+
+// copiesOf appends the views of the rows with these ids, in the order asked.
+func copiesOf[T, V any](ctx context.Context, db *gorm.DB, businessID uuid.UUID, ids []uuid.UUID, view func(T) V, into *[]V) error {
+	rows, err := loadByIDs[T](ctx, db, businessID, ids)
+	if err != nil {
+		return err
+	}
+	for _, id := range ids {
+		if row, ok := rows[id]; ok {
+			*into = append(*into, view(row))
+		}
+	}
+	return nil
+}
+
 // --- Statements used while applying a push ---
 
 // LoadCustomers reads the rows a batch touches, in one query.

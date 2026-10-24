@@ -10,6 +10,7 @@ import (
 
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/money"
+	"salio/server-v2/internal/phone"
 )
 
 // ErrHasBalance blocks deleting a customer who still owes money or is owed a
@@ -80,9 +81,13 @@ func (s *Service) Get(ctx context.Context, id uuid.UUID) (*CustomerView, error) 
 }
 
 func (s *Service) Create(ctx context.Context, createdBy uuid.UUID, in CreateInput) (*CustomerView, error) {
+	number, err := phone.Optional(in.Body.Phone)
+	if err != nil {
+		return nil, err
+	}
 	c := &domain.Customer{
 		Name:      strings.TrimSpace(in.Body.Name),
-		Phone:     normalisedOrNil(in.Body.Phone),
+		Phone:     number,
 		Notes:     in.Body.Notes,
 		CreatedBy: createdBy,
 	}
@@ -94,7 +99,11 @@ func (s *Service) Create(ctx context.Context, createdBy uuid.UUID, in CreateInpu
 }
 
 func (s *Service) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (*CustomerView, error) {
-	c, err := s.repo.Update(ctx, id, strings.TrimSpace(in.Body.Name), normalisedOrNil(in.Body.Phone), in.Body.Notes)
+	number, err := phone.Optional(in.Body.Phone)
+	if err != nil {
+		return nil, err
+	}
+	c, err := s.repo.Update(ctx, id, strings.TrimSpace(in.Body.Name), number, in.Body.Notes)
 	if err != nil {
 		return nil, err
 	}
@@ -126,18 +135,4 @@ func (s *Service) SetCreditLimit(ctx context.Context, id uuid.UUID, limit *money
 // Delete removes a customer, refusing while they carry a balance.
 func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
-}
-
-// normalisedOrNil returns nil for an empty or whitespace-only phone, so
-// "walk-in customer, no phone" and "phone field left blank" both mean the same
-// thing to the partial unique index — which only applies to non-empty values.
-func normalisedOrNil(phone *string) *string {
-	if phone == nil {
-		return nil
-	}
-	trimmed := strings.TrimSpace(*phone)
-	if trimmed == "" {
-		return nil
-	}
-	return &trimmed
 }

@@ -1,0 +1,8 @@
+# Translations: lib/app/l10n/app_en.arb is the template, and app_sw.arb must
+# have the same keys and placeholders. The generator would quietly fall back
+# to English for a missing key, so test/l10n_test.dart fails instead.
+arb-dir: lib/app/l10n
+template-arb-file: app_en.arb
+output-dir: lib/app/l10n/generated
+output-localization-file: app_localizations.dart
+nullable-getter: false

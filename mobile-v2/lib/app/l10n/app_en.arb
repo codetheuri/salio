@@ -1,0 +1,496 @@
+{
+  "@@locale": "en",
+  "appTitle": "Salio",
+  "sectionHome": "Home",
+  "@sectionHome": {
+    "description": "Bottom bar and side rail. One word: five labels share a 320 dp phone."
+  },
+  "sectionCustomers": "Customers",
+  "@sectionCustomers": {
+    "description": "Bottom bar and side rail. One word."
+  },
+  "sectionSales": "Sales",
+  "@sectionSales": {
+    "description": "Bottom bar and side rail. One word."
+  },
+  "sectionStock": "Stock",
+  "@sectionStock": {
+    "description": "Bottom bar and side rail: products that ran out, and purchase orders. One word."
+  },
+  "sectionSuppliers": "Suppliers",
+  "@sectionSuppliers": {
+    "description": "Side rail and the More page; owners only."
+  },
+  "sectionReports": "Reports",
+  "@sectionReports": {
+    "description": "Side rail and the More page."
+  },
+  "sectionMore": "More",
+  "@sectionMore": {
+    "description": "Bottom bar and side rail. One word."
+  },
+  "placeholderBody": "This part of Salio is being built.",
+  "@placeholderBody": {
+    "description": "Shown on a section whose screen does not exist yet (development builds)."
+  },
+  "pressBackAgainToClose": "Press back again to close Salio",
+  "moreSections": "More sections",
+  "@moreSections": {
+    "description": "Heading on the More page above the sections that do not fit in a phone's bottom bar."
+  },
+  "aboutTitle": "About this app",
+  "aboutVersion": "Version {version} (build {build})",
+  "@aboutVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.0.3"
+      },
+      "build": {
+        "type": "String",
+        "example": "15"
+      }
+    }
+  },
+  "aboutEnvironment": "Environment",
+  "@aboutEnvironment": {
+    "description": "Which server family this build talks to: dev, staging or prod. For support."
+  },
+  "aboutServer": "Server",
+  "signInTitle": "Sign in to your shop",
+  "signInPhone": "Phone number",
+  "signInPassword": "Password",
+  "signInButton": "Sign in",
+  "signInAgain": "Your records are safe on this phone. Sign in again to keep syncing.",
+  "@signInAgain": {
+    "description": "Shown when the server ended the session; the reason follows if the server gave one."
+  },
+  "errorOffline": "No connection. Check your bundle or Wi-Fi and try again.",
+  "errorTimeout": "The server took too long to answer. Try again.",
+  "errorServer": "Something went wrong on the server. Try again later.",
+  "errorUnexpected": "That did not work. Try again.",
+  "fieldRequired": "Required",
+  "amountInvalid": "Enter an amount, like 1500 or 1500.50",
+  "amountPositive": "The amount must be more than zero",
+  "save": "Save",
+  "cancel": "Cancel",
+  "customersEmpty": "No customers yet. Tap + to add your first customer.",
+  "customerAdd": "Add customer",
+  "customerName": "Name",
+  "customerPhone": "Phone (optional)",
+  "balanceOwes": "Owes",
+  "@balanceOwes": {
+    "description": "Label beside a positive balance: the customer owes the shop. Colour is never the only signal."
+  },
+  "balanceAdvance": "Advance",
+  "@balanceAdvance": {
+    "description": "Label beside a negative balance: the customer paid ahead."
+  },
+  "balanceCleared": "Cleared",
+  "@balanceCleared": {
+    "description": "Label beside a zero balance."
+  },
+  "entriesEmpty": "No debts or payments yet.",
+  "recordDebt": "Record debt",
+  "debtAmount": "Amount (KES)",
+  "debtDescription": "What was taken",
+  "entryDebt": "Debt",
+  "entryPayment": "Payment",
+  "unsent": "Not sent yet",
+  "@unsent": {
+    "description": "Badge on a record saved on this phone that the server has not accepted yet."
+  },
+  "syncNow": "Sync now",
+  "syncing": "Syncing…",
+  "syncNever": "Not synced yet",
+  "syncWaiting": "{count, plural, =0{Everything is sent} =1{1 record waiting to send} other{{count} records waiting to send}}",
+  "@syncWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncLast": "Last synced {time}",
+  "@syncLast": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Tue 14 Oct, 10:15"
+      }
+    }
+  },
+  "syncOffline": "Saved on this phone. It will sync when there is a connection.",
+  "syncSignInAgain": "Sign in again to sync",
+  "accountTitle": "Account",
+  "signOut": "Sign out",
+  "signOutUnsent": "{count, plural, =1{1 record is not sent yet. It will be sent the next time you sign in on this phone.} other{{count} records are not sent yet. They will be sent the next time you sign in on this phone.}}",
+  "@signOutUnsent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "updateAvailable": "Version {version} is ready",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.0.3"
+      }
+    }
+  },
+  "updateSize": "{size} MB · Wi-Fi is best on a slow connection",
+  "@updateSize": {
+    "placeholders": {
+      "size": {
+        "type": "String",
+        "example": "18"
+      }
+    }
+  },
+  "updateButton": "Update",
+  "updateLater": "Later",
+  "updateDownloading": "Downloading update… {percent}%",
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateDownloadingDetail": "{received} of {total} MB · you can keep working",
+  "@updateDownloadingDetail": {
+    "placeholders": {
+      "received": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "updateStop": "Stop",
+  "updatePermissionTitle": "Allow Salio to install the update",
+  "updatePermissionDetail": "Turn on \"Allow from this source\", then press Back.",
+  "@updatePermissionDetail": {
+    "description": "\"Allow from this source\" is Android's own wording on the settings screen; keep it in English."
+  },
+  "updateAllow": "Allow",
+  "updateReadyTitle": "Version {version} is ready to install",
+  "@updateReadyTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.0.3"
+      }
+    }
+  },
+  "updateReadyDetail": "Tap Restart: Salio closes and opens again, updated. Your records stay on this phone.",
+  "updateRestart": "Restart",
+  "updateInstallingTitle": "Updating Salio…",
+  "updateInstallingDetail": "Salio closes and opens again. If Android asks, tap Update. If it stays closed, open Salio from its icon.",
+  "updateFailedTitle": "Update not finished",
+  "updateTryAgain": "Try again",
+  "updateRequiredTitle": "Update to keep syncing",
+  "updateRequiredDetail": "This version can no longer sync. Your records are safe on this phone, and you can keep working.",
+  "updateErrorCheck": "Could not check for updates. Check your connection and try again.",
+  "updateErrorStopped": "The download stopped. Tap Update to continue where it stopped.",
+  "updateErrorDamaged": "The download was damaged. Tap Update to download it again.",
+  "updateErrorUnavailable": "This update is not available for this phone.",
+  "updateErrorCouldNotStart": "Could not start the update. Download Salio from {page} instead.",
+  "@updateErrorCouldNotStart": {
+    "placeholders": {
+      "page": {
+        "type": "String",
+        "example": "apis.salio.urizon.co.ke/app"
+      }
+    }
+  },
+  "updateErrorRefused": "Android did not install the update. Tap Try again.",
+  "appVersionTitle": "App version {version}",
+  "@appVersionTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "2.0.3"
+      }
+    }
+  },
+  "appUpToDate": "Up to date",
+  "appChecking": "Checking for updates…",
+  "appCheck": "Check",
+  "appCheckHint": "Tap Check to look for a new version",
+  "syncBlockedByUpdate": "Update the app to keep syncing. Your records are safe on this phone.",
+  "syncFailed": "Not synced. It will try again by itself.",
+  "needsAttention": "Needs attention",
+  "needsAttentionCount": "{count, plural, =1{1 item needs attention} other{{count} items need attention}}",
+  "@needsAttentionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "needsAttentionEmpty": "Nothing needs your attention.",
+  "issueDismiss": "OK",
+  "issueDiscard": "Discard mine",
+  "issueDiscardConfirm": "Discard this phone's version? The server's stays. This cannot be undone.",
+  "issueUseExisting": "Use the existing customer",
+  "issueDuplicatePayment": "This M-Pesa code is already recorded on another payment, so the money is counted once.",
+  "issueDuplicateCustomer": "A customer with this phone number already exists.",
+  "issueDuplicate": "This is already recorded.",
+  "issueForbidden": "Only an owner can do this, so the change was undone.",
+  "issueHasBalance": "Not deleted: the balance is not zero.",
+  "issueAlreadyOrdered": "Already on a purchase order, so it was not changed.",
+  "issueWaitingCustomer": "Waiting for its customer to reach the server.",
+  "issueWaitingSupplier": "Waiting for its supplier to reach the server.",
+  "issueInvalid": "The server could not accept this. Please tell Salio support.",
+  "issueRecordCustomer": "Customer: {name}",
+  "@issueRecordCustomer": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "issueRecordDebt": "Debt of {amount} for {name}",
+  "@issueRecordDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      },
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "issueRecordPayment": "Payment of {amount} from {name}",
+  "@issueRecordPayment": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      },
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "issueRecordSale": "Sale: {name}, {amount}",
+  "@issueRecordSale": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "DAP 50kg"
+      },
+      "amount": {
+        "type": "String",
+        "example": "KES 3,500"
+      }
+    }
+  },
+  "issueRecordSupplier": "Supplier: {name}",
+  "@issueRecordSupplier": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Elgon Kenya"
+      }
+    }
+  },
+  "issueRecordSupplierEntry": "{amount} with {name}",
+  "@issueRecordSupplierEntry": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 5,000"
+      },
+      "name": {
+        "type": "String",
+        "example": "Elgon Kenya"
+      }
+    }
+  },
+  "issueRecordStock": "Stock note: {name}",
+  "@issueRecordStock": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "DAP 50kg"
+      }
+    }
+  },
+  "issueRecordGone": "A record no longer on this phone",
+  "signInNoAccount": "New shop? Register it",
+  "signInHaveInvite": "Have an invite code? Join a shop",
+  "registerTitle": "Register your shop",
+  "registerShopName": "Shop name",
+  "registerYourName": "Your name",
+  "registerButton": "Register",
+  "joinTitle": "Join a shop",
+  "joinCode": "Invite code",
+  "joinCodeHint": "From the shop owner, e.g. K7M2QX",
+  "joinButton": "Join",
+  "passwordNew": "Password (at least 8 characters)",
+  "passwordTooShort": "At least 8 characters",
+  "phoneInvalid": "Not a phone number. Use 07XX XXX XXX, 01XX XXX XXX or +country code.",
+  "phoneTaken": "This phone number already has an account. Sign in instead.",
+  "inviteUnusable": "This invite code has expired or was already used. Ask the owner for a new one.",
+  "customersSearch": "Search by name or phone",
+  "filterAll": "All",
+  "filterOwing": "Owing",
+  "filterOverdue": "Overdue",
+  "filterOverLimit": "Over limit",
+  "filterAdvance": "Advance",
+  "filterCleared": "Cleared",
+  "customersNoMatch": "No customers match.",
+  "customerSelect": "Choose a customer to see their account.",
+  "customerPickContact": "Pick from contacts",
+  "customerNoPhone": "No phone (walk-in customer)",
+  "customerPhoneRequired": "Enter a phone number, or tick \"No phone\".",
+  "customerExists": "{name} already has this number.",
+  "@customerExists": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "customerOpenExisting": "Open",
+  "customerEdit": "Edit customer",
+  "customerNotes": "Notes",
+  "customerDelete": "Delete customer",
+  "customerDeleteConfirm": "Delete {name}? Their history stays in the reports.",
+  "@customerDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "customerDeleteNotZero": "Only a customer whose balance is zero can be deleted.",
+  "delete": "Delete",
+  "more": "More",
+  "creditLimit": "Credit limit",
+  "creditLimitSet": "Set credit limit",
+  "creditLimitNone": "No limit",
+  "creditLimitAmount": "Most they may owe",
+  "creditAvailable": "{amount} available",
+  "@creditAvailable": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 2,000"
+      }
+    }
+  },
+  "creditOver": "{amount} over the limit",
+  "@creditOver": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      }
+    }
+  },
+  "duesOverdue": "{amount} overdue since {date}",
+  "@duesOverdue": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      },
+      "date": {
+        "type": "String",
+        "example": "Mon 20 Oct 2026"
+      }
+    }
+  },
+  "duesNext": "{amount} due by {date}",
+  "@duesNext": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      },
+      "date": {
+        "type": "String",
+        "example": "Thu 30 Oct 2026"
+      }
+    }
+  },
+  "recordPayment": "Record payment",
+  "recordedBy": "by {name}",
+  "@recordedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Juma"
+      }
+    }
+  },
+  "entryVoided": "Voided",
+  "entryTitleDebt": "Debt",
+  "entryTitlePayment": "Payment",
+  "entryRecordedAt": "Recorded",
+  "entryRecordedBy": "Recorded by",
+  "entryDueBy": "Due by",
+  "entryMethod": "Paid by",
+  "entryReference": "Reference",
+  "entryDescription": "Description",
+  "entryStatus": "Status",
+  "entrySent": "Sent",
+  "entryFromSale": "From a credit sale: void the sale instead.",
+  "entryVoid": "Void entry",
+  "entryVoidConfirm": "Void this entry? It stays in the history, crossed out, and stops counting in the balance.",
+  "someoneElse": "someone else",
+  "dueDate": "Due by (optional)",
+  "dueDateNone": "No due date",
+  "dueDateClear": "Clear the due date",
+  "limitWarning": "This takes {name} to {balance}, over their limit of {limit}. Record it anyway?",
+  "@limitWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      },
+      "balance": {
+        "type": "String",
+        "example": "KES 5,500"
+      },
+      "limit": {
+        "type": "String",
+        "example": "KES 5,000"
+      }
+    }
+  },
+  "recordAnyway": "Record anyway",
+  "paymentAmount": "Amount paid (KES)",
+  "methodCash": "Cash",
+  "methodMpesa": "M-Pesa",
+  "methodBank": "Bank",
+  "mpesaCode": "M-Pesa code (optional)",
+  "mpesaCodeHint": "10 letters and digits, e.g. SJK4X7Y2PQ",
+  "mpesaCodeInvalid": "An M-Pesa code is 10 letters and digits.",
+  "bankReference": "Bank reference (optional)",
+  "referenceTooLong": "At most 30 characters.",
+  "paymentNote": "Note (optional)",
+  "paymentAdvance": "{amount} more than they owe. It will be held as an advance.",
+  "@paymentAdvance": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 200"
+      }
+    }
+  },
+  "moreOptions": "More options"
+}

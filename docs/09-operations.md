@@ -131,9 +131,53 @@ Rehearsed end to end on 2026-10-18 on a throwaway network and database, from thi
 - **CORS.** Set `ALLOWED_ORIGINS` only if a browser front end will call the API. The mobile app does not need it.
 - **Secrets.** `deploy/.env` must stay off git (it is ignored) and readable only by the deploy user.
 
+### App releases
+
+server-v2 serves the Android app itself (docs/10, §6.3):
+
+- `GET /api/v1/app/version`: the latest release, for the in-app updater;
+- `/app`: the download page to share;
+- `/app/download/{abi}`: the APK, resumable.
+
+All three are public, because an app has to update before it can sign in.
+
+**Where releases come from.** They live in `server-v2/releases/` next to `docker-compose.yml`, mounted **read-only** into the API at `/releases` (`APP_RELEASES_DIR`). Nothing is uploaded through the API, so a stolen password cannot replace the app. `mobile-v2/scripts/release.sh` writes the folder; copy the APKs first and `latest.json` last (the script does this with `SALIO_RELEASE_TARGET` set). The API rereads `latest.json` when it changes, so there's no restart. Until the first release, the version endpoint answers 404 and the page says nothing is published.
+
+**Staged rollout.** `rollout_percent` in `latest.json` limits the in-app offer to that share of phones. Widen it with `mobile-v2/scripts/set-rollout.sh 50`. `min_build` reaches every phone; below it, phones stop syncing until they update, but keep working.
+
+**Deploy server-v2 before the app that needs it.** The M3 app reads each user's permissions from sign-in and `/users/me` (B5); a server without them leaves the app on its built-in role table, which matches today's roles. Since M2 the app reads the server's copy of each refused record from a push answer (`current`, B2). A server without it still works with that app: refused records are then kept as the phone had them until they next change. A server from before B14 also refuses any push field it does not know, so an app that sends a new field fails every sync until the server has it. The production server needs the M2 server changes before the first M2 build goes out.
+
+**Long downloads.** With Tusk v2.0.0, the request logger stops the download handler from extending the 60 s write timeout, so a download is cut every minute. The app resumes it by itself, so it only takes longer. Tusk v2.0.1 fixes it (§6).
+
 ### Migrations
 
 Each schema change is a new file in `server-v2/database/migrations/`. In production, the `migrate` step applies pending files as the owner on every `up`. Locally, `make migrate-up` does the same. Never edit a migration that has already run anywhere; add a new one.
+
+**Phone numbers in one form (00010, B15).** Every phone number is stored as E.164 (`+254712345678`), read as Kenyan unless it has a country code. Before this, `0712 345 678` and `+254712345678` were two customers in one shop and two different logins. One rule does the conversion, in three places held to the same test cases (`testdata/shared/phone.json`):
+- `internal/phone` for REST, sync and the v1 import;
+- the app;
+- migration 00010's SQL function `salio_canonical_phone`, which converts the numbers already stored.
+
+What the migration does on deploy:
+- It converts logins, customers and suppliers.
+- Where two records turn out to hold one number, it leaves **both** as they were. Merging two ledgers or two logins is a person's decision. Those logins still sign in, under the number exactly as it was stored.
+- Converted customers reach every phone on its next pull.
+- `importv1` follows the same rule, and prints how many numbers it kept as v1 had them.
+
+To find what is left, run as the database admin, because row-level security hides other shops from the app role:
+
+```sql
+-- Customers who share one number in two forms, by shop
+SELECT business_id, id, name, phone, salio_canonical_phone(phone) AS e164
+  FROM customers
+ WHERE phone IS NOT NULL AND phone !~ '^\+'
+ ORDER BY business_id, e164;
+
+-- Logins in the same position
+SELECT id, business_id, name, phone FROM users WHERE phone !~ '^\+';
+```
+
+Numbers the rule cannot read (`ask at the counter`) also appear in the first list, with an empty `e164`.
 
 ---
 
@@ -166,6 +210,11 @@ Registration now requires an 8-character password. It said "at least 8" but acce
   - `govulncheck`
 - **server-v2-image:** the Docker image builds.
 - **server (v1):** build and vet.
+- **mobile-v2:**
+  - format, analyzer and generated-code checks;
+  - all tests, including the layout tests;
+  - a dev build, with `scripts/check-apks.sh`.
+- **mobile-v2-live:** the app's live scenarios against a real server-v2, started by `mobile-v2/scripts/live-server.sh`.
 
 The old `go.yml` ran at the repository root, which has no Go module, with Go 1.20, and only for `main`. It never checked anything.
 
@@ -175,7 +224,9 @@ The old `go.yml` ran at the repository root, which has no Go module, with Go 1.2
 
 ## 6. Follow-ups
 
-- **Tusk:** `testdb.ConnectWith` migrated before taking its test lock. Fixed on Tusk branch `fix/testdb-migrate-under-lock`. Once released, delete the workaround in `server-v2/internal/testsupport`.
+- **Tusk v2.0.1**, on the Tusk branch `fix/testdb-migrate-under-lock`, carries two fixes. Push the branch, merge it, tag `v2.0.1`, then upgrade server-v2:
+  - `testdb.ConnectWith` migrated before taking its test lock. After the upgrade, delete the workaround in `server-v2/internal/testsupport`.
+  - The request logger hid the connection from `http.ResponseController` (no `Unwrap`). Every handler was stuck with the 60 s write timeout and could not flush, which cut APK downloads. After the upgrade, the skip at the end of `TestDownload` in `internal/appupdate` stops triggering.
 - **Candidate for Tusk:** `internal/tenantconn` (one connection per request, with the shop declared) is generic. Any Tusk application that turns on RLS needs it. Consider moving it into `pkg/tenant`.
 - **Backups and HTTPS** (§3).
 - **Data move from v1:** deliberately not rehearsed yet. It belongs with the move of the live v1 server.

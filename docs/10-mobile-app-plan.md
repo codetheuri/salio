@@ -1,6 +1,6 @@
 # 10 — Salio mobile app v2: execution plan
 
-**Status:** proposed on 2026-10-14. Nothing in this plan is built yet.
+**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check; M2 (complete sync) and M3 (customers and the ledger) built on 2026-10-24. See the outcome notes in §10.
 **Builds on:** [08 — backend rewrite](08-tusk-rewrite-plan.md) (server-v2, complete) and [09 — operations](09-operations.md) (security model, deployment).
 **Borrows from:** the DairyGo app (`/var/www/html/startup/Dairy/mobile`), which already solved self-updating, layout testing and slow networks with real users.
 
@@ -529,7 +529,7 @@ The release tools are `mobile-v2/scripts/release.sh`, and a root `ship.sh` like 
 
 1. **Checks:** a clean tree, the tests, the analyzer.
 2. **Build** one APK per processor type, refusing any not signed with the Salio key. The key's fingerprint is in git.
-3. **Deploy the server first. Never the reverse.** The server rejects request fields it does not know (Huma's default), so a newer app on an older server would fail every sync (B14).
+3. **Deploy the server first. Never the reverse.** A server from before B14 (M2) refuses request fields it does not know, so a newer app on it fails every sync. From B14 on, a sync push ignores unknown fields; but a new field the app relies on still only works once the server has it.
 4. **Publish** the APKs first and the manifest last.
 5. **Tag** `app-v2.0.3+15`, and check that the live endpoint answers with the new build.
 
@@ -579,10 +579,10 @@ Sources, checked on 2026-10-14:
 | # | Change | Why | When |
 |---|---|---|---|
 | B1 | App releases: DairyGo's `appupdate` moved into Tusk as `pkg/appupdate`, with staged-rollout percentages, notes in two languages, and a releases volume | Self-update (§6) | P0, M1 |
-| B2 | Each sync conflict includes the server's current copy of the record | Otherwise a refused change stays on the phone forever: the server's row did not change, so no pull ever corrects it | P0, M2 |
+| B2 | Each sync conflict includes the server's current copy of the record | Otherwise a refused change stays on the phone forever: the server's row did not change, so no pull ever corrects it | P0, M2 — **done** |
 | B3 | **Fix Tusk's rate limiter.** See the note after this table | Phone numbers are easy to guess, so sign-in must resist password guessing. Found while writing this plan | P0, before the beta |
 | B4 | An HTTPS reverse proxy (Caddy) with gzip; automated backups with a tested restore (09 §3) | Tokens and ledgers cross the internet; sync pages shrink by about 85%; no data loss | P0, before the beta |
-| B5 | `permissions` in sign-in and `/users/me` | Roles change without an app release | P1, M3 |
+| B5 | `permissions` in sign-in and `/users/me` | Roles change without an app release | P1, M3 — **done** |
 | B6 | Record each user's app version and last sync from the version header. Add a "Devices" page in the console. Refuse sync below the minimum build with 426 | Support can see which version a shop runs, and forced updates become a guarantee | P1, M6 |
 | B7 | `POST /auth/refresh`: a new 30-day token while the session is valid | An active shop is never signed out in the middle of a day | P1, M6 |
 | B8 | `Idempotency-Key` for online-only saves (port DairyGo's into Tusk). `create-purchase-order` takes no client ID today | An answer lost on the way back must not place an order twice | P1, M4 |
@@ -591,8 +591,8 @@ Sources, checked on 2026-10-14:
 | B11 | CI publishes server-v2's OpenAPI document for the app's contract snapshot | Contract changes show up in the app's pull requests | P2, M1 |
 | B12 | The business's payment details ("Till 123456") on its profile | Reminders and statements say how to pay | P1, M7 |
 | B13 | A read-only switch on the v1 server for cutover | Nothing is written to v1 after the final copy (§11) | Cutover |
-| B14 | Sync ignores unknown fields instead of refusing the batch. Huma rejects them by default (`AllowAdditionalPropertiesByDefault` is false) | A server rollback, or mismatched environments, must not stop every newer phone from syncing. Phase 6's own rule is that one bad field never costs a batch. REST stays strict, where strictness catches typos | P1, M2 |
-| B15 | **Phone numbers stored in one format** (E.164, Kenyan by default) for customers, suppliers and sign-in, through one shared function for REST, sync and the v1 import. A migration converts stored numbers and *reports* the duplicates it uncovers rather than merging them | Today `0712 345 678`, `0712345678` and `+254712345678` are three different customers, and three different sign-ins. The sync path does not even trim spaces. Picking customers from contacts makes this common | P1, M3 |
+| B14 | Sync ignores unknown fields instead of refusing the batch. Huma rejects them by default (`AllowAdditionalPropertiesByDefault` is false) | A server rollback, or mismatched environments, must not stop every newer phone from syncing. Phase 6's own rule is that one bad field never costs a batch. REST stays strict, where strictness catches typos | P1, M2 — **done** |
+| B15 | **Phone numbers stored in one format** (E.164, Kenyan by default) for customers, suppliers and sign-in, through one shared function for REST, sync and the v1 import. A migration converts stored numbers and *reports* the duplicates it uncovers rather than merging them | Today `0712 345 678`, `0712345678` and `+254712345678` are three different customers, and three different sign-ins. The sync path does not even trim spaces. Picking customers from contacts makes this common | P1, M3 — **done** |
 | — | Release Tusk v2.0.1 (the testdb lock fix) and remove Salio's workaround | Housekeeping (09 §6) | Any time |
 
 **B3, the rate limiter.** As written, it does not stop password guessing:
@@ -771,6 +771,44 @@ Estimates are working days for one developer working with Claude. They will be r
   - A signed dev build installs on the reference phone.
   - The layout tests run on every size, at both text sizes, in both languages.
 
+> **M0 outcome (2026-10-19, branch `mobile/m0-foundations`).**
+>
+> **Built:**
+> - `mobile-v2/`, app ID `ke.co.urizon.salio`, with dev, staging and prod flavours (`.dev` and `.staging` suffixes, "Salio Dev", "Salio Staging").
+>   - Dev points at server-v2 on the laptop (`http://127.0.0.1:8090` through `adb reverse`).
+>   - Staging and prod point at `https://apis.salio.urizon.co.ke`.
+>   - `--dart-define=API_URL=` points any build elsewhere, but plain HTTP is accepted in dev only, both by the app and by Android's network security config.
+> - Android settings: min API 24 and target 36, written out rather than inherited from Flutter. Backup and device-to-device transfer are off.
+> - A release build stops without the release key. `scripts/create-release-key.sh` creates the key.
+> - Riverpod 3, go_router 17, and the translations generated from English and Swahili ARB files.
+> - The adaptive shell: the bottom bar under 600 dp, the rail from 600 dp, rail labels from 1200 dp.
+> - Placeholder sections, and a More page with the version, the environment and the server.
+> - The permission table mirrors `rbac.go` and is pinned by `testdata/shared/role_permissions.json`, read by tests on both sides.
+> - Strict analyzer settings, and a `mobile-v2` CI job.
+>
+> **Tests:** 58 tests, about a minute.
+> - The layout tests run 13 role-and-screen pairs × 8 sizes × 2 text sizes × 2 languages, plus DairyGo's safe-area devices. They were checked against a deliberate overflow, which they caught and named per size.
+> - Also: ARB parity, colour contrast and the environment rules.
+>
+> **What changed from the plan:**
+> - **D19 is confirmed.** Flutter's plugin sets `versionCodeOverride = ABI × 1000 + N` in a variant callback registered when the plugin is applied. `build.gradle.kts` registers a second callback that runs after it and restores N. Every split APK has version code N, and `scripts/check-apks.sh` checks this in CI.
+>   - In `afterEvaluate` the same override fails: Gradle has already locked the value.
+> - **Sentry is not in the app yet.** `sentry_flutter` 10 requires API 26 (Android 8), against our 24.
+>   - Logging goes through `package:logging` in one file (`core/logging/app_logging.dart`), so the chosen service is added there.
+>   - This is now part of decision 3 in §13.
+> - **go_router is held at 17.** go_router 18 moved to the new `material_ui` package, while the app and `flutter_localizations` use Flutter's built-in Material. Mixing the two would give pages a different `Theme`. Move when `flutter_localizations` has moved.
+> - **Roboto is bundled** (400, 500, 700, from the Flutter SDK). Some phone makers replace the system font, and the layout tests must measure the same font the phones draw.
+> - **`textSecondary` is #616161, not #757575.** The old colour measures 4.2 : 1 on the background, under 4.5. A contrast test now checks every text colour.
+>
+> **Not done yet:**
+> - **On the developer's side:**
+>   - create the release key and back it up twice (`scripts/create-release-key.sh`);
+>   - install a signed build on a phone (none was connected);
+>   - put Flutter on `PATH`.
+> - **Waiting on later milestones:**
+>   - an emulator and FVM itself;
+>   - the reference phone (before M1's speed checks).
+
 **M1 — Walking skeleton (6–9 days)**
 
 - **Sign in:** creates the account's file and stores the token.
@@ -782,6 +820,61 @@ Estimates are working days for one developer working with Claude. They will be r
   - Live scenarios 1 and 2 pass in CI.
   - A release published by the script installs on the reference phone (a quiet Wi-Fi download, then Restart), and the app reopens on the new version.
 
+> **M1 outcome (2026-10-24, branch `mobile/m1-walking-skeleton`).**
+>
+> **Built:**
+> - **Sign-in:** each account gets its own drift file, `accounts/<user id>.db`; its token is in secure storage; and the app opens offline.
+> - **Screens:** the customer list with balances, the customer page with each entry's date and time, adding a customer, and recording a debt. Everything is written as pending in the same statement.
+> - **The sync engine (§4.3):**
+>   - frozen push batches;
+>   - each record's version, so an edit made while its batch is in flight is never lost;
+>   - each pull page saved with its cursor in one transaction;
+>   - pending fields kept when the server's copy arrives;
+>   - "now" taken from the server's clock.
+> - **Sync triggers:** at start, 3 s after a change, every 2 minutes, on return to the app, and on the Sync button.
+> - **The updater:**
+>   - **On the server (B1):** server-v2's `internal/appupdate`, with the version endpoint, the `/app` page and resumable downloads.
+>   - **In the app:** DairyGo's updater with the native PackageInstaller bridge, plus a staged rollout by a fixed bucket per phone, and notes in English and Swahili.
+>   - **A required update blocks sync, never the app (D12):** the bar cannot be put off, and the ledger stays usable.
+>   - **Downloads resume by themselves** while they still make progress.
+>   - **Scripts:** `release.sh` (checks, prod build, version-code, native-library and signature checks, manifest, local tag, upload with the manifest last, live check) and `set-rollout.sh`.
+> - **The API contract snapshot (B11):** `test/contract/openapi.json`, refreshed by `scripts/contract.sh` and checked in CI against the live-test server. `test/contract_test.dart` fails if the app sends a field the server does not know, or reads one it no longer sends.
+>
+> **Tests:** 135, all passing, plus a contract check in CI.
+> - **Layout:** every screen for both roles × 8 sizes × 2 text sizes × 2 languages, signed out too. The update bar runs in 5 states under a list, a form, a customer page and sign-in.
+> - **Live:** 5 scenarios against a real server-v2 started by `scripts/live-server.sh`, which runs the API as the restricted role with RLS required:
+>   - 1 and 2;
+>   - a lost answer;
+>   - a server refusal;
+>   - the updater end to end.
+> - **Shared vectors:** money and the role table.
+> - **The guards were tested too:** each of the layout check, the bar check, the contract check and the APK check was seen to fail on a deliberately broken input.
+>
+> **Found and fixed on the way:**
+> - **`money.Parse("-")` returned 0** in server-v2. The shared money vectors caught it.
+> - **No foreign key from entries to customers on the phone.** Pull pages follow one change sequence across tables, so an entry can arrive before an edited customer. A foreign key would fail a new phone's first sync.
+> - **APKs without `libsqlite3.so`.** An incremental build after adding `package:sqlite3` produced them; a clean build is fine. `scripts/check-apks.sh` now fails any APK without the library. Such an APK would install and then crash on its first query.
+> - **Tusk's request logger hid the connection** from `http.ResponseController`, so every handler was stuck with the 60 s write timeout and APK downloads would be cut. It is fixed on the Tusk branch for v2.0.1 (09 §6). Until then the app resumes downloads by itself.
+> - **Drift and widget tests:** in-memory databases in widget tests need `closeStreamsSynchronously`, or closing waits on a timer the fake clock never fires.
+>
+> **Sizes:** release APKs are 21.3 MB (arm64) and 18.9 MB (armv7), under the 25 MB budget.
+>
+> **Changed from the plan:**
+> - **B1 lives in server-v2, not Tusk:** moving it into Tusk needs a Tusk release, and DairyGo would have to move to it. Extract it once both use the same version.
+> - **The release builds with `--flavor prod`.**
+>
+> **Not done yet. M1's exit check on a phone is still open.** It needs the release key, a phone, and the first release on the server:
+> 1. Install build N.
+> 2. Publish N+1.
+> 3. Watch the quiet Wi-Fi download and tap Restart.
+> 4. Check the app reopens on N+1.
+>
+> **Carried to M2, as planned:**
+> - B2 (a conflict returns the server's copy). Until then, a `stale_write`, `immutable` or `already_voided` answer marks the record synced, and the phone can differ from the server until that record changes again.
+> - Resync without emptying the screens. `resync_required` restarts from cursor 0 but does not yet remove rows the server dropped.
+> - Backoff after failures, and syncing when the connection returns.
+> - The "Needs attention" screen.
+
 **M2 — Sync, complete (6–9 days)**
 
 - **The engine:** all six record kinds, frozen batches, conflicts, resync without emptying screens, resync on a role change, triggers and backoff.
@@ -791,6 +884,70 @@ Estimates are working days for one developer working with Claude. They will be r
 - **Exit:**
   - Live scenarios 3–7, 10 and 13 pass.
   - The fake-server failure tests pass: killed mid-push, duplicate answers, timeouts, a 500, a moved clock.
+
+> **M2 outcome (2026-10-24, branch `mobile/m2-sync`, cut from M1's).**
+>
+> **Built on the server:**
+> - **B2:** a push answer has `current`, the server's copy of every record a conflict names, in the shape a pull sends. It is read when the answer is sent, replays included, so a replay never hands back a copy older than one the phone has since pulled. Supplier copies go only to users who may read suppliers.
+> - **B14:** a sync push ignores fields the server does not know, in the body and in every record. REST stays strict. Tested through the real router as the restricted role.
+> - **Quantity vectors:** `testdata/shared/quantity.json`, read by Go and Dart.
+>
+> **Built in the app:**
+> - **The database, schema 2:** sales, stock notes, suppliers and supplier entries; `resync_seen`; `sync_issues.server_copy`. Indexes are now declared on the tables, so the schema snapshots include them. The upgrade from schema 1 is tested with data: unsent records, a frozen push and the cursor all come through.
+> - **The engine, for all six kinds.** What differs between kinds is one table (`sync_kinds.dart`); the engine is written once.
+>   - **Order:** customers and suppliers go before anything that points to them, across batches.
+>   - **Conflicts,** by the §4.3 table:
+>     - `stale_write`, `immutable` and `already_voided` take the server's copy silently;
+>     - `forbidden`, `has_balance` and `already_ordered` take it with a note;
+>     - `unknown_customer` and `unknown_supplier` wait, and go again once the parent is accepted;
+>     - everything else is kept aside, including any reason a newer server adds. Nothing is dropped silently.
+>   - **Resync without emptying the screens:** every page is saved and marked, and only when the last one is in are synced rows that were not seen removed. Unsent and refused records stay. A resync cut short carries on from its last page.
+>   - **A role change resyncs:** the engine is told the role and compares it with the last sync's.
+>   - **Page sizes adapt:** they start at 200, double while pages arrive within 5 s (up to 2,000), and halve after a timeout, up to three times.
+>   - **Unknown lists and fields** from a newer server are ignored.
+> - **When it runs:** after failures it waits 5 s, 15 s, 1 minute, then every 5 minutes. The 2-minute heartbeat pauses during a wait. A returning connection, or the Sync button, syncs at once.
+> - **The balance self-check:** at most hourly, when nothing is unsent, the phone compares what it is owed, and the advances it holds, with `/reports/summary`. A difference seen twice in a row is logged as severe. It goes to crash reporting once that is chosen (§13).
+> - **Screens:**
+>   - **"Needs attention"** (`/more/attention`) words every reason in English and Swahili, with **OK**, **Discard mine** and **Use the existing customer**. Discarding puts the server's copy back, or removes a record the server never had.
+>   - **On More:** a "needs attention" tile and a red dot on More.
+>   - **Badges:** a red mark on refused records, beside the cloud on unsent ones.
+>   - **A sync line** for failures other than being offline.
+> - **Repositories:** editing and deleting customers, payments with method and code, and voids. Their screens come in M3; the live scenarios use them now.
+>
+> **Tests:** 185, all passing (135 at M1), and the full server-v2 suite.
+> - **Fake-server failure tests:** 20 (`test/sync/`, `test/support/fake_server.dart`):
+>   - killed mid-push;
+>   - lost and replayed answers;
+>   - timeouts, a 500 on push and part way through a pull;
+>   - a phone clock three hours wrong;
+>   - each conflict class;
+>   - resync, including one cut short;
+>   - a role change;
+>   - every kind both ways.
+> - **Other new tests:** the controller's waits and connection handling (4), the Needs attention screen and its actions (4), and migrations (2).
+> - **The Needs attention screen** joins the layout tests on all 8 sizes × 2 text scales × 2 languages, seeded with one issue of each kind.
+> - **Live:** 11 scenarios. New ones: 4, 5, 6, 7, 10 (with `scripts/live-gc.sh`, the real sweep on aged deletions) and 13 (three phones, 500 random operations, one answer in five lost; every phone ends with the server's balances).
+> - **The contract test** now covers all six kinds, `current`, the summary and B14. Against the old snapshot it failed, as it should, until the snapshot was refreshed.
+> - **Guards broken on purpose and seen to fail:**
+>   - marking any version synced;
+>   - skipping the resync sweep;
+>   - dropping a migration step;
+>   - B14 turned off;
+>   - the stale contract.
+>
+> **Found and fixed on the way:**
+> - **`quantity.Parse("-")` returned 0** in server-v2, the same bug money had. The new vectors caught it on their first run.
+> - **The schema 1 snapshot was stale.** It was saved in M0, before M1 removed the foreign key from entries and added three indexes. No schema 1 database exists outside tests, so it was regenerated from M1's actual tables. Without that, the upgrade test would have checked against a schema no phone ever had.
+> - **The 2-minute heartbeat cut the waits after failures short,** so a phone with no signal would have kept trying every 2 minutes. The controller test caught it.
+> - **A page-size limit below 25 crashed the clamp.** Only tests use such sizes.
+>
+> **Changed from the plan:**
+> - **`unknown_sale` refuses rather than waits:** nothing on the phone can make that sale reach the server.
+> - **The role comes from sign-in** until B5 (M3) sends live permissions. The engine already takes whatever it is given.
+> - **An interrupted resync restarts from zero** when its cursor is still at or below the horizon, because the server refuses such a cursor. That costs data, never records.
+> - **"Use the existing customer" matches the exact phone number** until B15 (M3) stores one format.
+>
+> **Not done:** background sync through WorkManager, which the plan calls a bonus; nothing depends on it. M1's on-phone check is still open.
 
 **M3 — Customers and the ledger (6–9 days)**
 
@@ -809,6 +966,52 @@ Estimates are working days for one developer working with Claude. They will be r
   - The four field-test requests are done.
   - The customer and ledger rows of Appendix A are marked.
   - Live scenarios 4–7 pass through the real screens' code.
+
+> **M3 outcome (2026-10-24, branch `mobile/m3-customers-ledger`, cut from M2's).**
+>
+> **Built on the server:**
+> - **B15, one form for phone numbers:**
+>   - **The rule:** `internal/phone` stores every number as E.164, read as Kenyan unless it has a country code.
+>   - **Where it applies:** sign-up, sign-in (any form signs in), customers through REST and sync, suppliers, and the v1 import. An unreadable number is a 422, or a `phone` conflict through sync.
+>   - **Old numbers:** migration 00010 converts the numbers already stored, with an SQL copy of the rule. Two records that turn out to be one number are both left alone, for a person to decide; docs/09 has the query that lists them.
+> - **B5, permissions from the server:** sign-in and `/users/me` send each user's permissions, read from the same tables the routes check.
+> - **New shared test cases**, each with a Go and a Dart test: `phone.json` (which also checks the migration's SQL), `dues.json` (oldest debt cleared first) and `payment_reference.json`.
+>
+> **Built in the app:**
+> - **Account:**
+>   - registering a shop and joining one with an invite code, so a phone can be set up without the console;
+>   - the profile, the shop (with its time zone) and the team list are read at sign-in, when the app opens and when it comes back;
+>   - the server's permissions replace the role table once sent.
+> - **Customers:**
+>   - **Search** by name, or by phone in any form: `0712 3` finds +254712345678.
+>   - **Filters:** owing, overdue, over limit, advance and cleared. "Overdue" uses the server's oldest-debt-first rule, run on the phone, measured from the shop's today in its own time zone.
+>   - **Adding:** the phone number is required, picked from contacts or typed, unless "No phone (walk-in customer)" is ticked. The picker is Android's own, so Salio needs no contacts permission. A number another customer already has offers that customer instead of making a duplicate.
+>   - **The customer screen:** balance, credit limit and what is available, what is overdue and since when, what is due next, and actions by permission (edit; credit limit and delete for owners, delete only at zero balance).
+>   - **Two panes from 840 dp:** the list beside the customer.
+> - **Debts and payments:**
+>   - A debt has a required description and an optional due date, and asks first if it goes over the credit limit.
+>   - A payment has a method; the M-Pesa code is checked as it is typed (optional, as on the server); a payment above the balance says it will be held as an advance.
+>   - **The entry screen** shows the time to the minute and who recorded it, from the cached team list. Owners can void an entry; a voided entry stays in the history, crossed out.
+> - **The database, schema 3:** the cached team list. The upgrade from schemas 1 and 2 is tested with data.
+> - **Routes guard the owner-only screens:** staff opening one from an old link land back on the customer.
+>
+> **Tests:** 233, all passing (185 at M2), and the full server-v2 suite.
+> - **Flows (12):** search by phone in three forms; every filter; the required phone, an unreadable number and the contact picker; the duplicate offer; walk-ins; the M-Pesa code check and the advance note; the limit warning; who recorded an entry and voids; what staff cannot do; two panes on a tablet; register and join.
+> - **Layout:** the new screens join every size × text scale × language × role, with seed data that stresses them: a long name over its limit, an overdue debt, a staff member with a long name.
+> - **Live:** 12 scenarios. New: permissions at sign-in, and the owner signing in with the number in another form. Scenarios 4–7 run through the repositories and rules the screens use.
+> - **Guards broken on purpose and seen to fail:** each of the three new shared rules, and the stale contract snapshot.
+>
+> **Found and fixed on the way:**
+> - **Phone numbers had three forms in the old tests and seed data:** seeded customers in `0700…` form would never have matched a contact's `+254…`.
+> - **Two controls were both called "More"** (the bottom bar and the customer menu), which TalkBack would read the same way. The menu is "More options".
+> - **The test harness hid failed checks** behind its error collector until the app closed; the new flow tests close the app before reporting.
+>
+> **Changed from the plan:**
+> - **Register and join moved here from M6,** because a phone could not be set up for testing without them.
+> - **What a pull returns decides when to resync,** not the role's name: reading suppliers is the only permission that changes a pull today.
+> - **The M-Pesa code is optional,** as on the server, but checked whenever it is given.
+>
+> **Not done yet:** speed against 5,000 customers on the reference phone (M8's budget check), and the + button on Home, which comes with Home in M5.
 
 **M4 — Sales, stock and suppliers (5–8 days)**
 
@@ -946,6 +1149,13 @@ After v2.0 come the v2.1 features in §2.4.
    - **Sentry's free tier:** recommended, the simplest.
    - **Self-hosted GlitchTip:** free, but one more thing to run.
    - **Firebase Crashlytics:** free, but ties the app to Firebase.
+
+   Found in M0: the current Sentry Flutter SDK (10.x, which GlitchTip also uses) requires Android 8 (API 26), while D17 sets Android 7 (API 24). Choosing Sentry or GlitchTip therefore means one of three things:
+   - raise the minimum to API 26;
+   - use the older 9.x SDK;
+   - keep Android 7 phones without crash reports.
+
+   Decide before the beta (M8). Until then the app logs locally only.
 4. **The text-size ceiling:** 1.3×, as in DairyGo (recommended for v2.0), or higher at the cost of more layout work.
 5. **The production addresses** for the API and the download page, for example `api.<domain>` and `<domain>/app`.
 6. **The sample shop:** is it worth it for your sales visits? Recommended: yes.
@@ -978,14 +1188,14 @@ After v2.0 come the v2.1 features in §2.4.
 
 | Server operation | In the app | How | Milestone |
 |---|---|---|---|
-| register-business, login, join-business | Welcome, Sign in, Join | Online | M1 (sign in), M6 |
-| get-me, update-me | Refresh at start, My account | Online, cached | M1, M6 |
+| register-business, login, join-business | Welcome, Sign in, Join | Online | M1 (sign in), M3 (register, join) ✅ |
+| get-me, update-me | Refresh at start, My account | Online, cached | M3 (get-me, at start and on return) ✅, M6 |
 | change-my-password | Change password, the forced change | Online | M6 |
-| get-business, update-business, business logo | Business profile, PDFs | Online, cached | M1 (read), M6 |
-| create-invite, list-staff, deactivate-staff, reset-staff-password | Team | Online; the list is cached | M3 (names), M6 |
+| get-business, update-business, business logo | Business profile, PDFs | Online, cached | M1 (read; M3 adds the time zone) ✅, M6 |
+| create-invite, list-staff, deactivate-staff, reset-staff-password | Team | Online; the list is cached | M3 (list-staff, for names) ✅, M6 |
 | sync-pull, sync-push | The sync engine | In the background | M1, M2 |
-| create/update/delete-customer, set-customer-credit-limit | Customers | Through sync | M2, M3 |
-| create-transaction, void-transaction | Debts and payments | Through sync | M2, M3 |
+| create/update/delete-customer, set-customer-credit-limit | Customers | Through sync | M2, M3 ✅ |
+| create-transaction, void-transaction | Debts and payments | Through sync | M2, M3 ✅ |
 | record-sale, void-sale | Sales | Through sync | M4 |
 | create/update/delete-stock-request | Stock | Through sync | M4 |
 | create/cancel/list/get-purchase-order, purchase-order-pdf | Purchase orders | Online, owner | M4 |

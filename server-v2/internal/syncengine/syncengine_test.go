@@ -449,7 +449,7 @@ func TestPush_TwoDevicesEditingDifferentFieldsBothKeepTheirEdit(t *testing.T) {
 	cid := f.customer(t, "Mama Mboga")
 	base := f.loadCustomer(t, cid)
 
-	phone := "0722111222"
+	phone := "+254722111222"
 	notes := "Pays on Fridays"
 
 	// Device A fixes the phone number.
@@ -477,7 +477,7 @@ func TestPush_AStaleFieldWriteIsRejectedAndReported(t *testing.T) {
 	f := newFixture(t)
 	cid := f.customer(t, "Mama Mboga")
 
-	recent := "0722999999"
+	recent := "+254722999999"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &recent, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC(), ChangedFields: []string{"phone"},
@@ -485,7 +485,7 @@ func TestPush_AStaleFieldWriteIsRejectedAndReported(t *testing.T) {
 
 	// A device that has been offline for an hour pushes an older edit to the
 	// same field. It must lose, and must be told that it lost.
-	stale := "0700000000"
+	stale := "+254700000000"
 	view := f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &stale, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
@@ -511,7 +511,7 @@ func TestPush_AnEditMadeThroughTheAPIBeatsAnOlderOfflineEdit(t *testing.T) {
 	// The API path stamps field versions of its own. Without that, an edit made
 	// in the app while online would leave the versions behind the data, and a
 	// stale push would be judged newer than it and overwrite it.
-	apiPhone := "0733444555"
+	apiPhone := "+254733444555"
 	stamp, err := domain.StampFieldVersions([]string{"phone"}, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("stamping: %v", err)
@@ -525,7 +525,7 @@ func TestPush_AnEditMadeThroughTheAPIBeatsAnOlderOfflineEdit(t *testing.T) {
 		t.Fatalf("api edit: %v", err)
 	}
 
-	old := "0700000000"
+	old := "+254700000000"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &old, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
@@ -542,7 +542,7 @@ func TestPush_WithoutChangedFieldsFallsBackToWholeRecord(t *testing.T) {
 
 	// An app version that predates per-field merge sends the whole row and no
 	// declaration. It must keep working, with exactly the behaviour it had.
-	phone := "0722111222"
+	phone := "+254722111222"
 	view := f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Renamed", Phone: &phone, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC(),
@@ -588,13 +588,13 @@ func TestPush_ClampsATimestampFromTheFuture(t *testing.T) {
 
 	// A cheap Android with a clock set two days ahead. Left unbounded, its edits
 	// would beat every other device's for the next two days.
-	fast := "0700000001"
+	fast := "+254700000001"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &fast, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(48 * time.Hour), ChangedFields: []string{"phone"},
 	}}, nil)
 
-	correct := "0722333444"
+	correct := "+254722333444"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &correct, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(time.Second), ChangedFields: []string{"phone"},
@@ -794,5 +794,106 @@ func TestPush_StampsTheCallersBusinessNotThePayloads(t *testing.T) {
 	}
 	if got.BusinessID == otherID {
 		t.Fatal("the payload chose the business")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// B2: a conflict comes with the server's copy
+// ---------------------------------------------------------------------------
+
+// Without the copy, a phone that lost a field kept its own value for good: the
+// server's row had not changed, so no pull would ever bring it back.
+func TestPush_AConflictCarriesTheServersCurrentCopy(t *testing.T) {
+	f := newFixture(t)
+	cid := f.customer(t, "Mama Mboga")
+
+	recent := "+254722999999"
+	f.push(t, []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &recent, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC(), ChangedFields: []string{"phone"},
+	}}, nil)
+
+	stale := "+254700000000"
+	view := f.push(t, []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &stale, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
+	}}, nil)
+
+	if len(view.Current.Customers) != 1 {
+		t.Fatalf("current customers = %+v, want the one that conflicted", view.Current.Customers)
+	}
+	got := view.Current.Customers[0]
+	if got.ID != cid || got.Phone == nil || *got.Phone != recent {
+		t.Errorf("copy = %+v, want the newer phone %q", got, recent)
+	}
+	if n := len(view.Current.Transactions) + len(view.Current.Sales) + len(view.Current.Suppliers); n != 0 {
+		t.Errorf("%d unrelated copies returned", n)
+	}
+}
+
+func TestPush_AVoidedEntryComesBackVoided(t *testing.T) {
+	f := newFixture(t)
+	cid := f.customer(t, "Mama Mboga")
+	entry := syncengine.SyncTransaction{
+		ID: id.New(), CustomerID: cid, UserID: f.userID,
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
+		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
+	}
+	f.push(t, nil, []syncengine.SyncTransaction{entry})
+	voided := entry
+	voided.IsDeleted = true
+	f.push(t, nil, []syncengine.SyncTransaction{voided})
+
+	view := f.push(t, nil, []syncengine.SyncTransaction{entry})
+	if len(view.Current.Transactions) != 1 || !view.Current.Transactions[0].IsDeleted {
+		t.Fatalf("current = %+v, want the voided entry", view.Current.Transactions)
+	}
+}
+
+func TestPush_ARefusedNewRecordHasNoCopy(t *testing.T) {
+	f := newFixture(t)
+	view := f.push(t, nil, []syncengine.SyncTransaction{{
+		ID: id.New(), CustomerID: id.New(), UserID: f.userID,
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("no such customer"),
+		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
+	}})
+	if len(view.Conflicts) != 1 || len(view.Current.Transactions) != 0 {
+		t.Fatalf("conflicts %+v, current %+v: want one conflict and no copy", view.Conflicts, view.Current)
+	}
+}
+
+// A replay is answered with the copy as it is now, not as it was when the
+// first attempt ran. A phone that has pulled a newer copy in between must not
+// be handed the older one.
+func TestPush_AReplayCarriesTodaysCopyNotTheStoredOne(t *testing.T) {
+	f := newFixture(t)
+	cid := f.customer(t, "Mama Mboga")
+
+	recent := "+254722999999"
+	f.push(t, []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &recent, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC(), ChangedFields: []string{"phone"},
+	}}, nil)
+
+	op := id.New()
+	stale := "+254700000000"
+	staleEdit := []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &stale, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
+	}}
+	f.pushAs(t, op, staleEdit, nil)
+
+	newest := "+254733111111"
+	f.push(t, []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &newest, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC().Add(time.Second), ChangedFields: []string{"phone"},
+	}}, nil)
+
+	replay := f.pushAs(t, op, staleEdit, nil)
+	if !replay.Replayed || len(replay.Current.Customers) != 1 {
+		t.Fatalf("replay = %+v", replay)
+	}
+	if p := replay.Current.Customers[0].Phone; p == nil || *p != newest {
+		t.Errorf("replayed copy has phone %v, want today's %q", p, newest)
 	}
 }

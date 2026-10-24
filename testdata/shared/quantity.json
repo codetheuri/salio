@@ -1,0 +1,24 @@
+{
+  "_comment": "Quantities on the wire are decimal strings with at most three decimals; both sides hold whole thousandths. quantity.Parse / Quantity.String in server-v2, Quantity.parse / Quantity.toWire in mobile-v2.",
+  "parse": [
+    { "text": "0", "thousandths": 0 },
+    { "text": "1", "thousandths": 1000 },
+    { "text": "1.5", "thousandths": 1500 },
+    { "text": "2.250", "thousandths": 2250 },
+    { "text": "0.001", "thousandths": 1 },
+    { "text": ".5", "thousandths": 500 },
+    { "text": " 12.3 ", "thousandths": 12300 },
+    { "text": "+3", "thousandths": 3000 },
+    { "text": "-0.25", "thousandths": -250 },
+    { "text": "9223372036854775.807", "thousandths": 9223372036854775807 }
+  ],
+  "invalid": ["", "  ", "1.0005", "abc", "--5", "1.", "1,000", "1e3", "1.2.3", "-", "+", "0x10", "9223372036854775.808"],
+  "wire": [
+    { "thousandths": 0, "text": "0" },
+    { "thousandths": 1, "text": "0.001" },
+    { "thousandths": 1000, "text": "1" },
+    { "thousandths": 1500, "text": "1.5" },
+    { "thousandths": 2250, "text": "2.25" },
+    { "thousandths": -250, "text": "-0.25" }
+  ]
+}

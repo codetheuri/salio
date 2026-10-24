@@ -20,6 +20,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 
 	"salio/server-v2/database"
+	"salio/server-v2/internal/appupdate"
 	"salio/server-v2/internal/business"
 	"salio/server-v2/internal/console"
 	"salio/server-v2/internal/customer"
@@ -46,6 +47,11 @@ type Options struct {
 	// level security (a superuser, or BYPASSRLS). On in production: that
 	// exemption is silent, and it turns the database's tenant isolation off.
 	RequireRLS bool
+
+	// ReleasesDir holds the published app: the APKs and latest.json, copied
+	// there by mobile-v2/scripts/release.sh. Missing or empty means no
+	// release yet (the version endpoint answers 404). Read-only to the API.
+	ReleasesDir string
 }
 
 // Build returns a ready-to-run application.
@@ -71,6 +77,7 @@ func Build(cfg *config.Config, log logger.Logger, opts Options) (*app.App, error
 			{Name: "Stock & Orders", Description: "Products that ran out, and purchase orders to restock them"},
 			{Name: "Suppliers", Description: "Who the shop buys from, and what it owes them (owner only)"},
 			{Name: "Reports", Description: "Dashboard, statements, debt ageing, sales and collections, with PDFs"},
+			{Name: "Mobile App", Description: "The latest Android release, for the in-app updater"},
 		},
 	})
 	if err != nil {
@@ -133,6 +140,9 @@ func Build(cfg *config.Config, log logger.Logger, opts Options) (*app.App, error
 	stock.RegisterRoutes(api, db, log)
 	supplier.RegisterRoutes(api, db, log)
 	syncengine.RegisterRoutes(api, db, log)
+
+	// Public: the app checks for and downloads updates before it signs in.
+	appupdate.RegisterRoutes(api, application.Router(), appupdate.NewStore(opts.ReleasesDir), log)
 
 	// The admin console is server-rendered HTML on the same router, not part of
 	// the API: cookie sessions, form posts, and a super_admin who belongs to no

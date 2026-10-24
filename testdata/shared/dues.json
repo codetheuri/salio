@@ -1,0 +1,78 @@
+{
+  "_comment": "What a customer still owes and when it falls due: every payment clears the oldest debt first (first in, first out), and a payment with nothing to clear is an advance that clears the next debt. fifo/summariseDue in server-v2/internal/reports/dues.go; Dues.of in mobile-v2. Lines are in date order; within_days is the 'due soon' window.",
+  "cases": [
+    {
+      "name": "no due dates: owed, never late",
+      "as_of": "2026-10-24", "within_days": 7,
+      "lines": [
+        { "type": "debt", "cents": 50000, "date": "2026-10-01" },
+        { "type": "payment", "cents": 20000, "date": "2026-10-05" }
+      ],
+      "total": 30000, "overdue": 0, "due_soon": 0, "earliest_due": null, "next_due": null
+    },
+    {
+      "name": "a payment clears the oldest debt first",
+      "as_of": "2026-10-24", "within_days": 7,
+      "lines": [
+        { "type": "debt", "cents": 100000, "date": "2026-10-01", "due": "2026-10-10" },
+        { "type": "debt", "cents": 50000, "date": "2026-10-02", "due": "2026-10-30" },
+        { "type": "payment", "cents": 120000, "date": "2026-10-20" }
+      ],
+      "total": 30000, "overdue": 0, "due_soon": 30000, "earliest_due": "2026-10-30", "next_due": "2026-10-30"
+    },
+    {
+      "name": "part paid and past its date",
+      "as_of": "2026-10-24", "within_days": 7,
+      "lines": [
+        { "type": "debt", "cents": 100000, "date": "2026-10-01", "due": "2026-10-20" },
+        { "type": "payment", "cents": 40000, "date": "2026-10-15" }
+      ],
+      "total": 60000, "overdue": 60000, "due_soon": 0, "earliest_due": "2026-10-20", "next_due": null
+    },
+    {
+      "name": "an advance clears a later debt",
+      "as_of": "2026-10-24", "within_days": 7,
+      "lines": [
+        { "type": "payment", "cents": 50000, "date": "2026-09-01" },
+        { "type": "debt", "cents": 30000, "date": "2026-10-01", "due": "2026-10-05" }
+      ],
+      "total": 0, "overdue": 0, "due_soon": 0, "earliest_due": null, "next_due": null
+    },
+    {
+      "name": "an advance clears part of a later debt",
+      "as_of": "2026-10-24", "within_days": 7,
+      "lines": [
+        { "type": "payment", "cents": 20000, "date": "2026-09-01" },
+        { "type": "debt", "cents": 50000, "date": "2026-10-01", "due": "2026-10-05" }
+      ],
+      "total": 30000, "overdue": 30000, "due_soon": 0, "earliest_due": "2026-10-05", "next_due": null
+    },
+    {
+      "name": "due today is not yet late",
+      "as_of": "2026-10-24", "within_days": 7,
+      "lines": [
+        { "type": "debt", "cents": 10000, "date": "2026-10-20", "due": "2026-10-24" }
+      ],
+      "total": 10000, "overdue": 0, "due_soon": 10000, "earliest_due": "2026-10-24", "next_due": "2026-10-24"
+    },
+    {
+      "name": "due after the window",
+      "as_of": "2026-10-24", "within_days": 7,
+      "lines": [
+        { "type": "debt", "cents": 10000, "date": "2026-10-20", "due": "2026-11-30" }
+      ],
+      "total": 10000, "overdue": 0, "due_soon": 0, "earliest_due": "2026-11-30", "next_due": "2026-11-30"
+    },
+    {
+      "name": "late, due soon and undated together",
+      "as_of": "2026-10-24", "within_days": 7,
+      "lines": [
+        { "type": "debt", "cents": 10000, "date": "2026-10-01", "due": "2026-10-15" },
+        { "type": "debt", "cents": 20000, "date": "2026-10-02" },
+        { "type": "debt", "cents": 30000, "date": "2026-10-03", "due": "2026-10-28" },
+        { "type": "payment", "cents": 5000, "date": "2026-10-04" }
+      ],
+      "total": 55000, "overdue": 5000, "due_soon": 30000, "earliest_due": "2026-10-15", "next_due": "2026-10-28"
+    }
+  ]
+}

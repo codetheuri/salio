@@ -1,4 +1,4 @@
-# Continuous integration for both backends.
+# Continuous integration for both backends and the mobile app.
 #
 # Replaces the original go.yml, which ran `go build ./...` at the repository
 # root — where there is no Go module — with Go 1.20, and only for main. It
@@ -92,3 +92,117 @@ jobs:
           cache-dependency-path: server/go.sum
       - run: go build ./...
       - run: go vet ./...
+
+  mobile-v2:
+    name: mobile-v2 (format, analyze, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-v2
+    steps:
+      - uses: actions/checkout@v4
+
+      # AGP 9 needs JDK 17 or newer.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # The exact Flutter release pinned in pubspec.yaml (docs/10, D18).
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: mobile-v2/pubspec.yaml
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      # The drift code is committed (as in DairyGo); regenerating must change
+      # nothing, or a table was edited without running the generator.
+      - name: Generated code is up to date
+        run: |
+          dart run build_runner build
+          git diff --exit-code -- lib
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      # Includes the layout tests (every screen, size, text size and
+      # language) and the shared vectors in ../testdata/shared.
+      - name: Test
+        run: flutter test
+
+      # A real Gradle build: flavours, manifest and resources. Debug, because
+      # the release key is never on CI.
+      - name: Build (dev, one APK per processor type)
+        run: flutter build apk --debug --flavor dev --split-per-abi
+
+      - name: Every APK has the right version code and its native libraries
+        run: scripts/check-apks.sh
+
+  mobile-v2-live:
+    name: mobile-v2 (live scenarios against a real server-v2)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-v2
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: root
+          POSTGRES_DB: postgres
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U root -d postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server-v2/go.mod
+          cache-dependency-path: server-v2/go.sum
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: mobile-v2/pubspec.yaml
+          cache: true
+
+      - run: flutter pub get
+
+      # A throwaway server-v2 on :8091: fresh database, the two roles,
+      # migrations, and the API as the restricted role with row-level
+      # security required. The same script runs it on a laptop.
+      - name: Start server-v2
+        run: |
+          scripts/live-server.sh > live-server.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -sf http://127.0.0.1:8091/health && exit 0
+            sleep 1
+          done
+          cat live-server.log
+          exit 1
+
+      - name: Live scenarios
+        env:
+          SALIO_LIVE_URL: http://127.0.0.1:8091
+        run: flutter test test/live
+
+      # server-v2's OpenAPI document against the app's snapshot (B11): an
+      # API change fails here until test/contract/openapi.json is refreshed,
+      # so it shows up in the pull request for the app's side to be checked.
+      - name: API contract snapshot
+        env:
+          SALIO_LIVE_URL: http://127.0.0.1:8091
+        run: scripts/contract.sh
+
+      - name: Server log
+        if: always()
+        run: cat live-server.log

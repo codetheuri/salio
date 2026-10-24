@@ -16,6 +16,7 @@ import (
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/ledger"
 	"salio/server-v2/internal/money"
+	"salio/server-v2/internal/phone"
 	"salio/server-v2/internal/rbac"
 	"salio/server-v2/internal/sales"
 	"salio/server-v2/internal/stock"
@@ -78,7 +79,7 @@ func (s *Service) Push(ctx context.Context, in PushInput) (*PushView, error) {
 	body := in.Body
 	now := time.Now().UTC()
 
-	return s.repo.Push(ctx, body.OperationID, func(tx *gorm.DB) (*PushView, error) {
+	view, err := s.repo.Push(ctx, body.OperationID, func(tx *gorm.DB) (*PushView, error) {
 		p := &push{
 			ctx: ctx, tx: tx, businessID: businessID, userID: sub.UserID, now: now,
 			view: &PushView{
@@ -113,6 +114,20 @@ func (s *Service) Push(ctx context.Context, in PushInput) (*PushView, error) {
 		}
 		return p.view, nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// After the commit, and on a replay too: the copies are what the server
+	// holds now (B2).
+	includeSuppliers, err := s.repo.CanReadSuppliers(ctx, sub.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("checking supplier access: %w", err)
+	}
+	if view.Current, err = s.repo.CurrentCopies(ctx, view.Conflicts, includeSuppliers); err != nil {
+		return nil, err
+	}
+	return view, nil
 }
 
 // push carries one push through its steps.
@@ -221,6 +236,21 @@ func (p *push) applyCustomers(incoming []SyncCustomer) error {
 
 	for _, c := range incoming {
 		prior, known := existing[c.ID]
+
+		// One stored form for every number (B15), checked only when this
+		// push sets the phone: an edit to the notes must not be refused over
+		// a number stored in an older form.
+		if c.Phone != nil && (!known || setsField(c, "phone")) {
+			number, err := phone.Optional(c.Phone)
+			if err != nil {
+				p.conflict("customers", c.ID, "phone", ReasonInvalid, err.Error())
+				if !known {
+					continue
+				}
+				number = prior.Phone // the other fields still apply
+			}
+			c.Phone = number
+		}
 
 		if !known {
 			if ok, err := p.can(rbac.PermCustomersCreate); err != nil {
@@ -669,6 +699,12 @@ func stockRequestChanged(in SyncStockRequest, prior domain.StockRequest) bool {
 }
 
 // --- shared ---
+
+// setsField reports whether a customer push changes a field: named in
+// changed_fields, or a whole-record push, which changes them all.
+func setsField(c SyncCustomer, field string) bool {
+	return len(c.ChangedFields) == 0 || slices.Contains(c.ChangedFields, field)
+}
 
 // validateCustomer checks what the schema deliberately does not.
 func validateCustomer(c SyncCustomer) (reason, field, detail string) {

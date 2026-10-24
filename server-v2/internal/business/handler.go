@@ -126,9 +126,14 @@ func (h *Handler) Me(ctx context.Context, _ *EmptyInput) (*UserOutput, error) {
 	if err != nil {
 		return nil, h.mapError(err, "loading your profile")
 	}
+	permissions, err := h.service.Permissions(ctx, sub.UserID)
+	if err != nil {
+		return nil, h.mapError(err, "loading your permissions")
+	}
 	resp := &UserOutput{}
 	resp.Body.Success = true
 	resp.Body.Data = viewUser(*u)
+	resp.Body.Data.Permissions = permissions
 	return resp, nil
 }
 
@@ -218,6 +223,9 @@ func (h *Handler) mapError(err error, action string) error {
 		return huma.Error415UnsupportedMediaType(err.Error())
 	case errors.Is(err, ErrPhoneTaken):
 		return huma.Error409Conflict(err.Error())
+	case errors.Is(err, ErrInvalidPhone):
+		return huma.Error422UnprocessableEntity(err.Error(),
+			&huma.ErrorDetail{Location: "body.phone", Message: err.Error()})
 	case errors.Is(err, ErrInvalidLogin), errors.Is(err, ErrAccountInactive):
 		return huma.Error401Unauthorized(err.Error())
 	case errors.Is(err, ErrInviteUnusable):
@@ -240,5 +248,6 @@ func authResponse(a *Authenticated, message string) *AuthOutput {
 	resp.Body.Message = message
 	resp.Body.Data.Token = a.Token
 	resp.Body.Data.User = viewUser(a.User)
+	resp.Body.Data.User.Permissions = a.Permissions
 	return resp
 }

@@ -93,8 +93,8 @@ func TestLogin_Succeeds(t *testing.T) {
 	if err != nil {
 		t.Fatalf("login: %v", err)
 	}
-	if auth.User.Phone != "0711000102" {
-		t.Errorf("got phone %q", auth.User.Phone)
+	if auth.User.Phone != "+254711000102" {
+		t.Errorf("got phone %q, want it in the one stored form", auth.User.Phone)
 	}
 }
 

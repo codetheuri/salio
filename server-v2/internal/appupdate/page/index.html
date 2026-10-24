@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Download Salio</title>
+<link rel="stylesheet" href="/app/app.css">
+</head>
+<body>
+<main>
+  <header>
+    <p class="brand">Salio</p>
+    <h1>Download the Salio app</h1>
+    <p class="sw">Pakua programu ya Salio</p>
+  </header>
+{{if .}}
+  {{with index .Files "arm64"}}
+  <a class="download" href="/app/download/arm64">Download Salio<span>Version {{$.Version}} · {{mb .Size}}</span></a>
+  {{else}}{{with index .Files "armv7"}}
+  <a class="download" href="/app/download/armv7">Download Salio<span>Version {{$.Version}} · {{mb .Size}}</span></a>
+  {{end}}{{end}}
+
+  <section>
+    <h2>How to install <span class="sw">Jinsi ya kusakinisha</span></h2>
+    <ol class="steps">
+      <li><b>Tap the button above.</b><span class="sw">Bonyeza kitufe hapo juu.</span></li>
+      <li><b>When the download finishes, tap Open.</b><span class="sw">Upakuaji ukiisha, bonyeza Open.</span></li>
+      <li><b>If the phone asks, allow installing from this app (Chrome), then press Back.</b><span class="sw">Simu ikiuliza, ruhusu kusakinisha kutoka Chrome, kisha rudi nyuma.</span></li>
+      <li><b>Tap Install (or Update).</b><span class="sw">Bonyeza Install.</span></li>
+      <li><b>Open Salio and sign in with your phone number.</b><span class="sw">Fungua Salio na uingie kwa namba yako ya simu.</span></li>
+    </ol>
+    <p class="note">If this page opened inside WhatsApp, tap ⋮ and choose <b>Open in Chrome</b> first.</p>
+  </section>
+
+  <section>
+    <h2>If it does not work <span class="sw">Kama haifanyi kazi</span></h2>
+    <dl>
+      {{with index .Files "armv7"}}
+      <dt>The download will not install on an older phone</dt>
+      <dd><a href="/app/download/armv7">Download the version for older phones</a> ({{mb .Size}}).
+        <span class="sw">Pakua toleo la simu za zamani.</span></dd>
+      {{end}}
+      <dt>The file opens in a PDF or photo app</dt>
+      <dd>Open the <b>Downloads</b> (Files) app, tap the Salio file, and choose <b>Package installer</b>.</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Updates <span class="sw">Masasisho</span></h2>
+    <p>Salio updates itself. When a new version is ready a bar appears in the app; on Wi-Fi it downloads by itself. Your records stay on the phone while it updates.</p>
+    <p class="sw">Salio hujisasisha yenyewe. Toleo jipya likiwa tayari, utaona ujumbe ndani ya programu. Rekodi zako zinabaki salama kwenye simu.</p>
+  </section>
+
+  {{with index .Notes "en"}}
+  <section>
+    <h2>What is new in {{$.Version}} <span class="sw">Kipya</span></h2>
+    <p class="notes">{{.}}</p>
+    {{with index $.Notes "sw"}}<p class="notes sw">{{.}}</p>{{end}}
+  </section>
+  {{end}}
+
+  <details>
+    <summary>File details</summary>
+    <p>Version {{.Version}} (build {{.Build}}), published {{.PublishedAt.Format "2 Jan 2006"}}.</p>
+    <ul class="files">
+    {{range $abi, $f := .Files}}<li>{{$abi}}: {{$f.Name}}<br>SHA-256 {{$f.SHA256}}</li>{{end}}
+    </ul>
+  </details>
+{{else}}
+  <section>
+    <p>No version is available to download yet.</p>
+    <p class="sw">Hakuna toleo la kupakua kwa sasa.</p>
+  </section>
+{{end}}
+</main>
+</body>
+</html>
