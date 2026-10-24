@@ -7,6 +7,7 @@ import '../../../app/router/app_router.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/widgets/failure_text.dart';
+import '../../../core/widgets/password_field.dart';
 import 'widgets/auth_page.dart';
 
 /// Registers a new shop with its owner, who is then signed in. Needs a
@@ -106,7 +107,8 @@ class NameField extends StatelessWidget {
   }
 }
 
-/// A new password: at least 8 characters, as the server requires.
+/// A new password: at least [minPasswordLength] characters, as the server
+/// requires.
 class NewPasswordField extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSubmitted;
@@ -117,17 +119,20 @@ class NewPasswordField extends StatelessWidget {
     required this.onSubmitted,
   });
 
+  /// The server's minimum (server-v2, business/dto.go).
+  static const minPasswordLength = 5;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return TextFormField(
+    return PasswordField(
       controller: controller,
-      obscureText: true,
+      label: l10n.passwordNew,
       autofillHints: const [AutofillHints.newPassword],
-      onFieldSubmitted: (_) => onSubmitted(),
-      decoration: InputDecoration(labelText: l10n.passwordNew),
-      validator: (v) =>
-          v == null || v.length < 8 ? l10n.passwordTooShort : null,
+      onSubmitted: onSubmitted,
+      validator: (v) => v == null || v.length < minPasswordLength
+          ? l10n.passwordTooShort
+          : null,
     );
   }
 }

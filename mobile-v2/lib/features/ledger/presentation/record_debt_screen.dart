@@ -146,12 +146,16 @@ class AmountField extends StatelessWidget {
   final String? helperText;
   final ValueChanged<String>? onChanged;
 
+  /// Empty is accepted, for amounts that may be left out.
+  final bool optional;
+
   const AmountField({
     super.key,
     required this.controller,
     required this.label,
     this.helperText,
     this.onChanged,
+    this.optional = false,
   });
 
   @override
@@ -165,10 +169,13 @@ class AmountField extends StatelessWidget {
       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
       decoration: InputDecoration(
         labelText: label,
+        // The currency in the box, so the empty field reads as an amount.
+        prefixText: 'KES ',
         helperText: helperText,
         helperMaxLines: 3,
       ),
       validator: (v) {
+        if (optional && (v ?? '').trim().isEmpty) return null;
         final cents = Money.tryParse(v ?? '');
         if (cents == null) return l10n.amountInvalid;
         if (cents <= 0) return l10n.amountPositive;

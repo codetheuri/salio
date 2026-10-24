@@ -8,6 +8,7 @@ import '../../../app/router/app_router.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/widgets/failure_text.dart';
+import '../../../core/widgets/password_field.dart';
 import 'widgets/auth_page.dart';
 
 /// Sign in with a phone number and password. Also where an account comes
@@ -98,15 +99,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ),
           validator: required,
         ),
-        TextFormField(
+        PasswordField(
           controller: _password,
-          obscureText: true,
-          autofillHints: const [AutofillHints.password],
-          onFieldSubmitted: (_) => _submit(),
-          decoration: InputDecoration(
-            labelText: l10n.signInPassword,
-            errorText: _fieldErrors['password'],
-          ),
+          label: l10n.signInPassword,
+          errorText: _fieldErrors['password'],
+          onSubmitted: _submit,
           validator: required,
         ),
       ],

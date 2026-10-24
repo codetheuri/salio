@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salio/app/router/app_router.dart';
 import 'package:salio/core/database/app_database.dart';
 import 'package:salio/core/session/permissions.dart';
+import 'package:salio/core/widgets/password_field.dart';
 import 'package:salio/features/customers/presentation/customer_form_screen.dart';
 
 import 'layout/harness.dart';
@@ -245,6 +246,55 @@ void main() {
     );
   });
 
+  testWidgets('a credit limit: the amount is there to type, empty is none', (
+    tester,
+  ) async {
+    const otieno = '0197a000-0000-7000-8000-00000000000c';
+    Future<int?> limitOf(AppUnderTest app, String id) async =>
+        (await (app.db.select(
+          app.db.customers,
+        )..where((c) => c.id.equals(id))).getSingle()).creditLimitCents;
+
+    await flow(tester, '/customers/$otieno/limit', (app) async {
+      expect(find.text('Remove limit'), findsNothing, reason: 'none set');
+      await tester.enterText(find.byType(TextFormField), '5000');
+      await tester.tap(find.text('Save'));
+      await settle(tester);
+      expect(await limitOf(app, otieno), 500000);
+      expect(app.location, '/customers/$otieno');
+    });
+    await flow(tester, '/customers/$longCustomerId/limit', (app) async {
+      await settle(tester);
+      expect(find.text('100000'), findsOneWidget);
+      await tester.tap(find.text('Remove limit'));
+      await tester.tap(find.text('Save'));
+      await settle(tester);
+      expect(await limitOf(app, longCustomerId), isNull);
+    });
+  });
+
+  testWidgets('a password can be shown while typing it', (tester) async {
+    await flow(tester, '/sign-in', role: null, size: const Size(360, 800), (
+      app,
+    ) async {
+      bool hidden() => tester
+          .widget<EditableText>(
+            find.descendant(
+              of: find.byType(PasswordField),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .obscureText;
+      expect(hidden(), isTrue);
+      await tester.tap(find.byTooltip('Show password'));
+      await tester.pump();
+      expect(hidden(), isFalse);
+      await tester.tap(find.byTooltip('Hide password'));
+      await tester.pump();
+      expect(hidden(), isTrue);
+    });
+  });
+
   testWidgets('a customer who owes cannot be deleted', (tester) async {
     await flow(tester, '/customers/$longCustomerId', (app) async {
       await tester.tap(find.byTooltip('More options'));
@@ -280,7 +330,7 @@ void main() {
       expect(app.location, '/register');
       await tester.tap(find.text('Register'));
       await settle(tester);
-      expect(find.text('At least 8 characters'), findsOneWidget);
+      expect(find.text('At least 5 characters'), findsOneWidget);
 
       app.container.read(appRouterProvider).go('/join');
       await settle(tester);
