@@ -115,7 +115,29 @@ func (s *Service) DeleteRequest(ctx context.Context, id uuid.UUID) error {
 // A quantity is required on every line. That is the point at which a note that
 // something ran out becomes an instruction to a supplier, and "send us some
 // Duodip" is not an order anyone can fill.
+//
+// With a client id it is safe to repeat (B8): a retry, even one racing the
+// first attempt, answers with the order the first placed.
 func (s *Service) CreateOrder(ctx context.Context, userID uuid.UUID, in CreateOrderInput) (*PurchaseOrderView, error) {
+	if in.Body.ID == nil {
+		return s.createOrder(ctx, userID, in)
+	}
+	// Found first: by then its requests are ordered, and checking them would
+	// refuse the retry of a save that succeeded.
+	if v, err := s.existingOrder(ctx, *in.Body.ID); v != nil || err != nil {
+		return v, err
+	}
+	v, err := s.createOrder(ctx, userID, in)
+	if errors.Is(err, ErrRequestUnavailable) || errors.Is(err, errOrderExists) {
+		// The first attempt committed while this one was checking.
+		if existing, lookupErr := s.existingOrder(ctx, *in.Body.ID); existing != nil || lookupErr != nil {
+			return existing, lookupErr
+		}
+	}
+	return v, err
+}
+
+func (s *Service) createOrder(ctx context.Context, userID uuid.UUID, in CreateOrderInput) (*PurchaseOrderView, error) {
 	businessID, err := tenant.MustFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -190,10 +212,26 @@ func (s *Service) CreateOrder(ctx context.Context, userID uuid.UUID, in CreateOr
 	// The repository re-checks that every request is still pending, inside its
 	// transaction and under the lock: two people ordering the same request at
 	// once must not both succeed.
+	if in.Body.ID != nil {
+		order.ID = *in.Body.ID
+	}
 	if err := s.repo.CreateOrder(ctx, order, requestIDs); err != nil {
 		return nil, err
 	}
 	v := orderView(*order)
+	return &v, nil
+}
+
+// existingOrder returns the order with this id, or nil when there is none.
+func (s *Service) existingOrder(ctx context.Context, id uuid.UUID) (*PurchaseOrderView, error) {
+	o, err := s.repo.GetOrder(ctx, id)
+	if errors.Is(err, ErrOrderNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	v := orderView(*o)
 	return &v, nil
 }
 

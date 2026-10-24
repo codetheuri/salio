@@ -82,6 +82,16 @@ func (r *Repository) CreateOrder(ctx context.Context, o *domain.PurchaseOrder, r
 			return fmt.Errorf("locking order numbers: %w", err)
 		}
 
+		if o.ID != uuid.Nil {
+			var exists int64
+			if err := tx.Model(&domain.PurchaseOrder{}).Where("id = ?", o.ID).Count(&exists).Error; err != nil {
+				return fmt.Errorf("checking for the order: %w", err)
+			}
+			if exists > 0 {
+				return errOrderExists
+			}
+		}
+
 		if len(requestIDs) > 0 {
 			// Every request must exist, belong to this business, and still be
 			// pending — checked inside the transaction, after the lock, so two
