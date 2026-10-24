@@ -11,17 +11,22 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salio/core/database/app_database.dart';
+import 'package:salio/core/money/money.dart';
 import 'package:salio/core/network/api_client.dart';
 import 'package:salio/core/network/api_exception.dart';
 import 'package:salio/core/phone/phone.dart' as phone_rule;
 import 'package:salio/core/session/permissions.dart';
+import 'package:salio/core/time/shop_time.dart';
 import 'package:salio/features/app_update/data/app_update_service.dart';
+import 'package:salio/features/home/data/home_repository.dart';
 import 'package:salio/features/ledger/domain/payment_reference.dart';
 import 'package:salio/features/sales/data/sales_repository.dart';
 import 'package:salio/features/sales/domain/sale_debt.dart';
 import 'package:salio/features/stock/data/purchase_order_api.dart';
+import 'package:uuid/uuid.dart';
 
 import '../support/fake_app_update.dart';
 
@@ -523,6 +528,133 @@ void main() {
       expect(await shop.b.balances(), {'Stays': 7000});
       expect(await shop.b.pendingCount(), 0);
       expect(await shop.b.balances(), await shop.a.serverBalances());
+    });
+
+    test('14: Home\'s figures and Today list, computed on the phone, equal '
+        'the server\'s summary and due list', () async {
+      final shop = await _newShop();
+      final a = shop.a;
+      final now = a.clock.now();
+      final today = ShopTime(a.account.timeZone).day(now);
+
+      /// A debt as another phone recorded it [daysAgo], with its due day:
+      /// the repositories date everything now, and both rules turn on age.
+      Future<void> oldDebt(
+        String customer,
+        int cents, {
+        required int daysAgo,
+        DateTime? due,
+      }) async {
+        final at = now.subtract(Duration(days: daysAgo));
+        await a.db
+            .into(a.db.ledgerEntries)
+            .insert(
+              LedgerEntriesCompanion.insert(
+                id: const Uuid().v7(),
+                customerId: customer,
+                userId: a.account.userId,
+                type: 'debt',
+                amountCents: cents,
+                description: const Value('Iron sheets'),
+                transactionDate: at,
+                createdAt: at,
+                updatedAt: at,
+                dueDate: Value(due),
+                syncState: SyncState.pending,
+              ),
+            );
+      }
+
+      final quiet = await a.customers.add(name: 'Quiet Kamau');
+      await oldDebt(quiet, 450000, daysAgo: 40);
+      final late = await a.customers.add(name: 'Late Achieng');
+      await oldDebt(
+        late,
+        120000,
+        daysAgo: 10,
+        due: today.subtract(const Duration(days: 3)),
+      );
+      final dueToday = await a.customers.add(name: 'Today Mwangi');
+      await a.ledger.recordDebt(
+        customerId: dueToday,
+        amountCents: 30000,
+        description: 'Flour',
+        dueDate: today,
+      );
+      final ahead = await a.customers.add(name: 'Ahead Njeri');
+      await a.ledger.recordPayment(
+        customerId: ahead,
+        amountCents: 20000,
+        method: PaymentMethod.cash,
+        description: 'Cash',
+      );
+      final gone = await a.customers.add(name: 'Gone Otieno');
+      await a.ledger.recordDebt(
+        customerId: gone,
+        amountCents: 5000,
+        description: 'Soap',
+      );
+      await a.ledger.recordPayment(
+        customerId: gone,
+        amountCents: 5000,
+        method: PaymentMethod.mpesa,
+        description: 'M-Pesa',
+      );
+      await a.syncNow();
+      await a.customers.delete(gone);
+      await a.customers.add(name: 'Never Owed');
+      final report = await a.syncNow();
+      expect(report.conflicts, 0);
+
+      final home = HomeRepository(a.db, a.customers);
+      final mine = await home.watchFigures(a.clock.now()).first;
+      final server =
+          await a.api.get('/reports/summary') as Map<String, dynamic>;
+      int cents(Object? v) => Money.parse(v! as String);
+
+      expect(mine.totalCustomers, server['total_customers']);
+      expect(mine.owedCents, cents(server['total_outstanding_debt']));
+      expect(mine.advancesCents, cents(server['total_advances_held']));
+      expect(mine.customersInCredit, server['customers_in_credit']);
+      expect(
+        mine.collected30Cents,
+        cents(server['total_collected_last_30_days']),
+        reason: 'the deleted customer\'s payment counts on both sides',
+      );
+      expect(mine.quietCount, server['overdue_debtor_count']);
+      List<(String, int)> ids(List<Object?> list) => [
+        for (final d in list.cast<Map<String, dynamic>>())
+          (d['customer_id'] as String, cents(d['balance'])),
+      ];
+      expect([
+        for (final d in mine.topDebtors) (d.customerId, d.balanceCents),
+      ], ids(server['top_debtors'] as List<Object?>));
+      expect([
+        for (final d in mine.quietDebtors) (d.customerId, d.balanceCents),
+      ], ids(server['overdue_debtors'] as List<Object?>));
+      // The cases this shop was built for are really there.
+      expect(mine.quietDebtors.single.customerId, quiet);
+      expect(mine.advancesCents, 20000);
+      expect(mine.collected30Cents, 25000);
+
+      final todayList = await home.watchToday(today).first;
+      final due =
+          await a.api.get('/reports/due', query: {'within_days': 0})
+              as Map<String, dynamic>;
+      expect(
+        {
+          for (final i in todayList)
+            i.customer.customer.id: (i.overdueCents, i.dueTodayCents),
+        },
+        {
+          for (final r in (due['rows'] as List).cast<Map<String, dynamic>>())
+            r['customer_id'] as String: (
+              cents(r['overdue']),
+              cents(r['due_soon']),
+            ),
+        },
+      );
+      expect(todayList.map((i) => i.customer.customer.id), [late, dueToday]);
     });
 
     test('13: three phones, 500 random operations, a flaky network: every '

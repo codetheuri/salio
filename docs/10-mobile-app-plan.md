@@ -1,6 +1,6 @@
 # 10 — Salio mobile app v2: execution plan
 
-**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check; M2 (complete sync), M3 (customers and the ledger) and M4 (sales, stock and suppliers) built on 2026-10-24. See the outcome notes in §10.
+**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check; M2 (complete sync), M3 (customers and the ledger), M4 (sales, stock and suppliers) and M5 (Home and reports) built on 2026-10-24. See the outcome notes in §10.
 **Builds on:** [08 — backend rewrite](08-tusk-rewrite-plan.md) (server-v2, complete) and [09 — operations](09-operations.md) (security model, deployment).
 **Borrows from:** the DairyGo app (`/var/www/html/startup/Dairy/mobile`), which already solved self-updating, layout testing and slow networks with real users.
 
@@ -1085,6 +1085,49 @@ Estimates are working days for one developer working with Claude. They will be r
   - The phone's Home figures equal the server's summary in the live tests.
   - Every PDF opens and shares.
 
+> **M5 outcome (2026-10-24, branch `mobile/m5-home-reports`, on top of M4's).**
+>
+> **Built on the server:**
+> - **A payables PDF** (`reports-payables-pdf`, owners), so every report has one, as the plan asks.
+> - **Due dates compared as days, in the shop's time zone.** Live scenario 14 found this. Debts, credit sales and supplier bills compared a due *day* (midnight) with the *moment* the record was made, so anything due "today" was refused as due before it was made. A phone's record came back as a sync conflict. The date pickers have offered today since M3, so shops would have hit this daily.
+>   - **The rule now:** `domain.DueBefore` compares calendar days in the shop's zone. A day from a form is taken as the day it is.
+>   - **Where it applies:** the sync engine reads the zone once per push.
+>   - **Tested:** across Nairobi, a zone west of UTC, and both kinds of date. The old rule fails that test.
+>
+> **Built in the app:**
+> - **Home, computed on the phone, by permission:**
+>   - **Money in today,** split into payments and sales paid on the spot, by method. Owners see it by who took it; staff see what they took themselves.
+>   - **The book** (with reports): what customers owe, advances held, collected in the last 30 days, and customers *quiet for 30 days*. Each is computed exactly as the server's `/reports/summary` computes it.
+>   - **The shop owes suppliers** (with suppliers).
+>   - **To collect today:** customers with money past its agreed day or due today, largest first. Each row has **Call** (the dialer, number filled in) and **Remind**. Remind writes a polite message in the app's language, with the balance and since when, sent from the shop's own WhatsApp or SMS.
+>   - **The + button:** record a debt, a payment or a sale. A debt or payment asks for the customer first.
+> - **"Quiet", not "overdue":** the server's summary calls a customer with a balance and nothing recorded for 30 days an "overdue debtor". The app already uses "overdue" for "past an agreed due date", so Home names the server's measure *quiet*. Both keep their exact rules.
+> - **Reports:**
+>   - debt ageing, sales, collections, owed to suppliers (owners) and a customer's statement (from the customer's menu);
+>   - periods: today, 7 days, 30 days, this month, or chosen dates;
+>   - pull to refresh;
+>   - each shows when it was read. Without a connection, the last copy is shown and says so, and offline reads fail at once rather than retrying for a minute.
+>   - **Open as PDF** saves it in the app's folder and opens it in the phone's viewer; **Share PDF** hands it to the share sheet.
+> - **The database, schema 4:** `report_cache`, the last copy of each report. The upgrade from every older schema is tested, with data.
+> - **Android:** the app declares the dialer, SMS, web links and PDF viewers it hands things to, which Android 11+ requires (`<queries>`).
+> - **Every section now has its screen;** the "being built" placeholder is gone.
+>
+> **Tests:** 316 passing (281 at M4), and the full server-v2 suite with the race detector; the 16 skipped are the live scenarios, which pass against a live server.
+> - **Live:** 16 scenarios. New: **14**, Home's figures and the Today list equal `/reports/summary` and `/reports/due` field by field. The shop it builds has an advance, a quiet debtor, a debt past due, one due today, and a deleted customer whose payment still counts as collected, as the server counts it.
+> - **New in the app:** 8 flow tests for Home and reports, 5 for the report repository's kept copies, the 3-to-4 database upgrade, and the M5 layout cases.
+> - **Guards broken on purpose and seen to fail:** the kept-copy fall-back, and the day rule for due dates.
+>
+> **Found and fixed on the way:**
+> - **Due "today" refused by the server** (above).
+> - **"The shop owes suppliers" wrapped onto three lines** under a large amount; the amount now shrinks to fit.
+> - **A wrong lead, put right:** a pull-to-refresh test failed. I first blamed short lists that cannot be pulled, but a primary list view always can be. The pull in the test was too short for its tall window. The extra code went back out.
+>
+> **Changed from the plan:**
+> - **The + button is on Home only.** On Customers the button adds a customer, the more frequent action there, and each customer's page has Record debt, Record payment and Sale.
+> - **Reminders do not yet say how to pay:** that needs the shop's payment details (B12, M7).
+>
+> **Not done yet:** opening and sharing a PDF on a real phone (the viewer and share sheet are Android's), part of your on-phone check.
+
 **M6 — Team, account and settings (4–6 days)**
 
 - **Team:** sharing invites, the staff list, deactivating, resetting a password.
@@ -1254,7 +1297,7 @@ After v2.0 come the v2.1 features in §2.4.
 | create/cancel/list/get-purchase-order, purchase-order-pdf | Purchase orders | Online, owner | M4 ✅ |
 | create/update/delete-supplier, create-supplier-entry, void-supplier-entry | Suppliers | Through sync, owner | M4 ✅ |
 | list/get for customers, transactions, sales, stock requests, suppliers and supplier entries | — | Read from the phone's database instead | — |
-| reports-summary | The self-check, parity tests | Online | M2, M5 |
-| reports-due | Today list | Computed on the phone, by the same FIFO rule | M5 |
-| reports-ageing, -sales, -collections, -customer-statement, -payables, and their PDFs | Reports | Online, cached | M5 |
+| reports-summary | The self-check, parity tests | Online | M2, M5 ✅ (live scenario 14) |
+| reports-due | Today list | Computed on the phone, by the same FIFO rule | M5 ✅ (live scenario 14) |
+| reports-ageing, -sales, -collections, -customer-statement, -payables, and their PDFs | Reports | Online, cached | M5 ✅ (`reports-payables-pdf` added in M5) |
 | *new:* get-app-version, `/app`, `/app/download/{abi}` | The updater | Public | M1 |

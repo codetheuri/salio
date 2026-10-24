@@ -3,6 +3,7 @@ package ledger
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/payment"
@@ -45,7 +46,7 @@ var (
 // ValidateEntry checks a new ledger entry, and normalises its reference — an
 // M-Pesa code is stored upper-case, so the duplicate check sees one code
 // however it was typed.
-func ValidateEntry(t *domain.Transaction) error {
+func ValidateEntry(t *domain.Transaction, loc *time.Location) error {
 	if !t.Type.Valid() {
 		return ErrInvalidType
 	}
@@ -78,7 +79,7 @@ func ValidateEntry(t *domain.Transaction) error {
 	if t.PaymentMethod != nil || t.Reference != nil {
 		return ErrMethodOnDebt
 	}
-	if t.DueDate != nil && t.DueDate.Before(t.TransactionDate) {
+	if t.DueDate != nil && domain.DueBefore(*t.DueDate, t.TransactionDate, loc) {
 		return ErrDueBeforeDate
 	}
 	return nil

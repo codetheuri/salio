@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -14,6 +15,7 @@ import (
 
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/payment"
+	"salio/server-v2/internal/shopclock"
 )
 
 // The rules every sale obeys, whichever path it arrives by. Plain functions over
@@ -38,7 +40,7 @@ var (
 )
 
 // Validate checks a sale on its own terms, before anything touches the database.
-func Validate(s *domain.Sale) error {
+func Validate(s *domain.Sale, loc *time.Location) error {
 	s.ProductName = strings.TrimSpace(s.ProductName)
 	switch {
 	case s.ProductName == "":
@@ -62,7 +64,7 @@ func Validate(s *domain.Sale) error {
 			return ErrCreditHasNoRef
 		}
 		s.Reference = nil
-		if s.DueDate != nil && s.DueDate.Before(s.SaleDate) {
+		if s.DueDate != nil && domain.DueBefore(*s.DueDate, s.SaleDate, loc) {
 			return ErrDueBeforeDate
 		}
 		return nil
@@ -112,7 +114,11 @@ func DebtDescription(s *domain.Sale) string {
 // ignored by sync. One source of truth, so a sale can never put two debts on an
 // account, or a debt that disagrees with the sale.
 func Record(ctx context.Context, db *gorm.DB, s *domain.Sale) error {
-	if err := Validate(s); err != nil {
+	loc, err := shopclock.Location(ctx, db)
+	if err != nil {
+		return err
+	}
+	if err := Validate(s, loc); err != nil {
 		return err
 	}
 

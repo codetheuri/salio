@@ -29,7 +29,6 @@
   "@sectionMore": {
     "description": "Bottom bar and side rail. One word."
   },
-  "placeholderBody": "This part of Salio is being built.",
   "@placeholderBody": {
     "description": "Shown on a section whose screen does not exist yet (development builds)."
   },
@@ -617,5 +616,256 @@
         "example": "Elgon Kenya"
       }
     }
-  }
+  },
+  "homeRecord": "Record a debt, payment or sale",
+  "homeMoneyToday": "Money in today",
+  "homeMoneySplit": "Payments {payments} · Sales {sales}",
+  "@homeMoneySplit": {
+    "placeholders": {
+      "payments": {
+        "type": "String",
+        "example": "KES 4,500"
+      },
+      "sales": {
+        "type": "String",
+        "example": "KES 12,000"
+      }
+    }
+  },
+  "homeYouTook": "You took {amount}",
+  "@homeYouTook": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 3,200"
+      }
+    }
+  },
+  "methodUnrecorded": "Not recorded",
+  "homeFigures": "The book",
+  "homeCustomers": "{count, plural, =1{1 customer} other{{count} customers}}",
+  "@homeCustomers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeOwed": "Customers owe",
+  "homeAdvances": "Advances held",
+  "homeCollected30": "Collected, last 30 days",
+  "homeQuiet": "Quiet for 30 days",
+  "homeQuietTitle": "Owing, and quiet for 30 days",
+  "homeQuietSince": "Nothing recorded since {date}",
+  "@homeQuietSince": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Tue 14 Oct 2026"
+      }
+    }
+  },
+  "homeOwedToSuppliers": "The shop owes suppliers",
+  "homeTodayList": "To collect today",
+  "homeTodayEmpty": "Nothing is overdue or due today.",
+  "homeOverdue": "{amount} overdue",
+  "@homeOverdue": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 2,000"
+      }
+    }
+  },
+  "homeDueToday": "{amount} due today",
+  "@homeDueToday": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 2,000"
+      }
+    }
+  },
+  "homeCall": "Call {name}",
+  "@homeCall": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Otieno"
+      }
+    }
+  },
+  "homeRemind": "Remind {name}",
+  "@homeRemind": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Otieno"
+      }
+    }
+  },
+  "remindWhatsApp": "Remind on WhatsApp",
+  "remindSms": "Remind by SMS",
+  "remindNoApp": "No app on this phone could send it.",
+  "reminderText": "Hello {customer}, this is {shop}. A friendly reminder that your balance with us is {amount}. Thank you.",
+  "@reminderText": {
+    "placeholders": {
+      "customer": {
+        "type": "String",
+        "example": "Otieno"
+      },
+      "shop": {
+        "type": "String",
+        "example": "Mama Amina Store"
+      },
+      "amount": {
+        "type": "String",
+        "example": "KES 2,000"
+      }
+    }
+  },
+  "reminderTextOverdue": "Hello {customer}, this is {shop}. A friendly reminder that your balance with us is {amount}, due since {date}. Thank you.",
+  "@reminderTextOverdue": {
+    "placeholders": {
+      "customer": {
+        "type": "String",
+        "example": "Otieno"
+      },
+      "shop": {
+        "type": "String",
+        "example": "Mama Amina Store"
+      },
+      "amount": {
+        "type": "String",
+        "example": "KES 2,000"
+      },
+      "date": {
+        "type": "String",
+        "example": "Tue 14 Oct 2026"
+      }
+    }
+  },
+  "reportsIntro": "Reports are read from the server. The last copy of each stays on this phone, to read without a connection.",
+  "reportAgeing": "Debt ageing",
+  "reportAgeingHint": "Who owes, and for how long",
+  "reportSales": "Sales",
+  "reportSalesHint": "Takings by day, method and product",
+  "reportCollections": "Collections",
+  "reportCollectionsHint": "Payments received, and by whom",
+  "reportPayables": "Owed to suppliers",
+  "reportPayablesHint": "What the shop owes, and when",
+  "reportStatement": "Statement",
+  "reportsNeedConnection": "This report needs a connection the first time.",
+  "reportAsOf": "As of {time}",
+  "@reportAsOf": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Sat 24 Oct, 18:03"
+      }
+    }
+  },
+  "reportKeptCopy": "No connection. This is the copy read {time}.",
+  "@reportKeptCopy": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "Sat 24 Oct, 18:03"
+      }
+    }
+  },
+  "reportNothing": "Nothing in this report.",
+  "reportTotalOwed": "Total owed",
+  "reportPastDue": "Past the agreed date",
+  "reportPastDueAmount": "{amount} past due",
+  "@reportPastDueAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 2,000"
+      }
+    }
+  },
+  "reportDueSoon": "Due within 7 days",
+  "reportNextDue": "Next due {date}",
+  "@reportNextDue": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Tue 14 Oct 2026"
+      }
+    }
+  },
+  "reportAgeingNote": "Payments clear each customer's oldest debt first, so an amount in an older column has been owed that long.",
+  "reportSalesTotal": "{count, plural, =1{1 sale} other{{count} sales}}",
+  "@reportSalesTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportSalesCount": "{count, plural, =1{1 sale} other{{count} sales}}",
+  "@reportSalesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportTopProducts": "Best-selling products",
+  "reportByDay": "By day",
+  "reportCollected": "{count, plural, =1{1 payment} other{{count} payments}}",
+  "@reportCollected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportPaymentsCount": "{count, plural, =1{1 payment} other{{count} payments}}",
+  "@reportPaymentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportByStaff": "By who recorded them",
+  "reportStaffLine": "{payments} payments · {sales} sales of {salesTotal}",
+  "@reportStaffLine": {
+    "placeholders": {
+      "payments": {
+        "type": "int"
+      },
+      "sales": {
+        "type": "int"
+      },
+      "salesTotal": {
+        "type": "String",
+        "example": "KES 3,000"
+      }
+    }
+  },
+  "reportOpening": "Opening balance",
+  "reportDebits": "Debts",
+  "reportCredits": "Payments",
+  "reportClosing": "Closing balance",
+  "reportBalanceAfter": "Balance {amount}",
+  "@reportBalanceAfter": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 2,000"
+      }
+    }
+  },
+  "period7Days": "7 days",
+  "period30Days": "30 days",
+  "period90Days": "90 days",
+  "periodThisMonth": "This month",
+  "periodChoose": "Choose dates",
+  "pdfOpen": "Open as PDF",
+  "pdfShare": "Share PDF",
+  "pdfNoViewer": "The PDF is saved, but no app on this phone opens PDFs. Share it instead."
 }

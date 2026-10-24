@@ -143,6 +143,12 @@ class _Menu extends ConsumerWidget {
           Icons.speed_outlined,
           () => context.go('/customers/$id/limit'),
         ),
+      if (user.can(Permission.reportsRead))
+        (
+          l10n.reportStatement,
+          Icons.description_outlined,
+          () => context.go('/customers/$id/statement'),
+        ),
       if (user.can(Permission.customersDelete))
         (
           l10n.customerDelete,

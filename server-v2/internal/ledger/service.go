@@ -80,7 +80,11 @@ func (s *Service) Create(ctx context.Context, userID uuid.UUID, in CreateInput) 
 		Reference:       in.Body.Reference,
 		DueDate:         due,
 	}
-	if err := ValidateEntry(t); err != nil {
+	loc, err := s.repo.Location(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := ValidateEntry(t, loc); err != nil {
 		return nil, err
 	}
 	if err := s.repo.Create(ctx, t); err != nil {

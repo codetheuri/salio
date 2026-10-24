@@ -4,12 +4,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../app/l10n/generated/app_localizations.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
+import '../../../core/files/pdf_files.dart';
 import '../../../core/layout/breakpoints.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/phone/phone.dart';
@@ -22,27 +21,6 @@ import '../../../core/widgets/failure_text.dart';
 import '../../../core/widgets/record_detail.dart';
 import '../data/providers.dart';
 import '../data/purchase_order_api.dart';
-
-/// Hands a downloaded PDF to Android's share sheet: WhatsApp, email, Drive.
-/// Replaced in tests, which have no share sheet.
-typedef SharePdf = Future<void> Function(File file, String subject);
-
-final sharePdfProvider = Provider<SharePdf>(
-  (ref) => (file, subject) async {
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path, mimeType: 'application/pdf')],
-        subject: subject,
-      ),
-    );
-  },
-);
-
-/// Where a PDF is written before sharing: the app's own cache, which
-/// Android clears when space runs low. Replaced in tests.
-final pdfFolderProvider = Provider<Future<Directory> Function()>(
-  (ref) => getTemporaryDirectory,
-);
 
 /// One purchase order, read from the server: the products and quantities,
 /// sent to the supplier as a PDF. Owners cancel it, which puts its stock
@@ -85,9 +63,11 @@ class _PurchaseOrderScreenState extends ConsumerState<PurchaseOrderScreen> {
 
   Future<void> _share(PurchaseOrder order) => _run(() async {
     final bytes = await ref.read(purchaseOrderApiProvider).pdf(order.id);
-    final folder = await ref.read(pdfFolderProvider)();
-    final file = File('${folder.path}/${order.reference}.pdf');
-    await file.writeAsBytes(bytes, flush: true);
+    final file = await savePdf(
+      ref.read(pdfFolderProvider),
+      '${order.reference}.pdf',
+      bytes,
+    );
     await ref.read(sharePdfProvider)(
       file,
       '${order.reference} · ${order.supplierName}',

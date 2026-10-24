@@ -56,11 +56,12 @@ class ApiClient {
 
   /// GET of a file, such as a PDF: its bytes, or an [ApiException] read
   /// from the envelope the server sends instead on failure.
-  Future<List<int>> getBytes(String path) async {
+  Future<List<int>> getBytes(String path, {Map<String, Object?>? query}) async {
     final Response<List<int>> response;
     try {
       response = await _dio.get<List<int>>(
         path,
+        queryParameters: query,
         options: Options(responseType: ResponseType.bytes),
       );
     } on DioException catch (e) {

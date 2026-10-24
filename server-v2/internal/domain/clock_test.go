@@ -57,3 +57,32 @@ func TestZoneOrDefault_FallsBackToNairobi(t *testing.T) {
 		t.Fatalf("ZoneOrDefault(bad) = %s, want %s", got, DefaultTimeZone)
 	}
 }
+
+// A due date is a calendar day; a record's date may be a moment (from a
+// phone) or a day (from a form). "Due today" is never "due before it was
+// recorded", in any zone, at any hour.
+func TestDueBefore_ComparesDaysInTheShopsZone(t *testing.T) {
+	nairobi, _ := time.LoadLocation("Africa/Nairobi")
+	bogota, _ := time.LoadLocation("America/Bogota") // UTC-5
+	day := func(y int, m time.Month, d int) time.Time { return time.Date(y, m, d, 0, 0, 0, 0, time.UTC) }
+
+	cases := []struct {
+		name string
+		due  time.Time
+		at   time.Time
+		loc  *time.Location
+		want bool
+	}{
+		{"due today, recorded mid-morning", day(2026, 10, 24), time.Date(2026, 10, 24, 10, 15, 0, 0, nairobi), nairobi, false},
+		{"due today, recorded at 01:00 (the day before in UTC)", day(2026, 10, 25), time.Date(2026, 10, 25, 1, 0, 0, 0, nairobi), nairobi, false},
+		{"due today, late evening west of UTC (tomorrow in UTC)", day(2026, 10, 24), time.Date(2026, 10, 24, 21, 0, 0, 0, bogota), bogota, false},
+		{"due yesterday", day(2026, 10, 23), time.Date(2026, 10, 24, 10, 15, 0, 0, nairobi), nairobi, true},
+		{"a day from a form, due that day", day(2026, 10, 24), day(2026, 10, 24), bogota, false},
+		{"a day from a form, due the day before", day(2026, 10, 23), day(2026, 10, 24), nairobi, true},
+	}
+	for _, c := range cases {
+		if got := DueBefore(c.due, c.at, c.loc); got != c.want {
+			t.Errorf("%s: DueBefore = %v, want %v", c.name, got, c.want)
+		}
+	}
+}

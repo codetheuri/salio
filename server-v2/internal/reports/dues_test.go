@@ -201,4 +201,7 @@ func TestPayables_WhatTheShopOwesAndWhenItIsDue(t *testing.T) {
 	if v.Owed.String() != "33000.00" || v.PrepaymentsHeld.String() != "3000.00" {
 		t.Errorf("owed %s, prepayments %s; want 33000.00 and 3000.00 kept apart", v.Owed, v.PrepaymentsHeld)
 	}
+
+	pdf, _, err := reports.NewRepository(f.db).PayablesPDF(f.ctx, v)
+	keepPDF(t, "payables.pdf", pdf, err)
 }

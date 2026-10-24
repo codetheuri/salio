@@ -196,6 +196,26 @@ class StaffMembers extends Table {
   String get tableName => 'staff_members';
 }
 
+/// The last copy of each online report, as the server answered it, so a
+/// report stays readable offline with the time it was read (docs/10, M5).
+/// [key] names the report and its period, e.g. `sales:2026-10-01:2026-10-24`.
+@DataClassName('ReportCacheRow')
+class ReportCache extends Table {
+  TextColumn get key => text()();
+
+  /// The `data` of the server's answer, as JSON.
+  TextColumn get body => text()();
+
+  /// When it was read, by the server's clock.
+  DateTimeColumn get fetchedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {key};
+
+  @override
+  String get tableName => 'report_cache';
+}
+
 /// Small values the sync engine keeps: the pull cursor, the clock offset,
 /// the last successful sync.
 @DataClassName('SyncMetaRow')

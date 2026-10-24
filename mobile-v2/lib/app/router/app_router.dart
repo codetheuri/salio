@@ -6,7 +6,6 @@ import '../../core/session/current_user.dart';
 import '../../core/session/permissions.dart';
 import '../../core/session/session.dart';
 import '../../core/session/session_controller.dart';
-import '../../core/widgets/section_placeholder.dart';
 import '../../features/auth/presentation/join_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/sign_in_screen.dart';
@@ -14,10 +13,14 @@ import '../../features/auth/presentation/splash_screen.dart';
 import '../../features/customers/presentation/credit_limit_screen.dart';
 import '../../features/customers/presentation/customer_form_screen.dart';
 import '../../features/customers/presentation/customers_screen.dart';
+import '../../features/home/presentation/home_screen.dart';
 import '../../features/ledger/presentation/entry_screen.dart';
 import '../../features/ledger/presentation/record_debt_screen.dart';
 import '../../features/ledger/presentation/record_payment_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
+import '../../features/reports/data/report_repository.dart';
+import '../../features/reports/presentation/report_screen.dart';
+import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/sales/presentation/new_sale_screen.dart';
 import '../../features/sales/presentation/sales_screen.dart';
 import '../../features/stock/presentation/place_order_screen.dart';
@@ -133,8 +136,10 @@ const _actions = {
     'debt': Permission.transactionsCreate,
     'payment': Permission.transactionsCreate,
     'sale': Permission.salesCreate,
+    'statement': Permission.reportsRead,
     'new': Permission.customersCreate,
   },
+  AppSection.reports: {'payables': Permission.suppliersRead},
   AppSection.sales: {'new': Permission.salesCreate},
   AppSection.stock: {
     'new': Permission.stockRequest,
@@ -186,6 +191,13 @@ GoRoute _sectionRoute(AppSection section) => switch (section) {
                 RecordPaymentScreen(customerId: state.pathParameters['id']!),
           ),
           GoRoute(
+            path: 'statement',
+            builder: (context, state) => ReportScreen(
+              kind: ReportKind.statement,
+              customerId: state.pathParameters['id'],
+            ),
+          ),
+          GoRoute(
             path: 'sale',
             builder: (context, state) =>
                 NewSaleScreen(customerId: state.pathParameters['id']),
@@ -200,6 +212,10 @@ GoRoute _sectionRoute(AppSection section) => switch (section) {
         ],
       ),
     ],
+  ),
+  AppSection.home => GoRoute(
+    path: section.path,
+    builder: (context, state) => const HomeScreen(),
   ),
   AppSection.sales => GoRoute(
     path: section.path,
@@ -291,8 +307,16 @@ GoRoute _sectionRoute(AppSection section) => switch (section) {
       ),
     ],
   ),
-  _ => GoRoute(
+  AppSection.reports => GoRoute(
     path: section.path,
-    builder: (context, state) => SectionPlaceholder(section: section),
+    builder: (context, state) => const ReportsScreen(),
+    routes: [
+      for (final kind in ReportKind.values)
+        if (kind != ReportKind.statement)
+          GoRoute(
+            path: kind.name,
+            builder: (context, state) => ReportScreen(kind: kind),
+          ),
+    ],
   ),
 };

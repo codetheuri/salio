@@ -16,11 +16,14 @@ import 'package:salio/app/router/app_router.dart';
 import 'package:salio/app/shell/app_sections.dart';
 import 'package:salio/core/database/app_database.dart';
 import 'package:salio/core/database/database_provider.dart';
+import 'package:salio/core/files/pdf_files.dart';
 import 'package:salio/core/network/api_provider.dart';
 import 'package:salio/core/session/current_user.dart';
 import 'package:salio/core/session/permissions.dart';
 import 'package:salio/core/session/session_controller.dart';
 import 'package:salio/core/sync/sync_controller.dart';
+import 'package:salio/features/home/presentation/reminder.dart';
+import 'package:salio/features/reports/data/providers.dart';
 import 'package:salio/features/stock/data/providers.dart';
 
 import '../support/fake_app_update.dart';
@@ -47,7 +50,12 @@ Map<Role, List<String>> get routesByRole => {
       '/stock/new',
       '/stock/$longNoteId',
       '/stock/orders/$longOrderId',
+      '/reports/ageing',
+      '/reports/sales',
+      '/reports/collections',
+      '/customers/$longCustomerId/statement',
       if (role == Role.owner) ...[
+        '/reports/payables',
         '/stock/order',
         '/suppliers/new',
         '/suppliers/$longSupplierId',
@@ -143,9 +151,23 @@ class AppUnderTest {
   final ProviderContainer container;
   final AppDatabase db;
   final List<String> errors = [];
+
+  /// What the app handed to other apps: links (the dialer, WhatsApp, SMS),
+  /// and PDFs opened or shared. Tests have none of those apps.
+  final List<Uri> launched;
+  final List<File> openedPdfs;
+  final List<File> sharedPdfs;
   final FlutterExceptionHandler? _previousHandler;
 
-  AppUnderTest._(this.tester, this.container, this.db, this._previousHandler);
+  AppUnderTest._(
+    this.tester,
+    this.container,
+    this.db,
+    this._previousHandler, {
+    required this.launched,
+    required this.openedPdfs,
+    required this.sharedPdfs,
+  });
 
   /// The app as [role] sees it, or signed out when [role] is null, on the
   /// seeded database and with no network.
@@ -156,6 +178,7 @@ class AppUnderTest {
     Locale locale = const Locale('en'),
     FakeAppUpdateService? updates,
     FakePurchaseOrderApi? orders,
+    FakeReportRepository Function(AppDatabase db)? reports,
     List<Override> overrides = const [],
   }) async {
     PackageInfo.setMockInitialValues(
@@ -166,6 +189,9 @@ class AppUnderTest {
       buildSignature: '',
     );
     final db = await seededDatabase();
+    final launched = <Uri>[];
+    final opened = <File>[];
+    final shared = <File>[];
     final container = ProviderContainer(
       overrides: [
         sessionProvider.overrideWith(
@@ -178,6 +204,24 @@ class AppUnderTest {
         purchaseOrderApiProvider.overrideWithValue(
           orders ?? FakePurchaseOrderApi(),
         ),
+        // Reports too: served from fixtures, kept in the real cache table.
+        reportRepositoryProvider.overrideWithValue(
+          (reports ?? FakeReportRepository.new)(db),
+        ),
+        // No dialer, WhatsApp, PDF viewer or share sheet in tests: what
+        // the app hands them is recorded instead.
+        launchExternalProvider.overrideWithValue((uri) async {
+          launched.add(uri);
+          return true;
+        }),
+        openPdfProvider.overrideWithValue((file) async {
+          opened.add(file);
+          return true;
+        }),
+        sharePdfProvider.overrideWithValue((file, _) async => shared.add(file)),
+        pdfFolderProvider.overrideWithValue(
+          () => Directory.systemTemp.createTemp('salio-pdf-'),
+        ),
         // Never the real update server or Android's installer.
         ...fakeUpdateOverrides(updates),
         ...overrides,
@@ -185,7 +229,15 @@ class AppUnderTest {
     );
     container.read(appLocaleProvider.notifier).set(locale);
 
-    final app = AppUnderTest._(tester, container, db, FlutterError.onError);
+    final app = AppUnderTest._(
+      tester,
+      container,
+      db,
+      FlutterError.onError,
+      launched: launched,
+      openedPdfs: opened,
+      sharedPdfs: shared,
+    );
     FlutterError.onError = (details) {
       // The error's first line plus the widget's source location.
       final where =

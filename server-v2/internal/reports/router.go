@@ -64,6 +64,14 @@ func RegisterRoutes(api huma.API, db *gorm.DB, log logger.Logger) {
 	}, rbac.PermSuppliersRead), handler.Payables)
 
 	huma.Register(api, guard.Protected(huma.Operation{
+		OperationID: "reports-payables-pdf",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/reports/payables/pdf",
+		Summary:     "What the shop owes its suppliers, as a PDF (owner only)",
+		Tags:        []string{"Reports"},
+	}, rbac.PermSuppliersRead), handler.PayablesPDF)
+
+	huma.Register(api, guard.Protected(huma.Operation{
 		OperationID: "reports-ageing-pdf",
 		Method:      http.MethodGet,
 		Path:        "/api/v1/reports/ageing/pdf",
