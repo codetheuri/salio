@@ -3,8 +3,6 @@
 // id) and suppliers, and who may do what. How each screen fits every size
 // is the layout tests' job.
 
-import 'dart:io';
-
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +12,6 @@ import 'package:salio/core/network/api_exception.dart';
 import 'package:salio/core/session/permissions.dart';
 import 'package:salio/features/sales/domain/sale_debt.dart';
 import 'package:salio/features/sales/presentation/customer_picker.dart';
-import 'package:salio/features/stock/presentation/purchase_order_screen.dart';
 
 import 'layout/harness.dart';
 import 'support/fixtures.dart';
@@ -45,7 +42,6 @@ void main() {
     Future<void> Function(AppUnderTest app) body, {
     Role? role = Role.owner,
     FakePurchaseOrderApi? orders,
-    List<File>? shared,
   }) async {
     addTearDown(() => resetView(tester));
     setView(tester, const Size(360, 1400));
@@ -54,12 +50,6 @@ void main() {
       role: role,
       route: route,
       orders: orders,
-      overrides: [
-        sharePdfProvider.overrideWithValue(
-          (file, _) async => shared?.add(file),
-        ),
-        pdfFolderProvider.overrideWithValue(() async => Directory.systemTemp),
-      ],
     );
     try {
       await settle(tester, real: true);
@@ -290,27 +280,22 @@ void main() {
     tester,
   ) async {
     final orders = FakePurchaseOrderApi();
-    final shared = <File>[];
-    await flow(
-      tester,
-      '/stock/orders/$longOrderId',
-      orders: orders,
-      shared: shared,
-      (app) async {
-        await tester.tap(find.text('Share PDF'));
-        // The PDF is written to a real file, which takes real time.
-        for (var i = 0; i < 20 && shared.isEmpty; i++) {
-          await settle(tester, real: true);
-        }
-        expect(shared.single.path, endsWith('PO-0107.pdf'));
-        expect(shared.single.readAsStringSync(), startsWith('%PDF'));
+    await flow(tester, '/stock/orders/$longOrderId', orders: orders, (
+      app,
+    ) async {
+      await tester.tap(find.text('Share PDF'));
+      // The PDF is written to a real file, which takes real time.
+      for (var i = 0; i < 20 && app.sharedPdfs.isEmpty; i++) {
+        await settle(tester, real: true);
+      }
+      expect(app.sharedPdfs.single.path, endsWith('PO-0107.pdf'));
+      expect(app.sharedPdfs.single.readAsStringSync(), startsWith('%PDF'));
 
-        await tapText(tester, 'Cancel order');
-        await tester.tap(find.text('Cancel order').last);
-        await settle(tester);
-        expect(orders.cancelled, [longOrderId]);
-      },
-    );
+      await tapText(tester, 'Cancel order');
+      await tester.tap(find.text('Cancel order').last);
+      await settle(tester);
+      expect(orders.cancelled, [longOrderId]);
+    });
   });
 
   testWidgets('offline, the orders tab says it needs a connection', (

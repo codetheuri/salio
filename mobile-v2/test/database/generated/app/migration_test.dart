@@ -12,6 +12,7 @@ import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
+import 'generated/schema_v4.dart' as v4;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -159,6 +160,50 @@ void main() {
           v3.PushBatchesData.fromJson(batch.toJson()),
         ]);
         expect(await db.select(db.staffMembers).get(), isEmpty);
+      },
+    );
+  });
+
+  test('3 to 4 keeps unsent records and the team list', () async {
+    const at = '2026-10-24T08:00:00.000Z';
+    const entry = v3.LedgerEntriesData(
+      id: 'e1',
+      createdAt: at,
+      updatedAt: at,
+      isDeleted: 0,
+      syncState: 1,
+      localVersion: 0,
+      customerId: 'c1',
+      userId: 'u1',
+      type: 'debt',
+      amountCents: 150000,
+      description: 'Sugar',
+      transactionDate: at,
+    );
+    const member = v3.StaffMembersData(
+      id: 'u2',
+      name: 'Juma',
+      role: 'staff',
+      isActive: 1,
+    );
+    await verifier.testWithDataIntegrity(
+      oldVersion: 3,
+      newVersion: 4,
+      createOld: v3.DatabaseAtV3.new,
+      createNew: v4.DatabaseAtV4.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batchOf, old) {
+        batchOf.insert(old.ledgerEntries, entry);
+        batchOf.insert(old.staffMembers, member);
+      },
+      validateItems: (db) async {
+        expect(await db.select(db.ledgerEntries).get(), [
+          v4.LedgerEntriesData.fromJson(entry.toJson()),
+        ]);
+        expect(await db.select(db.staffMembers).get(), [
+          v4.StaffMembersData.fromJson(member.toJson()),
+        ]);
+        expect(await db.select(db.reportCache).get(), isEmpty);
       },
     );
   });

@@ -132,7 +132,11 @@ class CustomerRepository {
     dues: dues,
   );
 
-  Future<Map<String, Dues>> _dues(DateTime today, {String? customerId}) async {
+  Future<Map<String, Dues>> _dues(
+    DateTime today, {
+    String? customerId,
+    int withinDays = 7,
+  }) async {
     final rows = await db
         .customSelect(
           _dueLines.replaceFirst(
@@ -152,17 +156,24 @@ class CustomerRepository {
         ),
       );
     }
-    return {for (final e in lines.entries) e.key: Dues.of(e.value, today)};
+    return {
+      for (final e in lines.entries)
+        e.key: Dues.of(e.value, today, withinDays: withinDays),
+    };
   }
 
   /// Live customers with their balances and dues, by name, that match
   /// [search] (name, or phone digits in any form) and [filter]. Updates
   /// itself when anything changes, including a sync bringing in another
   /// phone's entry.
+  ///
+  /// [dueWithinDays] is the "due soon" window of each customer's dues; 0
+  /// makes it "due today", for the Today list.
   Stream<List<CustomerBalance>> watchList({
     required DateTime today,
     String search = '',
     CustomerFilter filter = CustomerFilter.all,
+    int dueWithinDays = 7,
   }) {
     final term = search.trim();
     final digits = Phone.searchDigits(term);
@@ -184,7 +195,7 @@ class CustomerRepository {
         )
         .watch()
         .asyncMap((rows) async {
-          final dues = await _dues(today);
+          final dues = await _dues(today, withinDays: dueWithinDays);
           return [
             for (final row in rows)
               _read(row, dues[row.read<String>('id')] ?? Dues.none),

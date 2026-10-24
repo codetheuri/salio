@@ -5199,6 +5199,71 @@
         ]
       }
     },
+    "/api/v1/reports/payables/pdf": {
+      "get": {
+        "operationId": "reports-payables-pdf",
+        "parameters": [
+          {
+            "description": "Include debts falling due within this many days",
+            "explode": false,
+            "in": "query",
+            "name": "within_days",
+            "schema": {
+              "default": 7,
+              "description": "Include debts falling due within this many days",
+              "format": "int64",
+              "maximum": 90,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "contentEncoding": "base64",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "OK",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "What the shop owes its suppliers, as a PDF (owner only)",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
     "/api/v1/reports/sales": {
       "get": {
         "operationId": "reports-sales",
