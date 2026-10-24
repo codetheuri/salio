@@ -16,6 +16,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"salio/server-v2/internal/domain"
+	"salio/server-v2/internal/phone"
 	"salio/server-v2/internal/rbac"
 )
 
@@ -50,6 +51,7 @@ func NewService(repo *Repository, jwtSecret string, tokenTTL time.Duration) *Ser
 // Common failures, distinguished so handlers can map them to status codes.
 var (
 	ErrPhoneTaken       = errors.New("that phone number is already registered")
+	ErrInvalidPhone     = phone.ErrInvalid
 	ErrInvalidLogin     = errors.New("incorrect phone number or password")
 	ErrAccountInactive  = errors.New("this account has been deactivated")
 	ErrInviteUnusable   = errors.New("that invite code is invalid, already used, or expired")
@@ -69,18 +71,16 @@ var (
 type Authenticated struct {
 	Token string
 	User  domain.User
+
+	// Permissions are what the user may do, as the routes check it (B5).
+	Permissions []string
 }
 
 // Register creates a business and its first owner.
 func (s *Service) Register(ctx context.Context, in RegisterBusinessInput) (*Authenticated, error) {
-	phone := normalisePhone(in.Body.Phone)
-
-	taken, err := s.repo.PhoneTaken(ctx, phone)
+	phone, err := s.freePhone(ctx, in.Body.Phone)
 	if err != nil {
-		return nil, fmt.Errorf("checking phone: %w", err)
-	}
-	if taken {
-		return nil, ErrPhoneTaken
+		return nil, err
 	}
 
 	zone := domain.DefaultTimeZone
@@ -111,12 +111,12 @@ func (s *Service) Register(ctx context.Context, in RegisterBusinessInput) (*Auth
 		return nil, fmt.Errorf("registering business: %w", err)
 	}
 
-	return s.issue(*u)
+	return s.issue(ctx, *u)
 }
 
 // Login exchanges a phone and password for a token.
 func (s *Service) Login(ctx context.Context, in LoginInput) (*Authenticated, error) {
-	u, err := s.repo.FindUserByPhone(ctx, normalisePhone(in.Body.Phone))
+	u, err := s.findByPhone(ctx, in.Body.Phone)
 	if err != nil {
 		if errors.Is(err, ErrNotFound) {
 			// Hash anyway. Returning immediately for an unknown phone makes the
@@ -138,19 +138,14 @@ func (s *Service) Login(ctx context.Context, in LoginInput) (*Authenticated, err
 		return nil, ErrAccountInactive
 	}
 
-	return s.issue(*u)
+	return s.issue(ctx, *u)
 }
 
 // Join adds a member of staff to a business using an invite code.
 func (s *Service) Join(ctx context.Context, in JoinBusinessInput) (*Authenticated, error) {
-	phone := normalisePhone(in.Body.Phone)
-
-	taken, err := s.repo.PhoneTaken(ctx, phone)
+	phone, err := s.freePhone(ctx, in.Body.Phone)
 	if err != nil {
-		return nil, fmt.Errorf("checking phone: %w", err)
-	}
-	if taken {
-		return nil, ErrPhoneTaken
+		return nil, err
 	}
 
 	hash, err := hashPassword(in.Body.Password)
@@ -170,7 +165,7 @@ func (s *Service) Join(ctx context.Context, in JoinBusinessInput) (*Authenticate
 		return nil, fmt.Errorf("joining business: %w", err)
 	}
 
-	return s.issue(*u)
+	return s.issue(ctx, *u)
 }
 
 // CreateInvite issues a code an owner can pass to a new member of staff.
@@ -261,7 +256,7 @@ func (s *Service) ChangePassword(ctx context.Context, userID uuid.UUID, current,
 		return nil, err
 	}
 	u.MustChangePassword = false
-	return s.issue(*u)
+	return s.issue(ctx, *u)
 }
 
 // ResetStaffPassword gives a staff member a temporary password, ends their
@@ -361,7 +356,7 @@ func (s *Service) DeactivateStaff(ctx context.Context, actorID, targetID uuid.UU
 // reads it from here into the request context, and the GORM callbacks read it
 // from there. It comes from the database record, never from anything the caller
 // sent.
-func (s *Service) issue(u domain.User) (*Authenticated, error) {
+func (s *Service) issue(ctx context.Context, u domain.User) (*Authenticated, error) {
 	now := time.Now()
 	claims := middleware.Claims{
 		UserID:   u.ID,
@@ -378,7 +373,16 @@ func (s *Service) issue(u domain.User) (*Authenticated, error) {
 	if err != nil {
 		return nil, fmt.Errorf("signing token: %w", err)
 	}
-	return &Authenticated{Token: signed, User: u}, nil
+	permissions, err := s.repo.PermissionsOf(ctx, u.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &Authenticated{Token: signed, User: u, Permissions: permissions}, nil
+}
+
+// Permissions lists what a user may do (B5).
+func (s *Service) Permissions(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	return s.repo.PermissionsOf(ctx, userID)
 }
 
 func hashPassword(plain string) (string, error) {
@@ -392,11 +396,44 @@ func hashPassword(plain string) (string, error) {
 	return string(hash), nil
 }
 
-// normalisePhone trims and strips separators so "0712 345 678" and "0712345678"
-// are the same account. It deliberately does not rewrite country codes: guessing
-// that +254712345678 and 0712345678 are one person is a product decision, and
-// getting it wrong merges two shops' logins.
-func normalisePhone(p string) string {
+// freePhone returns a new login's phone in its one stored form, or why it
+// cannot be used.
+func (s *Service) freePhone(ctx context.Context, raw string) (string, error) {
+	canonical, err := phone.Normalize(raw)
+	if err != nil {
+		return "", ErrInvalidPhone
+	}
+	// Also in the old form: a login the conversion had to leave alone
+	// (migration 00010) still holds its number.
+	for _, p := range []string{canonical, legacyForm(raw)} {
+		taken, err := s.repo.PhoneTaken(ctx, p)
+		if err != nil {
+			return "", fmt.Errorf("checking phone: %w", err)
+		}
+		if taken {
+			return "", ErrPhoneTaken
+		}
+	}
+	return canonical, nil
+}
+
+// findByPhone finds a login by its number however it is typed: 0712…,
+// +254712… and 712… are one account (B15).
+func (s *Service) findByPhone(ctx context.Context, raw string) (*domain.User, error) {
+	if canonical, err := phone.Normalize(raw); err == nil {
+		u, err := s.repo.FindUserByPhone(ctx, canonical)
+		if !errors.Is(err, ErrNotFound) {
+			return u, err
+		}
+	}
+	// A login the conversion left in its old form, because another account
+	// had the same number in a different form.
+	return s.repo.FindUserByPhone(ctx, legacyForm(raw))
+}
+
+// legacyForm is how numbers were stored before B15: trimmed, without spaces,
+// dashes or brackets, and otherwise as typed.
+func legacyForm(p string) string {
 	var b strings.Builder
 	for _, r := range strings.TrimSpace(p) {
 		if r == ' ' || r == '-' || r == '(' || r == ')' {

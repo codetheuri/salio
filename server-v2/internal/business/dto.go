@@ -25,6 +25,12 @@ type UserView struct {
 	// refuses everything else meanwhile (internal/session).
 	MustChangePassword bool      `json:"must_change_password"`
 	CreatedAt          time.Time `json:"created_at"`
+
+	// Permissions are what this user may do, as the routes check it (B5).
+	// Sent at sign-in and by /users/me; the app shows and hides actions by
+	// them, so a role can change without a new app version. Absent from the
+	// staff list.
+	Permissions []string `json:"permissions,omitempty"`
 }
 
 func viewUser(u domain.User) UserView {

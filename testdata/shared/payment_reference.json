@@ -1,0 +1,18 @@
+{
+  "_comment": "The reference on a payment: an M-Pesa code is 10 letters and digits, upper-cased; a bank reference is up to 30 characters; cash has none; blank is none. payment.Reference in server-v2; PaymentReference.check in mobile-v2.",
+  "valid": [
+    { "method": "mpesa", "text": "SJK4X7Y2PQ", "stored": "SJK4X7Y2PQ" },
+    { "method": "mpesa", "text": " sjk4x7y2pq ", "stored": "SJK4X7Y2PQ" },
+    { "method": "mpesa", "text": "", "stored": null },
+    { "method": "bank", "text": "TT-2026/10/24 #55", "stored": "TT-2026/10/24 #55" },
+    { "method": "bank", "text": "  ", "stored": null },
+    { "method": "cash", "text": "", "stored": null }
+  ],
+  "invalid": [
+    { "method": "mpesa", "text": "SJK4X7Y2P" },
+    { "method": "mpesa", "text": "SJK4X7Y2PQR" },
+    { "method": "mpesa", "text": "SJK4X7-2PQ" },
+    { "method": "bank", "text": "1234567890123456789012345678901" },
+    { "method": "cash", "text": "receipt 5" }
+  ]
+}

@@ -449,7 +449,7 @@ func TestPush_TwoDevicesEditingDifferentFieldsBothKeepTheirEdit(t *testing.T) {
 	cid := f.customer(t, "Mama Mboga")
 	base := f.loadCustomer(t, cid)
 
-	phone := "0722111222"
+	phone := "+254722111222"
 	notes := "Pays on Fridays"
 
 	// Device A fixes the phone number.
@@ -477,7 +477,7 @@ func TestPush_AStaleFieldWriteIsRejectedAndReported(t *testing.T) {
 	f := newFixture(t)
 	cid := f.customer(t, "Mama Mboga")
 
-	recent := "0722999999"
+	recent := "+254722999999"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &recent, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC(), ChangedFields: []string{"phone"},
@@ -485,7 +485,7 @@ func TestPush_AStaleFieldWriteIsRejectedAndReported(t *testing.T) {
 
 	// A device that has been offline for an hour pushes an older edit to the
 	// same field. It must lose, and must be told that it lost.
-	stale := "0700000000"
+	stale := "+254700000000"
 	view := f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &stale, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
@@ -511,7 +511,7 @@ func TestPush_AnEditMadeThroughTheAPIBeatsAnOlderOfflineEdit(t *testing.T) {
 	// The API path stamps field versions of its own. Without that, an edit made
 	// in the app while online would leave the versions behind the data, and a
 	// stale push would be judged newer than it and overwrite it.
-	apiPhone := "0733444555"
+	apiPhone := "+254733444555"
 	stamp, err := domain.StampFieldVersions([]string{"phone"}, time.Now().UTC())
 	if err != nil {
 		t.Fatalf("stamping: %v", err)
@@ -525,7 +525,7 @@ func TestPush_AnEditMadeThroughTheAPIBeatsAnOlderOfflineEdit(t *testing.T) {
 		t.Fatalf("api edit: %v", err)
 	}
 
-	old := "0700000000"
+	old := "+254700000000"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &old, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
@@ -542,7 +542,7 @@ func TestPush_WithoutChangedFieldsFallsBackToWholeRecord(t *testing.T) {
 
 	// An app version that predates per-field merge sends the whole row and no
 	// declaration. It must keep working, with exactly the behaviour it had.
-	phone := "0722111222"
+	phone := "+254722111222"
 	view := f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Renamed", Phone: &phone, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC(),
@@ -588,13 +588,13 @@ func TestPush_ClampsATimestampFromTheFuture(t *testing.T) {
 
 	// A cheap Android with a clock set two days ahead. Left unbounded, its edits
 	// would beat every other device's for the next two days.
-	fast := "0700000001"
+	fast := "+254700000001"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &fast, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(48 * time.Hour), ChangedFields: []string{"phone"},
 	}}, nil)
 
-	correct := "0722333444"
+	correct := "+254722333444"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &correct, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(time.Second), ChangedFields: []string{"phone"},
@@ -807,13 +807,13 @@ func TestPush_AConflictCarriesTheServersCurrentCopy(t *testing.T) {
 	f := newFixture(t)
 	cid := f.customer(t, "Mama Mboga")
 
-	recent := "0722999999"
+	recent := "+254722999999"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &recent, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC(), ChangedFields: []string{"phone"},
 	}}, nil)
 
-	stale := "0700000000"
+	stale := "+254700000000"
 	view := f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &stale, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
@@ -869,21 +869,21 @@ func TestPush_AReplayCarriesTodaysCopyNotTheStoredOne(t *testing.T) {
 	f := newFixture(t)
 	cid := f.customer(t, "Mama Mboga")
 
-	recent := "0722999999"
+	recent := "+254722999999"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &recent, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC(), ChangedFields: []string{"phone"},
 	}}, nil)
 
 	op := id.New()
-	stale := "0700000000"
+	stale := "+254700000000"
 	staleEdit := []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &stale, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
 	}}
 	f.pushAs(t, op, staleEdit, nil)
 
-	newest := "0733111111"
+	newest := "+254733111111"
 	f.push(t, []syncengine.SyncCustomer{{
 		ID: cid, Name: "Mama Mboga", Phone: &newest, CreatedBy: f.userID,
 		UpdatedAt: time.Now().UTC().Add(time.Second), ChangedFields: []string{"phone"},

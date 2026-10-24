@@ -81,6 +81,23 @@ func (r *Repository) CreateBusinessWithOwner(
 	})
 }
 
+// PermissionsOf lists a user's permissions, sorted, read from the same tables
+// the routes' guard checks (Tusk's authz), so the app is told exactly what
+// the server will allow. The authz tables carry no tenant, so this works
+// before sign-in has one.
+func (r *Repository) PermissionsOf(ctx context.Context, userID uuid.UUID) ([]string, error) {
+	names := []string{}
+	err := r.db.WithContext(ctx).Table("user_roles").
+		Joins("JOIN role_permissions ON role_permissions.role_id = user_roles.role_id").
+		Where("user_roles.user_id = ?", userID).
+		Distinct().Order("role_permissions.permission_name").
+		Pluck("role_permissions.permission_name", &names).Error
+	if err != nil {
+		return nil, fmt.Errorf("reading permissions: %w", err)
+	}
+	return names, nil
+}
+
 // FindUserByPhone locates a user for sign-in.
 func (r *Repository) FindUserByPhone(ctx context.Context, phone string) (*domain.User, error) {
 	var u domain.User

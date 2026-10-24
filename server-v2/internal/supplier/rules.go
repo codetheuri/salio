@@ -17,6 +17,7 @@ import (
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/money"
 	"salio/server-v2/internal/payment"
+	"salio/server-v2/internal/phone"
 )
 
 // The rules every supplier write obeys, whichever path it arrives by. Plain
@@ -51,7 +52,12 @@ const maxDescriptionLength = 500
 // ValidateSupplier checks a supplier and trims its text.
 func ValidateSupplier(s *domain.Supplier) error {
 	s.Name = strings.TrimSpace(s.Name)
-	s.Phone, s.Notes = blankToNil(s.Phone), blankToNil(s.Notes)
+	s.Notes = blankToNil(s.Notes)
+	number, err := phone.Optional(s.Phone)
+	if err != nil {
+		return err
+	}
+	s.Phone = number
 	switch {
 	case s.Name == "":
 		return ErrNameRequired
@@ -108,6 +114,7 @@ func IsRuleError(err error) bool {
 		ErrNameRequired, ErrNameTooLong, ErrInvalidType, ErrNonPositiveAmount,
 		ErrDescriptionRequired, ErrDescriptionTooLong, ErrInvalidDate, ErrMethodOnBill,
 		ErrDueDateOnPayment, ErrDueBeforeDate, ErrOrderOnPayment, ErrOrderNotFound, ErrOrderCancelled,
+		phone.ErrInvalid,
 	} {
 		if errors.Is(err, rule) {
 			return true

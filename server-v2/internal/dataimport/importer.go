@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/codetheuri/tusk/v2/pkg/id"
@@ -12,6 +13,7 @@ import (
 
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/money"
+	"salio/server-v2/internal/phone"
 	"salio/server-v2/internal/rbac"
 )
 
@@ -40,6 +42,12 @@ type Report struct {
 	Transactions int
 	SuperAdmins  int
 
+	// PhonesKept counts numbers imported as v1 had them, not in the one
+	// stored form (B15): unreadable as a phone number, or the same number as
+	// another login or another customer of the shop in a different form.
+	// They are for support to look at (docs/09), not for the import to merge.
+	PhonesKept int
+
 	// Sealed is the change_seq every device's cursor is now measured against.
 	// See Importer.seal.
 	Sealed int64
@@ -48,6 +56,10 @@ type Report struct {
 // Importer writes into the v2 schema.
 type Importer struct {
 	db *gorm.DB
+
+	// Logins already given each number in this run: phones are unique across
+	// every shop.
+	logins map[string]bool
 }
 
 func NewImporter(db *gorm.DB) *Importer { return &Importer{db: db} }
@@ -85,6 +97,7 @@ func (i *Importer) Run(ctx context.Context, src *Source, opts Options) (*Report,
 	if now.IsZero() {
 		now = time.Now().UTC()
 	}
+	i.logins = map[string]bool{}
 
 	if !opts.Force {
 		var existing int64
@@ -144,6 +157,18 @@ func (i *Importer) Run(ctx context.Context, src *Source, opts Options) (*Report,
 	return report, nil
 }
 
+// canonicalOrKept returns a number's stored form (B15) unless it is
+// unreadable or already taken in seen, when it is kept as v1 had it.
+func canonicalOrKept(raw string, seen map[string]bool, report *Report) string {
+	number, err := phone.Normalize(raw)
+	if err != nil || seen[number] {
+		report.PhonesKept++
+		return raw
+	}
+	seen[number] = true
+	return number
+}
+
 func (i *Importer) importBusiness(ctx context.Context, src *Source, b V1Business, now time.Time, report *Report) error {
 	users, err := src.Users(ctx, b.ID)
 	if err != nil {
@@ -183,7 +208,7 @@ func (i *Importer) importBusiness(ctx context.Context, src *Source, b V1Business
 			}
 
 			userRow := domain.User{
-				ID: u.ID, BusinessID: b.ID, Name: u.Name, Phone: u.Phone,
+				ID: u.ID, BusinessID: b.ID, Name: u.Name, Phone: canonicalOrKept(u.Phone, i.logins, report),
 				PasswordHash: u.PasswordHash, Role: role, IsActive: u.IsActive,
 				CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt,
 			}
@@ -228,9 +253,15 @@ func (i *Importer) importBusiness(ctx context.Context, src *Source, b V1Business
 			report.Invites++
 		}
 
+		numbers := map[string]bool{} // a customer's number is unique within the shop
 		for _, c := range customers {
+			number := c.Phone
+			if number != nil && strings.TrimSpace(*number) != "" {
+				kept := canonicalOrKept(*number, numbers, report)
+				number = &kept
+			}
 			custRow := domain.Customer{
-				ID: c.ID, BusinessID: b.ID, Name: c.Name, Phone: c.Phone, Notes: c.Notes,
+				ID: c.ID, BusinessID: b.ID, Name: c.Name, Phone: number, Notes: c.Notes,
 				CreatedBy: c.CreatedBy, CreatedAt: c.CreatedAt, UpdatedAt: c.UpdatedAt,
 				IsDeleted: c.IsDeleted,
 			}

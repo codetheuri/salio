@@ -16,6 +16,7 @@ import (
 	"salio/server-v2/internal/domain"
 	"salio/server-v2/internal/ledger"
 	"salio/server-v2/internal/money"
+	"salio/server-v2/internal/phone"
 	"salio/server-v2/internal/rbac"
 	"salio/server-v2/internal/sales"
 	"salio/server-v2/internal/stock"
@@ -235,6 +236,21 @@ func (p *push) applyCustomers(incoming []SyncCustomer) error {
 
 	for _, c := range incoming {
 		prior, known := existing[c.ID]
+
+		// One stored form for every number (B15), checked only when this
+		// push sets the phone: an edit to the notes must not be refused over
+		// a number stored in an older form.
+		if c.Phone != nil && (!known || setsField(c, "phone")) {
+			number, err := phone.Optional(c.Phone)
+			if err != nil {
+				p.conflict("customers", c.ID, "phone", ReasonInvalid, err.Error())
+				if !known {
+					continue
+				}
+				number = prior.Phone // the other fields still apply
+			}
+			c.Phone = number
+		}
 
 		if !known {
 			if ok, err := p.can(rbac.PermCustomersCreate); err != nil {
@@ -683,6 +699,12 @@ func stockRequestChanged(in SyncStockRequest, prior domain.StockRequest) bool {
 }
 
 // --- shared ---
+
+// setsField reports whether a customer push changes a field: named in
+// changed_fields, or a whole-record push, which changes them all.
+func setsField(c SyncCustomer, field string) bool {
+	return len(c.ChangedFields) == 0 || slices.Contains(c.ChangedFields, field)
+}
 
 // validateCustomer checks what the schema deliberately does not.
 func validateCustomer(c SyncCustomer) (reason, field, detail string) {

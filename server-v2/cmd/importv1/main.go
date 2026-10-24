@@ -119,6 +119,10 @@ func main() {
 		fmt.Printf("imported %d businesses, %d users, %d live invites, %d customers, %d transactions, %d super admins\n",
 			report.Businesses, report.Users, report.Invites, report.Customers,
 			report.Transactions, report.SuperAdmins)
+		if report.PhonesKept > 0 {
+			fmt.Printf("%d phone numbers kept as v1 had them (unreadable, or one number in two forms); "+
+				"docs/09 lists the query that finds them\n", report.PhonesKept)
+		}
 		fmt.Printf("cutover horizon set to %d — every device's existing cursor is below it, "+
 			"so each resyncs once on its first pull\n", report.Sealed)
 	}
