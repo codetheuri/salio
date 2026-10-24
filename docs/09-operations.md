@@ -145,13 +145,39 @@ All three are public, because an app has to update before it can sign in.
 
 **Staged rollout.** `rollout_percent` in `latest.json` limits the in-app offer to that share of phones. Widen it with `mobile-v2/scripts/set-rollout.sh 50`. `min_build` reaches every phone; below it, phones stop syncing until they update, but keep working.
 
-**Deploy server-v2 before the app that needs it.** Since M2 the app reads the server's copy of each refused record from a push answer (`current`, B2). A server without it still works with that app: refused records are then kept as the phone had them until they next change. A server from before B14 also refuses any push field it does not know, so an app that sends a new field fails every sync until the server has it. The production server needs the M2 server changes before the first M2 build goes out.
+**Deploy server-v2 before the app that needs it.** The M3 app reads each user's permissions from sign-in and `/users/me` (B5); a server without them leaves the app on its built-in role table, which matches today's roles. Since M2 the app reads the server's copy of each refused record from a push answer (`current`, B2). A server without it still works with that app: refused records are then kept as the phone had them until they next change. A server from before B14 also refuses any push field it does not know, so an app that sends a new field fails every sync until the server has it. The production server needs the M2 server changes before the first M2 build goes out.
 
 **Long downloads.** With Tusk v2.0.0, the request logger stops the download handler from extending the 60 s write timeout, so a download is cut every minute. The app resumes it by itself, so it only takes longer. Tusk v2.0.1 fixes it (§6).
 
 ### Migrations
 
 Each schema change is a new file in `server-v2/database/migrations/`. In production, the `migrate` step applies pending files as the owner on every `up`. Locally, `make migrate-up` does the same. Never edit a migration that has already run anywhere; add a new one.
+
+**Phone numbers in one form (00010, B15).** Every phone number is stored as E.164 (`+254712345678`), read as Kenyan unless it has a country code. Before this, `0712 345 678` and `+254712345678` were two customers in one shop and two different logins. One rule does the conversion, in three places held to the same test cases (`testdata/shared/phone.json`):
+- `internal/phone` for REST, sync and the v1 import;
+- the app;
+- migration 00010's SQL function `salio_canonical_phone`, which converts the numbers already stored.
+
+What the migration does on deploy:
+- It converts logins, customers and suppliers.
+- Where two records turn out to hold one number, it leaves **both** as they were. Merging two ledgers or two logins is a person's decision. Those logins still sign in, under the number exactly as it was stored.
+- Converted customers reach every phone on its next pull.
+- `importv1` follows the same rule, and prints how many numbers it kept as v1 had them.
+
+To find what is left, run as the database admin, because row-level security hides other shops from the app role:
+
+```sql
+-- Customers who share one number in two forms, by shop
+SELECT business_id, id, name, phone, salio_canonical_phone(phone) AS e164
+  FROM customers
+ WHERE phone IS NOT NULL AND phone !~ '^\+'
+ ORDER BY business_id, e164;
+
+-- Logins in the same position
+SELECT id, business_id, name, phone FROM users WHERE phone !~ '^\+';
+```
+
+Numbers the rule cannot read (`ask at the counter`) also appear in the first list, with an empty `e164`.
 
 ---
 

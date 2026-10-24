@@ -326,5 +326,171 @@
       }
     }
   },
-  "issueRecordGone": "A record no longer on this phone"
+  "issueRecordGone": "A record no longer on this phone",
+  "signInNoAccount": "New shop? Register it",
+  "signInHaveInvite": "Have an invite code? Join a shop",
+  "registerTitle": "Register your shop",
+  "registerShopName": "Shop name",
+  "registerYourName": "Your name",
+  "registerButton": "Register",
+  "joinTitle": "Join a shop",
+  "joinCode": "Invite code",
+  "joinCodeHint": "From the shop owner, e.g. K7M2QX",
+  "joinButton": "Join",
+  "passwordNew": "Password (at least 8 characters)",
+  "passwordTooShort": "At least 8 characters",
+  "phoneInvalid": "Not a phone number. Use 07XX XXX XXX, 01XX XXX XXX or +country code.",
+  "phoneTaken": "This phone number already has an account. Sign in instead.",
+  "inviteUnusable": "This invite code has expired or was already used. Ask the owner for a new one.",
+  "customersSearch": "Search by name or phone",
+  "filterAll": "All",
+  "filterOwing": "Owing",
+  "filterOverdue": "Overdue",
+  "filterOverLimit": "Over limit",
+  "filterAdvance": "Advance",
+  "filterCleared": "Cleared",
+  "customersNoMatch": "No customers match.",
+  "customerSelect": "Choose a customer to see their account.",
+  "customerPickContact": "Pick from contacts",
+  "customerNoPhone": "No phone (walk-in customer)",
+  "customerPhoneRequired": "Enter a phone number, or tick \"No phone\".",
+  "customerExists": "{name} already has this number.",
+  "@customerExists": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "customerOpenExisting": "Open",
+  "customerEdit": "Edit customer",
+  "customerNotes": "Notes",
+  "customerDelete": "Delete customer",
+  "customerDeleteConfirm": "Delete {name}? Their history stays in the reports.",
+  "@customerDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      }
+    }
+  },
+  "customerDeleteNotZero": "Only a customer whose balance is zero can be deleted.",
+  "delete": "Delete",
+  "more": "More",
+  "creditLimit": "Credit limit",
+  "creditLimitSet": "Set credit limit",
+  "creditLimitNone": "No limit",
+  "creditLimitAmount": "Most they may owe",
+  "creditAvailable": "{amount} available",
+  "@creditAvailable": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 2,000"
+      }
+    }
+  },
+  "creditOver": "{amount} over the limit",
+  "@creditOver": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      }
+    }
+  },
+  "duesOverdue": "{amount} overdue since {date}",
+  "@duesOverdue": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      },
+      "date": {
+        "type": "String",
+        "example": "Mon 20 Oct 2026"
+      }
+    }
+  },
+  "duesNext": "{amount} due by {date}",
+  "@duesNext": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 500"
+      },
+      "date": {
+        "type": "String",
+        "example": "Thu 30 Oct 2026"
+      }
+    }
+  },
+  "recordPayment": "Record payment",
+  "recordedBy": "by {name}",
+  "@recordedBy": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Juma"
+      }
+    }
+  },
+  "entryVoided": "Voided",
+  "entryTitleDebt": "Debt",
+  "entryTitlePayment": "Payment",
+  "entryRecordedAt": "Recorded",
+  "entryRecordedBy": "Recorded by",
+  "entryDueBy": "Due by",
+  "entryMethod": "Paid by",
+  "entryReference": "Reference",
+  "entryDescription": "Description",
+  "entryStatus": "Status",
+  "entrySent": "Sent",
+  "entryFromSale": "From a credit sale: void the sale instead.",
+  "entryVoid": "Void entry",
+  "entryVoidConfirm": "Void this entry? It stays in the history, crossed out, and stops counting in the balance.",
+  "someoneElse": "someone else",
+  "dueDate": "Due by (optional)",
+  "dueDateNone": "No due date",
+  "dueDateClear": "Clear the due date",
+  "limitWarning": "This takes {name} to {balance}, over their limit of {limit}. Record it anyway?",
+  "@limitWarning": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Wanjiku"
+      },
+      "balance": {
+        "type": "String",
+        "example": "KES 5,500"
+      },
+      "limit": {
+        "type": "String",
+        "example": "KES 5,000"
+      }
+    }
+  },
+  "recordAnyway": "Record anyway",
+  "paymentAmount": "Amount paid (KES)",
+  "methodCash": "Cash",
+  "methodMpesa": "M-Pesa",
+  "methodBank": "Bank",
+  "mpesaCode": "M-Pesa code (optional)",
+  "mpesaCodeHint": "10 letters and digits, e.g. SJK4X7Y2PQ",
+  "mpesaCodeInvalid": "An M-Pesa code is 10 letters and digits.",
+  "bankReference": "Bank reference (optional)",
+  "referenceTooLong": "At most 30 characters.",
+  "paymentNote": "Note (optional)",
+  "paymentAdvance": "{amount} more than they owe. It will be held as an advance.",
+  "@paymentAdvance": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 200"
+      }
+    }
+  },
+  "moreOptions": "More options"
 }

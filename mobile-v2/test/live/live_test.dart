@@ -15,7 +15,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salio/core/database/app_database.dart';
 import 'package:salio/core/network/api_client.dart';
 import 'package:salio/core/network/api_exception.dart';
+import 'package:salio/core/phone/phone.dart' as phone_rule;
+import 'package:salio/core/session/permissions.dart';
 import 'package:salio/features/app_update/data/app_update_service.dart';
+import 'package:salio/features/ledger/domain/payment_reference.dart';
 
 import '../support/fake_app_update.dart';
 
@@ -100,6 +103,34 @@ void main() {
       expect(File(path).lengthSync(), release.files['arm64']!.size);
       // And again: already there, nothing downloaded twice.
       expect(await service.downloaded(release, 'arm64'), path);
+    });
+
+    test('sign-in carries what each person may do (B5), and any form of '
+        'the number signs in (B15)', () async {
+      final shop = await _newShop();
+      expect(shop.a.account.permissions, contains(Permission.customersDelete));
+      expect(
+        shop.b.account.permissions,
+        isNot(contains(Permission.customersDelete)),
+      );
+      expect(
+        shop.b.account.permissions!.toSet(),
+        Role.staff.permissions,
+        reason: 'the server and the app agree on what staff may do',
+      );
+      // The owner's number, in another form.
+      final national = phone_rule.Phone.display(
+        shop.a.account.phone,
+      ).replaceAll(' ', '');
+      final again = await Phone.signIn(
+        Uri.parse(_url!),
+        'A again',
+        phone: '+254${national.substring(1)}',
+        password: _password,
+      );
+      addTearDown(again.close);
+      expect(again.account.userId, shop.a.account.userId);
+      expect(shop.a.account.phone, startsWith('+254'));
     });
 
     test('1: a debt recorded offline on phone A appears on phone B', () async {
@@ -246,7 +277,7 @@ void main() {
 
       for (final phone in [shop.a, shop.b]) {
         final c = await phone.customer(id);
-        expect(c.phone, '0722000111', reason: phone.label);
+        expect(c.phone, '+254722000111', reason: phone.label);
         expect(c.notes, 'Pays on Fridays', reason: phone.label);
         expect(c.syncState, SyncState.synced);
       }
@@ -269,8 +300,9 @@ void main() {
         await phone.ledger.recordPayment(
           customerId: id,
           amountCents: 40000,
-          method: 'mpesa',
+          method: PaymentMethod.mpesa,
           reference: 'sjk4x7y2pq',
+          description: 'M-Pesa',
         );
       }
       await shop.a.syncNow();
@@ -417,7 +449,8 @@ void main() {
             await p.ledger.recordPayment(
               customerId: known[random.nextInt(known.length)],
               amountCents: 100 * (1 + random.nextInt(200)),
-              method: 'cash',
+              method: PaymentMethod.cash,
+              description: 'Cash',
             );
           case 7 when known.isNotEmpty:
             await p.customers.update(

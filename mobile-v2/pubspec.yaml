@@ -25,6 +25,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
+  flutter_native_contact_picker: ^0.0.13
   flutter_riverpod: ^3.4.3
   flutter_secure_storage: ^11.2.0
   # Held at 17: go_router 18 moved to the separate material_ui package, while
@@ -38,6 +39,7 @@ dependencies:
   package_info_plus: ^10.2.2
   path: ^1.9.1
   path_provider: ^2.1.6
+  timezone: ^0.11.2
   uuid: ^4.6.0
 
 dev_dependencies:

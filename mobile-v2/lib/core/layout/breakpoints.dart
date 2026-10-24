@@ -17,6 +17,10 @@ abstract final class Breakpoints {
 
   /// The widest a list grows.
   static const double listWidth = 900;
+
+  /// The list's width when the chosen item sits beside it: room for a name
+  /// and a balance at the largest text, and the rest for the item.
+  static const double listPaneWidth = 360;
 }
 
 /// The body of a screen: kept clear of the areas the system draws over, and

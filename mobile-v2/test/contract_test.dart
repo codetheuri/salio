@@ -32,6 +32,10 @@ void main() {
     final paths = _doc['paths'] as Map<String, dynamic>;
     for (final (method, path) in [
       ('post', '/api/v1/auth/login'),
+      ('post', '/api/v1/auth/register-business'),
+      ('post', '/api/v1/auth/join'),
+      ('get', '/api/v1/users/me'),
+      ('get', '/api/v1/staff'),
       ('get', '/api/v1/business'),
       ('get', '/api/v1/sync/pull'),
       ('post', '/api/v1/sync/push'),
@@ -218,6 +222,28 @@ void main() {
       containsAll(['table', 'id', 'field', 'reason', 'detail']),
     );
     expect(_properties('LoginInputBody'), containsAll(['phone', 'password']));
+    expect(
+      _properties('RegisterBusinessInputBody'),
+      containsAll(['business_name', 'name', 'phone', 'password']),
+    );
+    expect(
+      _properties('JoinBusinessInputBody'),
+      containsAll(['code', 'name', 'phone', 'password']),
+    );
+    // B5: what each person may do comes with their profile.
+    expect(
+      _properties('UserView'),
+      containsAll([
+        'id',
+        'business_id',
+        'name',
+        'phone',
+        'role',
+        'is_active',
+        'permissions',
+      ]),
+    );
+    expect(_properties('BusinessView'), containsAll(['name', 'time_zone']));
     expect(
       _properties('ReleaseInfo'),
       containsAll([

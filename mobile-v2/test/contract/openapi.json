@@ -3674,6 +3674,15 @@
           "name": {
             "type": "string"
           },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "phone": {
             "type": "string"
           },

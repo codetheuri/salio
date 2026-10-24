@@ -2,7 +2,38 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/phone/phone.dart';
 import '../../../core/time/server_clock.dart';
+import '../../ledger/domain/dues.dart';
+
+/// Which customers the list shows (docs/10, §2.3).
+enum CustomerFilter {
+  all,
+
+  /// Owe the shop something.
+  owing,
+
+  /// Owe something past its agreed day.
+  overdue,
+
+  /// Owe more than their credit limit.
+  overLimit,
+
+  /// Hold an advance: the shop owes them.
+  advance,
+
+  /// Owe nothing and are owed nothing.
+  cleared;
+
+  bool matches(CustomerBalance c) => switch (this) {
+    all => true,
+    owing => c.balanceCents > 0,
+    overdue => c.dues.isOverdue,
+    overLimit => c.isOverLimit,
+    advance => c.balanceCents < 0,
+    cleared => c.balanceCents == 0,
+  };
+}
 
 /// A customer with their balance: debts minus payments over live entries,
 /// computed every time and never stored (domain invariant 3). Above zero
@@ -17,11 +48,16 @@ class CustomerBalance {
   /// Of those, the ones the server refused.
   final int refused;
 
+  /// What is owed and when it falls due, by the server's first-in,
+  /// first-out rule.
+  final Dues dues;
+
   const CustomerBalance(
     this.customer,
     this.balanceCents,
     this.unsent, {
     this.refused = 0,
+    this.dues = Dues.none,
   });
 
   bool get isUnsent => unsent > 0 || customer.syncState != SyncState.synced;
@@ -34,6 +70,24 @@ class CustomerBalance {
       : isUnsent
       ? SyncState.pending
       : SyncState.synced;
+
+  int? get creditLimitCents => customer.creditLimitCents;
+
+  /// How much more they may owe before reaching their limit; null with no
+  /// limit, below zero when over it.
+  int? get availableCents {
+    final limit = creditLimitCents;
+    return limit == null ? null : limit - balanceCents;
+  }
+
+  bool get isOverLimit => (availableCents ?? 0) < 0;
+
+  /// Whether a debt of [cents] would take them over their limit. Only a
+  /// warning: the shop decides (the server records it either way).
+  bool wouldExceedLimit(int cents) {
+    final available = availableCents;
+    return available != null && cents > available;
+  }
 }
 
 /// Reads and writes customers. Every write marks the record pending in the
@@ -59,34 +113,121 @@ class CustomerRepository {
     GROUP BY c.id
   ''';
 
-  CustomerBalance _read(QueryRow row) => CustomerBalance(
+  /// Every live entry of the customers who have a debt with a due date, in
+  /// the order dues are worked out: only those customers can be overdue or
+  /// due soon, so the others are not read at all.
+  static const _dueLines = '''
+    SELECT customer_id, type, amount_cents, due_date FROM ledger_entries
+    WHERE is_deleted = 0 AND customer_id IN (
+      SELECT customer_id FROM ledger_entries
+      WHERE is_deleted = 0 AND type = 'debt' AND due_date IS NOT NULL {filter})
+    ORDER BY customer_id, transaction_date, created_at
+  ''';
+
+  CustomerBalance _read(QueryRow row, Dues dues) => CustomerBalance(
     db.customers.map(row.data),
     row.read<int>('balance_cents'),
     row.read<int>('unsent'),
     refused: row.read<int>('refused'),
+    dues: dues,
   );
 
-  /// Every live customer with their balance, by name. Updates itself when
-  /// anything changes, including a sync bringing in another phone's entry.
-  Stream<List<CustomerBalance>> watchAll() => db
-      .customSelect(
-        '${_withBalances.replaceFirst('{filter}', '')} '
-        'ORDER BY c.name COLLATE NOCASE',
-        readsFrom: {db.customers, db.ledgerEntries},
-      )
-      .watch()
-      .map((rows) => rows.map(_read).toList());
+  Future<Map<String, Dues>> _dues(DateTime today, {String? customerId}) async {
+    final rows = await db
+        .customSelect(
+          _dueLines.replaceFirst(
+            '{filter}',
+            customerId == null ? '' : 'AND customer_id = ?',
+          ),
+          variables: [if (customerId != null) Variable.withString(customerId)],
+        )
+        .get();
+    final lines = <String, List<DueLine>>{};
+    for (final r in rows) {
+      (lines[r.read<String>('customer_id')] ??= []).add(
+        DueLine(
+          isDebt: r.read<String>('type') == 'debt',
+          cents: r.read<int>('amount_cents'),
+          due: r.readNullable<DateTime>('due_date'),
+        ),
+      );
+    }
+    return {for (final e in lines.entries) e.key: Dues.of(e.value, today)};
+  }
 
-  Stream<CustomerBalance?> watch(String id) => db
+  /// Live customers with their balances and dues, by name, that match
+  /// [search] (name, or phone digits in any form) and [filter]. Updates
+  /// itself when anything changes, including a sync bringing in another
+  /// phone's entry.
+  Stream<List<CustomerBalance>> watchList({
+    required DateTime today,
+    String search = '',
+    CustomerFilter filter = CustomerFilter.all,
+  }) {
+    final term = search.trim();
+    final digits = Phone.searchDigits(term);
+    final where = term.isEmpty
+        ? ''
+        : digits == null
+        ? r"AND c.name LIKE ? ESCAPE '\'"
+        : r"AND (c.name LIKE ? ESCAPE '\' OR c.phone LIKE ?)";
+    return db
+        .customSelect(
+          '${_withBalances.replaceFirst('{filter}', where)} '
+          'ORDER BY c.name COLLATE NOCASE',
+          variables: [
+            if (term.isNotEmpty) Variable.withString('%${_escape(term)}%'),
+            if (term.isNotEmpty && digits != null)
+              Variable.withString('%$digits%'),
+          ],
+          readsFrom: {db.customers, db.ledgerEntries},
+        )
+        .watch()
+        .asyncMap((rows) async {
+          final dues = await _dues(today);
+          return [
+            for (final row in rows)
+              _read(row, dues[row.read<String>('id')] ?? Dues.none),
+          ].where(filter.matches).toList();
+        });
+  }
+
+  /// Every live customer, by name.
+  Stream<List<CustomerBalance>> watchAll() => watchList(today: clock.now());
+
+  Stream<CustomerBalance?> watch(String id, {DateTime? today}) => db
       .customSelect(
         _withBalances.replaceFirst('{filter}', 'AND c.id = ?'),
         variables: [Variable.withString(id)],
         readsFrom: {db.customers, db.ledgerEntries},
       )
       .watchSingleOrNull()
-      .map((row) => row == null ? null : _read(row));
+      .asyncMap((row) async {
+        if (row == null) return null;
+        final dues = await _dues(today ?? clock.now(), customerId: id);
+        return _read(row, dues[id] ?? Dues.none);
+      });
 
-  /// Adds a customer on this phone. Returns its id.
+  /// A live customer already holding [phone] (in any form), other than
+  /// [except]: adding them again would be refused by the server as a
+  /// duplicate, so the screen offers the existing one.
+  Future<CustomerRow?> findByPhone(String phone, {String? except}) async {
+    final stored = Phone.normalize(phone);
+    if (stored == null) return null;
+    final query = db.select(db.customers)
+      ..where(
+        (c) =>
+            c.phone.equals(stored) &
+            c.isDeleted.equals(false) &
+            (except == null ? const Constant(true) : c.id.equals(except).not()),
+      )
+      ..limit(1);
+    return query.getSingleOrNull();
+  }
+
+  /// Adds a customer on this phone. Returns its id. [phone] may be in any
+  /// form, and is stored as the server stores it (B15); null or blank is a
+  /// walk-in customer with no phone.
   Future<String> add({required String name, String? phone}) async {
     final now = clock.now();
     final id = const Uuid().v7();
@@ -96,7 +237,7 @@ class CustomerRepository {
           CustomersCompanion.insert(
             id: id,
             name: name.trim(),
-            phone: Value(_blankToNull(phone)),
+            phone: Value(_stored(phone)),
             createdBy: userId,
             createdAt: now,
             updatedAt: now,
@@ -108,7 +249,7 @@ class CustomerRepository {
 
   /// Edits a customer. Only the fields given change, and each is noted in
   /// `changed_fields`, so another phone's edit to a different field
-  /// survives the merge on the server.
+  /// survives the merge on the server. A blank [phone] or [notes] clears it.
   Future<void> update(
     String id, {
     String? name,
@@ -117,7 +258,7 @@ class CustomerRepository {
   }) async {
     final changes = <String, Object?>{
       if (name != null) 'name': name.trim(),
-      if (phone != null) 'phone': _blankToNull(phone),
+      if (phone != null) 'phone': _stored(phone),
       if (notes != null) 'notes': _blankToNull(notes),
     };
     if (changes.isEmpty) return;
@@ -125,6 +266,15 @@ class CustomerRepository {
       throw ArgumentError.value(name, 'name', 'is required');
     }
     await _change(id, changes);
+  }
+
+  /// Sets, or with null removes, how much the customer may owe (owners;
+  /// the server refuses anyone else).
+  Future<void> setCreditLimit(String id, int? cents) {
+    if (cents != null && cents < 0) {
+      throw ArgumentError.value(cents, 'cents', 'cannot be negative');
+    }
+    return _change(id, {'credit_limit': cents});
   }
 
   /// Deletes a customer (owners only; the server refuses anyone else, and
@@ -147,20 +297,16 @@ class CustomerRepository {
           if (row.changedFields.isNotEmpty) ...row.changedFields.split(','),
           ...changes.keys,
         };
+        Value<T> pick<T>(String field) => changes.containsKey(field)
+            ? Value(changes[field] as T)
+            : const Value.absent();
         await (db.update(db.customers)..where((c) => c.id.equals(id))).write(
           CustomersCompanion(
-            name: changes.containsKey('name')
-                ? Value(changes['name']! as String)
-                : const Value.absent(),
-            phone: changes.containsKey('phone')
-                ? Value(changes['phone'] as String?)
-                : const Value.absent(),
-            notes: changes.containsKey('notes')
-                ? Value(changes['notes'] as String?)
-                : const Value.absent(),
-            isDeleted: changes.containsKey('is_deleted')
-                ? const Value(true)
-                : const Value.absent(),
+            name: pick<String>('name'),
+            phone: pick<String?>('phone'),
+            notes: pick<String?>('notes'),
+            creditLimitCents: pick<int?>('credit_limit'),
+            isDeleted: pick<bool>('is_deleted'),
             updatedAt: Value(clock.now()),
             syncState: const Value(SyncState.pending),
             localVersion: Value(row.localVersion + 1),
@@ -171,6 +317,23 @@ class CustomerRepository {
         );
       });
 
+  /// A number in its stored form; blank is none. An unreadable number is
+  /// refused here: the screens check it first, so this is a bug guard.
+  static String? _stored(String? phone) {
+    final raw = _blankToNull(phone);
+    if (raw == null) return null;
+    final stored = Phone.normalize(raw);
+    if (stored == null) {
+      throw ArgumentError.value(phone, 'phone', 'is not a phone number');
+    }
+    return stored;
+  }
+
   static String? _blankToNull(String? s) =>
       s == null || s.trim().isEmpty ? null : s.trim();
+
+  /// LIKE treats % and _ as wildcards; a name with either is searched for
+  /// as typed.
+  static String _escape(String s) =>
+      s.replaceAll(r'\', r'\\').replaceAll('%', r'\%').replaceAll('_', r'\_');
 }

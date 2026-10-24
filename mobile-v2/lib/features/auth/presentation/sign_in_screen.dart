@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/l10n/generated/app_localizations.dart';
-import '../../../app/theme/app_colors.dart';
-import '../../../app/theme/app_spacing.dart';
-import '../../../core/layout/breakpoints.dart';
+import '../../../app/router/app_router.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/widgets/failure_text.dart';
+import 'widgets/auth_page.dart';
 
 /// Sign in with a phone number and password. Also where an account comes
 /// back to after the server ended its session, with the phone filled in.
@@ -71,97 +71,62 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     String? required(String? v) =>
         v == null || v.trim().isEmpty ? l10n.fieldRequired : null;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: Breakpoints.formWidth,
-              ),
-              child: Form(
-                key: _form,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Salio',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.displayLarge?.copyWith(
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      l10n.signInTitle,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    if (ended != null) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        [
-                          l10n.signInAgain,
-                          if (ended.endedReason?.isNotEmpty ?? false)
-                            ended.endedReason!,
-                        ].join('\n'),
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.lg),
-                    TextFormField(
-                      controller: _phone,
-                      keyboardType: TextInputType.phone,
-                      autofillHints: const [AutofillHints.telephoneNumber],
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ]')),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: l10n.signInPhone,
-                        errorText: _fieldErrors['phone'],
-                      ),
-                      validator: required,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    TextFormField(
-                      controller: _password,
-                      obscureText: true,
-                      autofillHints: const [AutofillHints.password],
-                      onFieldSubmitted: (_) => _submit(),
-                      decoration: InputDecoration(
-                        labelText: l10n.signInPassword,
-                        errorText: _fieldErrors['password'],
-                      ),
-                      validator: required,
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        _error!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: AppColors.error,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.lg),
-                    ElevatedButton(
-                      onPressed: _busy ? null : _submit,
-                      child: _busy
-                          ? const SizedBox.square(
-                              dimension: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(l10n.signInButton),
-                    ),
-                  ],
-                ),
-              ),
+    return AuthPage(
+      formKey: _form,
+      title: l10n.signInTitle,
+      notice: ended == null
+          ? null
+          : Text(
+              [
+                l10n.signInAgain,
+                if (ended.endedReason?.isNotEmpty ?? false) ended.endedReason!,
+              ].join('\n'),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium,
             ),
+      fields: [
+        TextFormField(
+          controller: _phone,
+          keyboardType: TextInputType.phone,
+          autofillHints: const [AutofillHints.telephoneNumber],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9+ ()-]')),
+          ],
+          decoration: InputDecoration(
+            labelText: l10n.signInPhone,
+            errorText: _fieldErrors['phone'],
           ),
+          validator: required,
         ),
-      ),
+        TextFormField(
+          controller: _password,
+          obscureText: true,
+          autofillHints: const [AutofillHints.password],
+          onFieldSubmitted: (_) => _submit(),
+          decoration: InputDecoration(
+            labelText: l10n.signInPassword,
+            errorText: _fieldErrors['password'],
+          ),
+          validator: required,
+        ),
+      ],
+      error: _error,
+      buttonLabel: l10n.signInButton,
+      busy: _busy,
+      onSubmit: _submit,
+      // An account signing in again returns to its own shop.
+      links: ended != null
+          ? const []
+          : [
+              AuthLink(
+                l10n.signInNoAccount,
+                onPressed: _busy ? null : () => context.go(AppRoutes.register),
+              ),
+              AuthLink(
+                l10n.signInHaveInvite,
+                onPressed: _busy ? null : () => context.go(AppRoutes.join),
+              ),
+            ],
     );
   }
 }

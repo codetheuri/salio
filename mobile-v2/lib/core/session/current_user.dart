@@ -20,13 +20,20 @@ class SessionUser {
   bool can(String permission) => permissions.contains(permission);
 }
 
-/// Who is signed in, as far as screens need to know. Permissions come from
-/// the role table until the server sends them (docs/10, B5). Signed out,
-/// nothing is allowed.
+/// Who is signed in, as far as screens need to know. Permissions are the
+/// server's (B5), refreshed when the app opens; an account saved before the
+/// server sent them uses the role's table. Signed out, nothing is allowed.
 final currentUserProvider = Provider<SessionUser>((ref) {
   final account = ref.watch(sessionProvider).value?.account;
   if (account == null) {
     return const SessionUser(name: '', role: Role.staff, permissions: {});
   }
-  return SessionUser.ofRole(account.name, account.role);
+  final granted = account.permissions;
+  return granted == null
+      ? SessionUser.ofRole(account.name, account.role)
+      : SessionUser(
+          name: account.name,
+          role: account.role,
+          permissions: granted.toSet(),
+        );
 });

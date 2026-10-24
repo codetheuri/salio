@@ -9,12 +9,12 @@ import '../../../app/router/app_router.dart';
 import '../../../app/shell/app_sections.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/app_info.dart';
-import '../../../core/format/dates.dart';
 import '../../../core/layout/breakpoints.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/session/current_user.dart';
 import '../../../core/session/session_controller.dart';
 import '../../../core/sync/sync_controller.dart';
+import '../../../core/time/shop_time.dart';
 import '../../app_update/presentation/widgets/app_update_tile.dart';
 import '../../sync_issues/data/providers.dart';
 
@@ -131,7 +131,7 @@ class _AccountSection extends ConsumerWidget {
     } else {
       syncLine = last == null
           ? l10n.syncNever
-          : l10n.syncLast(formatDateTime(last, locale));
+          : l10n.syncLast(ref.watch(shopTimeProvider).dateTime(last, locale));
     }
 
     return Column(

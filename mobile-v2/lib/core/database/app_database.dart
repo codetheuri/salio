@@ -21,13 +21,14 @@ part 'app_database.g.dart';
     PushBatches,
     SyncIssues,
     ResyncSeen,
+    StaffMembers,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +53,10 @@ class AppDatabase extends _$AppDatabase {
         ]) {
           await m.create(index);
         }
+      },
+      from2To3: (m, schema) async {
+        // Who recorded each entry, by name (docs/10, M3).
+        await m.createTable(schema.staffMembers);
       },
     ),
   );

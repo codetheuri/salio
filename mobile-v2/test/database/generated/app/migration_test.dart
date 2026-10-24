@@ -11,6 +11,7 @@ import 'package:salio/core/database/app_database.dart';
 import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -113,6 +114,51 @@ void main() {
           v2.SyncIssuesData.fromJson({...issue.toJson(), 'serverCopy': null}),
         ]);
         expect(await db.select(db.sales).get(), isEmpty);
+      },
+    );
+  });
+
+  test('2 to 3 keeps unsent records and the frozen push', () async {
+    const at = '2026-10-24T08:00:00.000Z';
+    const sale = v2.SalesData(
+      id: 's1',
+      createdAt: at,
+      updatedAt: at,
+      isDeleted: 0,
+      syncState: 1,
+      localVersion: 0,
+      userId: 'u1',
+      productName: 'DAP 50kg',
+      quantity: 1500,
+      amountCents: 350000,
+      paymentMethod: 'cash',
+      saleDate: at,
+    );
+    const batch = v2.PushBatchesData(
+      operationId: 'op2',
+      body: '{"operation_id":"op2"}',
+      records: '[]',
+      createdAt: at,
+      attempts: 0,
+    );
+    await verifier.testWithDataIntegrity(
+      oldVersion: 2,
+      newVersion: 3,
+      createOld: v2.DatabaseAtV2.new,
+      createNew: v3.DatabaseAtV3.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batchOf, old) {
+        batchOf.insert(old.sales, sale);
+        batchOf.insert(old.pushBatches, batch);
+      },
+      validateItems: (db) async {
+        expect(await db.select(db.sales).get(), [
+          v3.SalesData.fromJson(sale.toJson()),
+        ]);
+        expect(await db.select(db.pushBatches).get(), [
+          v3.PushBatchesData.fromJson(batch.toJson()),
+        ]);
+        expect(await db.select(db.staffMembers).get(), isEmpty);
       },
     );
   });

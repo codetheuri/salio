@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../features/auth/data/auth_api.dart';
+import '../network/api_exception.dart';
 import '../network/api_provider.dart';
 import '../time/clock_provider.dart';
 import 'account_store.dart';
@@ -41,30 +42,96 @@ class SessionController extends AsyncNotifier<Session?> {
 
   /// Signs in. Throws ApiException when the server says no or cannot be
   /// reached; the screen shows why.
-  Future<void> signIn({required String phone, required String password}) async {
-    final store = await ref.read(accountStoreProvider.future);
-    final api = AuthApi(ref.read(apiClientProvider));
-    final result = await api.signIn(
+  Future<void> signIn({required String phone, required String password}) =>
+      _start(
+        (api, now) =>
+            api.signIn(phone: phone.trim(), password: password, now: now),
+      );
+
+  /// Registers a new shop and signs its owner in.
+  Future<void> register({
+    required String businessName,
+    required String name,
+    required String phone,
+    required String password,
+  }) => _start(
+    (api, now) => api.register(
+      businessName: businessName.trim(),
+      name: name.trim(),
       phone: phone.trim(),
       password: password,
-      now: ref.read(serverClockProvider).now(),
+      now: now,
+    ),
+  );
+
+  /// Joins a shop as staff with an invite code, and signs in.
+  Future<void> join({
+    required String code,
+    required String name,
+    required String phone,
+    required String password,
+  }) => _start(
+    (api, now) => api.join(
+      code: code.trim().toUpperCase(),
+      name: name.trim(),
+      phone: phone.trim(),
+      password: password,
+      now: now,
+    ),
+  );
+
+  Future<void> _start(
+    Future<({String token, Account account})> Function(
+      AuthApi api,
+      DateTime now,
+    )
+    authenticate,
+  ) async {
+    final store = await ref.read(accountStoreProvider.future);
+    final result = await authenticate(
+      AuthApi(ref.read(apiClientProvider)),
+      ref.read(serverClockProvider).now(),
     );
     final known = (await store.load()).accounts
         .where((a) => a.userId == result.account.userId)
         .firstOrNull;
-    var account = result.account.copyWith(businessName: known?.businessName);
+    final account = result.account.copyWith(
+      businessName: known?.businessName,
+      timeZone: known?.timeZone,
+    );
     await store.saveToken(account.userId, result.token);
     await store.use(account);
     state = AsyncData(Session(account, result.token));
+  }
 
-    // The shop's name, for the screens. Not needed to work, so a failure is
-    // only logged and the next sign-in tries again.
+  /// Reads the profile and the shop from the server, so a role, a
+  /// permission or the shop's name changed on another phone shows here.
+  /// The app runs it after sign-in, when it opens and when it comes back. Not
+  /// needed to work: offline it does nothing, and the next run tries again.
+  Future<void> refresh() async {
+    final session = state.value;
+    if (session == null || !session.canSync) return;
+    final api = AuthApi(ref.read(apiClientProvider));
     try {
-      account = account.copyWith(businessName: await api.businessName());
+      final me = await api.me();
+      final shop = await api.business();
+      if (state.value?.account.userId != session.account.userId) return;
+      final account = session.account.copyWith(
+        name: me.name,
+        role: me.role,
+        permissions: me.permissions,
+        businessName: shop.name,
+        timeZone: shop.timeZone,
+      );
+      final store = await ref.read(accountStoreProvider.future);
       await store.use(account);
-      state = AsyncData(Session(account, result.token));
-    } on Exception catch (e) {
-      _log.info('business name not read: $e');
+      state = AsyncData(Session(account, session.token));
+    } on ApiException catch (e) {
+      if (e.kind == ApiFailure.unauthorized) {
+        await endedByServer(e.message);
+      } else {
+        _log.info('profile not refreshed: $e');
+      }
     }
   }
 

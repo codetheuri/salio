@@ -1,6 +1,6 @@
 # 10 — Salio mobile app v2: execution plan
 
-**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check; M2 (complete sync) built on 2026-10-24. See the outcome notes in §10.
+**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check; M2 (complete sync) and M3 (customers and the ledger) built on 2026-10-24. See the outcome notes in §10.
 **Builds on:** [08 — backend rewrite](08-tusk-rewrite-plan.md) (server-v2, complete) and [09 — operations](09-operations.md) (security model, deployment).
 **Borrows from:** the DairyGo app (`/var/www/html/startup/Dairy/mobile`), which already solved self-updating, layout testing and slow networks with real users.
 
@@ -582,7 +582,7 @@ Sources, checked on 2026-10-14:
 | B2 | Each sync conflict includes the server's current copy of the record | Otherwise a refused change stays on the phone forever: the server's row did not change, so no pull ever corrects it | P0, M2 — **done** |
 | B3 | **Fix Tusk's rate limiter.** See the note after this table | Phone numbers are easy to guess, so sign-in must resist password guessing. Found while writing this plan | P0, before the beta |
 | B4 | An HTTPS reverse proxy (Caddy) with gzip; automated backups with a tested restore (09 §3) | Tokens and ledgers cross the internet; sync pages shrink by about 85%; no data loss | P0, before the beta |
-| B5 | `permissions` in sign-in and `/users/me` | Roles change without an app release | P1, M3 |
+| B5 | `permissions` in sign-in and `/users/me` | Roles change without an app release | P1, M3 — **done** |
 | B6 | Record each user's app version and last sync from the version header. Add a "Devices" page in the console. Refuse sync below the minimum build with 426 | Support can see which version a shop runs, and forced updates become a guarantee | P1, M6 |
 | B7 | `POST /auth/refresh`: a new 30-day token while the session is valid | An active shop is never signed out in the middle of a day | P1, M6 |
 | B8 | `Idempotency-Key` for online-only saves (port DairyGo's into Tusk). `create-purchase-order` takes no client ID today | An answer lost on the way back must not place an order twice | P1, M4 |
@@ -592,7 +592,7 @@ Sources, checked on 2026-10-14:
 | B12 | The business's payment details ("Till 123456") on its profile | Reminders and statements say how to pay | P1, M7 |
 | B13 | A read-only switch on the v1 server for cutover | Nothing is written to v1 after the final copy (§11) | Cutover |
 | B14 | Sync ignores unknown fields instead of refusing the batch. Huma rejects them by default (`AllowAdditionalPropertiesByDefault` is false) | A server rollback, or mismatched environments, must not stop every newer phone from syncing. Phase 6's own rule is that one bad field never costs a batch. REST stays strict, where strictness catches typos | P1, M2 — **done** |
-| B15 | **Phone numbers stored in one format** (E.164, Kenyan by default) for customers, suppliers and sign-in, through one shared function for REST, sync and the v1 import. A migration converts stored numbers and *reports* the duplicates it uncovers rather than merging them | Today `0712 345 678`, `0712345678` and `+254712345678` are three different customers, and three different sign-ins. The sync path does not even trim spaces. Picking customers from contacts makes this common | P1, M3 |
+| B15 | **Phone numbers stored in one format** (E.164, Kenyan by default) for customers, suppliers and sign-in, through one shared function for REST, sync and the v1 import. A migration converts stored numbers and *reports* the duplicates it uncovers rather than merging them | Today `0712 345 678`, `0712345678` and `+254712345678` are three different customers, and three different sign-ins. The sync path does not even trim spaces. Picking customers from contacts makes this common | P1, M3 — **done** |
 | — | Release Tusk v2.0.1 (the testdb lock fix) and remove Salio's workaround | Housekeeping (09 §6) | Any time |
 
 **B3, the rate limiter.** As written, it does not stop password guessing:
@@ -967,6 +967,52 @@ Estimates are working days for one developer working with Claude. They will be r
   - The customer and ledger rows of Appendix A are marked.
   - Live scenarios 4–7 pass through the real screens' code.
 
+> **M3 outcome (2026-10-24, branch `mobile/m3-customers-ledger`, cut from M2's).**
+>
+> **Built on the server:**
+> - **B15, one form for phone numbers:**
+>   - **The rule:** `internal/phone` stores every number as E.164, read as Kenyan unless it has a country code.
+>   - **Where it applies:** sign-up, sign-in (any form signs in), customers through REST and sync, suppliers, and the v1 import. An unreadable number is a 422, or a `phone` conflict through sync.
+>   - **Old numbers:** migration 00010 converts the numbers already stored, with an SQL copy of the rule. Two records that turn out to be one number are both left alone, for a person to decide; docs/09 has the query that lists them.
+> - **B5, permissions from the server:** sign-in and `/users/me` send each user's permissions, read from the same tables the routes check.
+> - **New shared test cases**, each with a Go and a Dart test: `phone.json` (which also checks the migration's SQL), `dues.json` (oldest debt cleared first) and `payment_reference.json`.
+>
+> **Built in the app:**
+> - **Account:**
+>   - registering a shop and joining one with an invite code, so a phone can be set up without the console;
+>   - the profile, the shop (with its time zone) and the team list are read at sign-in, when the app opens and when it comes back;
+>   - the server's permissions replace the role table once sent.
+> - **Customers:**
+>   - **Search** by name, or by phone in any form: `0712 3` finds +254712345678.
+>   - **Filters:** owing, overdue, over limit, advance and cleared. "Overdue" uses the server's oldest-debt-first rule, run on the phone, measured from the shop's today in its own time zone.
+>   - **Adding:** the phone number is required, picked from contacts or typed, unless "No phone (walk-in customer)" is ticked. The picker is Android's own, so Salio needs no contacts permission. A number another customer already has offers that customer instead of making a duplicate.
+>   - **The customer screen:** balance, credit limit and what is available, what is overdue and since when, what is due next, and actions by permission (edit; credit limit and delete for owners, delete only at zero balance).
+>   - **Two panes from 840 dp:** the list beside the customer.
+> - **Debts and payments:**
+>   - A debt has a required description and an optional due date, and asks first if it goes over the credit limit.
+>   - A payment has a method; the M-Pesa code is checked as it is typed (optional, as on the server); a payment above the balance says it will be held as an advance.
+>   - **The entry screen** shows the time to the minute and who recorded it, from the cached team list. Owners can void an entry; a voided entry stays in the history, crossed out.
+> - **The database, schema 3:** the cached team list. The upgrade from schemas 1 and 2 is tested with data.
+> - **Routes guard the owner-only screens:** staff opening one from an old link land back on the customer.
+>
+> **Tests:** 233, all passing (185 at M2), and the full server-v2 suite.
+> - **Flows (12):** search by phone in three forms; every filter; the required phone, an unreadable number and the contact picker; the duplicate offer; walk-ins; the M-Pesa code check and the advance note; the limit warning; who recorded an entry and voids; what staff cannot do; two panes on a tablet; register and join.
+> - **Layout:** the new screens join every size × text scale × language × role, with seed data that stresses them: a long name over its limit, an overdue debt, a staff member with a long name.
+> - **Live:** 12 scenarios. New: permissions at sign-in, and the owner signing in with the number in another form. Scenarios 4–7 run through the repositories and rules the screens use.
+> - **Guards broken on purpose and seen to fail:** each of the three new shared rules, and the stale contract snapshot.
+>
+> **Found and fixed on the way:**
+> - **Phone numbers had three forms in the old tests and seed data:** seeded customers in `0700…` form would never have matched a contact's `+254…`.
+> - **Two controls were both called "More"** (the bottom bar and the customer menu), which TalkBack would read the same way. The menu is "More options".
+> - **The test harness hid failed checks** behind its error collector until the app closed; the new flow tests close the app before reporting.
+>
+> **Changed from the plan:**
+> - **Register and join moved here from M6,** because a phone could not be set up for testing without them.
+> - **What a pull returns decides when to resync,** not the role's name: reading suppliers is the only permission that changes a pull today.
+> - **The M-Pesa code is optional,** as on the server, but checked whenever it is given.
+>
+> **Not done yet:** speed against 5,000 customers on the reference phone (M8's budget check), and the + button on Home, which comes with Home in M5.
+
 **M4 — Sales, stock and suppliers (5–8 days)**
 
 - **Sales:** cash, M-Pesa, bank and credit, with the credit sale's debt from `SaleDebtID`; void.
@@ -1142,14 +1188,14 @@ After v2.0 come the v2.1 features in §2.4.
 
 | Server operation | In the app | How | Milestone |
 |---|---|---|---|
-| register-business, login, join-business | Welcome, Sign in, Join | Online | M1 (sign in), M6 |
-| get-me, update-me | Refresh at start, My account | Online, cached | M1, M6 |
+| register-business, login, join-business | Welcome, Sign in, Join | Online | M1 (sign in), M3 (register, join) ✅ |
+| get-me, update-me | Refresh at start, My account | Online, cached | M3 (get-me, at start and on return) ✅, M6 |
 | change-my-password | Change password, the forced change | Online | M6 |
-| get-business, update-business, business logo | Business profile, PDFs | Online, cached | M1 (read), M6 |
-| create-invite, list-staff, deactivate-staff, reset-staff-password | Team | Online; the list is cached | M3 (names), M6 |
+| get-business, update-business, business logo | Business profile, PDFs | Online, cached | M1 (read; M3 adds the time zone) ✅, M6 |
+| create-invite, list-staff, deactivate-staff, reset-staff-password | Team | Online; the list is cached | M3 (list-staff, for names) ✅, M6 |
 | sync-pull, sync-push | The sync engine | In the background | M1, M2 |
-| create/update/delete-customer, set-customer-credit-limit | Customers | Through sync | M2, M3 |
-| create-transaction, void-transaction | Debts and payments | Through sync | M2, M3 |
+| create/update/delete-customer, set-customer-credit-limit | Customers | Through sync | M2, M3 ✅ |
+| create-transaction, void-transaction | Debts and payments | Through sync | M2, M3 ✅ |
 | record-sale, void-sale | Sales | Through sync | M4 |
 | create/update/delete-stock-request | Stock | Through sync | M4 |
 | create/cancel/list/get-purchase-order, purchase-order-pdf | Purchase orders | Online, owner | M4 |

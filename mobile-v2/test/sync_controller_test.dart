@@ -160,10 +160,10 @@ void main() {
     });
   });
 
-  test('the engine is told the role, so a change resyncs', () {
+  test('the engine is told what a pull returns, so a change resyncs', () {
     run(role: Role.owner, (async, container, engine, _) {
       async.elapse(Duration.zero);
-      expect(engine.accesses, ['owner']);
+      expect(engine.accesses, ['suppliers.read']);
     });
   });
 }

@@ -10,6 +10,8 @@ import '../database/app_database.dart';
 import '../database/database_provider.dart';
 import '../network/api_exception.dart';
 import '../network/api_provider.dart';
+import '../session/current_user.dart';
+import '../session/permissions.dart';
 import '../session/session_controller.dart';
 import '../time/clock_provider.dart';
 import 'self_check.dart';
@@ -146,9 +148,7 @@ class SyncController extends Notifier<SyncStatus> {
     }
     state = const SyncStatus(running: true);
     try {
-      await ref
-          .read(syncEngineProvider)
-          .sync(access: session.account.role.name);
+      await ref.read(syncEngineProvider).sync(access: pullScope(ref));
       _failures = 0;
       if (ref.mounted) state = const SyncStatus();
     } on ApiException catch (e) {
@@ -182,6 +182,14 @@ class SyncController extends Notifier<SyncStatus> {
     }
   }
 }
+
+/// What a pull returns for this user, in a word the engine compares between
+/// syncs: when it changes, everything is pulled again. Today only reading
+/// suppliers changes what a pull sends (server-v2's `Service.Pull`).
+String pullScope(Ref ref) =>
+    ref.read(currentUserProvider).can(Permission.suppliersRead)
+    ? Permission.suppliersRead
+    : 'basic';
 
 /// Records on this phone the server has not accepted yet, of every kind.
 final unsentCountProvider = StreamProvider<int>((ref) {

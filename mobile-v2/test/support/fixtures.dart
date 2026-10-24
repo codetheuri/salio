@@ -14,6 +14,12 @@ import 'package:salio/core/session/session_controller.dart';
 /// A customer the layout tests open, with a long name and a large balance.
 const longCustomerId = '0197a000-0000-7000-8000-00000000000a';
 
+/// Their first entry: a long description, overdue, recorded by staff.
+const longEntryId = '0197a000-0000-7000-8000-000000000001';
+
+/// The member of staff who recorded it, with a long name.
+const staffUserId = '0197a000-0000-7000-8000-0000000000u2';
+
 Session sessionFor(Role role) => Session(
   Account(
     userId: '0197a000-0000-7000-8000-0000000000u1',
@@ -80,16 +86,19 @@ Future<AppDatabase> seededDatabase() async {
     int cents,
     String description, {
     SyncState state = SyncState.synced,
+    DateTime? due,
+    String userId = 'u1',
   }) => db
       .into(db.ledgerEntries)
       .insert(
         LedgerEntriesCompanion.insert(
           id: '0197a000-0000-7000-8000-${(++n).toString().padLeft(12, '0')}',
           customerId: customerId,
-          userId: 'u1',
+          userId: userId,
           type: type,
           amountCents: cents,
           description: Value(description),
+          dueDate: Value(due),
           transactionDate: t.add(Duration(hours: n)),
           createdAt: t,
           updatedAt: t,
@@ -100,7 +109,7 @@ Future<AppDatabase> seededDatabase() async {
   await customer(
     longCustomerId,
     'Bartholomew Kipchumba Arap Kiprotich Wanyonyi',
-    '+254 712 345 678',
+    '+254712345678',
   );
   await entry(
     longCustomerId,
@@ -108,7 +117,22 @@ Future<AppDatabase> seededDatabase() async {
     123456789,
     'Two bags of fertiliser, three litres of cooking oil and a crate of '
         'sodas, to be paid at the end of the month',
+    due: DateTime.utc(2026, 10, 1),
+    userId: staffUserId,
   );
+  // Over a limit, so the account card shows its longest lines.
+  await (db.update(db.customers)..where((c) => c.id.equals(longCustomerId)))
+      .write(const CustomersCompanion(creditLimitCents: Value(10000000)));
+  await db
+      .into(db.staffMembers)
+      .insert(
+        StaffMembersCompanion.insert(
+          id: staffUserId,
+          name: 'Wanjiru Nyambura Kamau-Odhiambo',
+          role: 'staff',
+          isActive: true,
+        ),
+      );
   await entry(longCustomerId, 'payment', 50000, 'M-Pesa');
   await entry(
     longCustomerId,
@@ -121,7 +145,7 @@ Future<AppDatabase> seededDatabase() async {
   await customer(
     '0197a000-0000-7000-8000-00000000000c',
     'Otieno',
-    '0700111222',
+    '+254700111222',
   );
   await entry('0197a000-0000-7000-8000-00000000000c', 'payment', 20000, 'Cash');
   // One issue of each sort the Needs attention screen words differently,
@@ -129,7 +153,7 @@ Future<AppDatabase> seededDatabase() async {
   // customer the phone can merge, notes the server undid a change, a
   // record waiting for its customer, and one no longer on the phone.
   const duplicate = '0197a000-0000-7000-8000-00000000000d';
-  await customer(duplicate, 'Otieno', '0700111222');
+  await customer(duplicate, 'Otieno', '+254700111222');
   await (db.update(db.customers)..where((c) => c.id.equals(duplicate))).write(
     const CustomersCompanion(syncState: Value(SyncState.refused)),
   );
@@ -172,7 +196,11 @@ Future<AppDatabase> seededDatabase() async {
   for (var i = 0; i < 12; i++) {
     final id =
         '0197a000-0000-7000-8000-0000000001${i.toString().padLeft(2, '0')}';
-    await customer(id, 'Customer number $i', '07000000$i');
+    await customer(
+      id,
+      'Customer number $i',
+      '+2547000001${i.toString().padLeft(2, '0')}',
+    );
     await entry(id, 'debt', 1000 * (i + 1), 'Bread');
   }
   return db;

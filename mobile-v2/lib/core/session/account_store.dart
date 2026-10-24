@@ -14,8 +14,15 @@ class Account {
   final String phone;
   final Role role;
 
+  /// What the server says this user may do (B5), sorted. Null for an
+  /// account saved before the server sent it: the role's table applies.
+  final List<String>? permissions;
+
   /// Null until the business has been read once from the server.
   final String? businessName;
+
+  /// The shop's IANA time zone, e.g. Africa/Nairobi; null until read.
+  final String? timeZone;
   final DateTime lastUsedAt;
 
   const Account({
@@ -25,16 +32,27 @@ class Account {
     required this.phone,
     required this.role,
     required this.lastUsedAt,
+    this.permissions,
     this.businessName,
+    this.timeZone,
   });
 
-  Account copyWith({String? businessName, DateTime? lastUsedAt}) => Account(
+  Account copyWith({
+    String? name,
+    Role? role,
+    List<String>? permissions,
+    String? businessName,
+    String? timeZone,
+    DateTime? lastUsedAt,
+  }) => Account(
     userId: userId,
     businessId: businessId,
-    name: name,
+    name: name ?? this.name,
     phone: phone,
-    role: role,
+    role: role ?? this.role,
+    permissions: permissions ?? this.permissions,
     businessName: businessName ?? this.businessName,
+    timeZone: timeZone ?? this.timeZone,
     lastUsedAt: lastUsedAt ?? this.lastUsedAt,
   );
 
@@ -44,7 +62,9 @@ class Account {
     'name': name,
     'phone': phone,
     'role': role.name,
+    'permissions': permissions,
     'business_name': businessName,
+    'time_zone': timeZone,
     'last_used_at': lastUsedAt.toUtc().toIso8601String(),
   };
 
@@ -54,7 +74,9 @@ class Account {
     name: json['name'] as String,
     phone: json['phone'] as String,
     role: Role.values.byName(json['role'] as String),
+    permissions: (json['permissions'] as List<dynamic>?)?.cast<String>(),
     businessName: json['business_name'] as String?,
+    timeZone: json['time_zone'] as String?,
     lastUsedAt: DateTime.parse(json['last_used_at'] as String),
   );
 }

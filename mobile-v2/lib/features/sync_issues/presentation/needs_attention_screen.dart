@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/l10n/generated/app_localizations.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_spacing.dart';
-import '../../../core/format/dates.dart';
 import '../../../core/layout/breakpoints.dart';
 import '../../../core/money/money.dart';
+import '../../../core/time/shop_time.dart';
 import '../data/providers.dart';
 import '../data/sync_issue_repository.dart';
 
@@ -96,7 +96,9 @@ class _IssueTile extends ConsumerWidget {
                     Text(_reason(l10n), style: theme.textTheme.bodyMedium),
                     const SizedBox(height: 2),
                     Text(
-                      formatDateTime(view.issue.createdAt, locale),
+                      ref
+                          .watch(shopTimeProvider)
+                          .dateTime(view.issue.createdAt, locale),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),

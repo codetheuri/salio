@@ -95,7 +95,7 @@ void main() {
       final sent = (edit['customers'] as List).cast<Map<String, dynamic>>();
       expect(again, first, reason: 'a retry sends the frozen body');
       expect(edit['operation_id'], isNot(first['operation_id']));
-      expect(sent.single['phone'], '0712000001');
+      expect(sent.single['phone'], '+254712000001');
       expect(rig.server.records['customers'], hasLength(1));
       expect((await rig.customer(id))!.syncState, SyncState.synced);
     });
@@ -136,7 +136,7 @@ void main() {
     });
 
     test('a replayed answer settles the batch once', () async {
-      final id = await rig.customers.add(name: 'Wanjiku', phone: '0712');
+      final id = await rig.customers.add(name: 'Wanjiku', phone: '0712345678');
       rig.server.refuse = (kind, r) => 'duplicate';
       rig.server.faults.add(Fault.lostAnswer);
       await expectLater(rig.sync(), throwsA(isA<ApiException>()));
@@ -217,7 +217,7 @@ void main() {
     });
 
     test('a refused record is kept aside and not sent again', () async {
-      final id = await rig.customers.add(name: 'Wanjiku', phone: '0712');
+      final id = await rig.customers.add(name: 'Wanjiku', phone: '0712345678');
       rig.server.refuse = (kind, r) => 'duplicate';
       await rig.sync();
       rig.server.refuse = null;

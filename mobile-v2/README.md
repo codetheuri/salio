@@ -200,6 +200,19 @@ unsent records, a frozen push and the cursor must come through every
 upgrade. Declare indexes with `@TableIndex` on the table, not in SQL, so the
 snapshots include them.
 
+**Rules the phone repeats from the server**, each pinned by shared test
+cases in `testdata/shared/` that the Go and the Dart tests both read:
+- money and quantities;
+- the role table;
+- phone numbers (`lib/core/phone`, one stored form, E.164);
+- dues (`lib/features/ledger/domain/dues.dart`, oldest debt cleared first);
+- M-Pesa codes and bank references.
+
+Change a rule on both sides and its file together.
+
+**Times** are shown in the shop's time zone (`lib/core/time/shop_time.dart`),
+not the phone's, and "today" for overdue debts is the shop's today.
+
 **Sync, in one paragraph** (docs/10, §4.3). Every write marks its record
 pending. A push freezes a batch, operation id and exact body, and a retry
 sends that body again. The answer marks only the version sent as synced,

@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/time/server_clock.dart';
+import '../domain/payment_reference.dart';
 
 /// Reads and records ledger entries. Entries are never edited: a mistake is
 /// corrected with a void and a new entry (domain invariant 2).
@@ -15,41 +16,41 @@ class LedgerRepository {
 
   LedgerRepository(this.db, this.clock, this.userId);
 
-  /// A customer's live entries, newest first.
+  /// A customer's entries, newest first, voided ones included: they stay
+  /// in the history, crossed out, and out of the balance.
   Stream<List<LedgerEntryRow>> watchFor(String customerId) =>
       (db.select(db.ledgerEntries)
-            ..where(
-              (e) =>
-                  e.customerId.equals(customerId) & e.isDeleted.equals(false),
-            )
+            ..where((e) => e.customerId.equals(customerId))
             ..orderBy([
               (e) => OrderingTerm.desc(e.transactionDate),
               (e) => OrderingTerm.desc(e.createdAt),
             ]))
           .watch();
 
-  /// Records a payment on this phone. [method] is `cash`, `mpesa` or
-  /// `bank`; an M-Pesa code may be on only one live payment, which the
-  /// server checks (a second phone's copy comes back as a duplicate).
+  /// Records a payment on this phone. [reference] is an M-Pesa code or a
+  /// bank reference, checked by the server's rule; an M-Pesa code may be on
+  /// only one live payment, which the server checks (a second phone's copy
+  /// comes back as a duplicate). A payment above the balance becomes an
+  /// advance, as on the server.
   Future<String> recordPayment({
     required String customerId,
     required int amountCents,
-    required String method,
-    String? reference,
-    String description = 'Payment',
+    required PaymentMethod method,
+    String reference = '',
+    required String description,
   }) async {
     if (amountCents <= 0) {
       throw ArgumentError.value(amountCents, 'amountCents', 'must be above 0');
     }
-    if (!const {'cash', 'mpesa', 'bank'}.contains(method)) {
-      throw ArgumentError.value(method, 'method');
+    if (description.trim().isEmpty) {
+      throw ArgumentError.value(description, 'description', 'is required');
+    }
+    final ref = PaymentReference.check(method, reference);
+    if (ref.problem != null) {
+      throw ArgumentError.value(reference, 'reference', ref.problem!.name);
     }
     final now = clock.now();
     final id = const Uuid().v7();
-    // The server's form of an M-Pesa code (`payment.Reference`); checking
-    // the code itself comes with M-Pesa paste (M7).
-    final trimmed = reference?.trim();
-    final code = method == 'mpesa' ? trimmed?.toUpperCase() : trimmed;
     await db
         .into(db.ledgerEntries)
         .insert(
@@ -63,8 +64,8 @@ class LedgerRepository {
             transactionDate: now,
             createdAt: now,
             updatedAt: now,
-            paymentMethod: Value(method),
-            reference: Value(code == null || code.isEmpty ? null : code),
+            paymentMethod: Value(method.wire),
+            reference: Value(ref.stored),
             syncState: SyncState.pending,
           ),
         );
@@ -89,13 +90,20 @@ class LedgerRepository {
     );
   });
 
+  /// One entry, kept up to date: its void, or the server's answer, shows.
+  Stream<LedgerEntryRow?> watchEntry(String id) => (db.select(
+    db.ledgerEntries,
+  )..where((e) => e.id.equals(id))).watchSingleOrNull();
+
   /// Records a debt on this phone, dated by the server's clock. Returns its
   /// id. The amount is in cents and must be above zero; the description is
-  /// required, as on the server (`ledger.ValidateEntry`).
+  /// required, as on the server (`ledger.ValidateEntry`). [dueDate] is the
+  /// day the customer agreed to pay by, held as UTC midnight of that day.
   Future<String> recordDebt({
     required String customerId,
     required int amountCents,
     required String description,
+    DateTime? dueDate,
   }) async {
     if (amountCents <= 0) {
       throw ArgumentError.value(amountCents, 'amountCents', 'must be above 0');
@@ -118,6 +126,11 @@ class LedgerRepository {
             transactionDate: now,
             createdAt: now,
             updatedAt: now,
+            dueDate: Value(
+              dueDate == null
+                  ? null
+                  : DateTime.utc(dueDate.year, dueDate.month, dueDate.day),
+            ),
             syncState: SyncState.pending,
           ),
         );

@@ -177,6 +177,25 @@ class ResyncSeen extends Table {
   Set<Column<Object>> get primaryKey => {recordTable, recordId};
 }
 
+/// The shop's people, from the team list (`list-staff`), so every entry can
+/// say who recorded it, offline too. Refreshed when the app opens online;
+/// never written on the phone.
+@DataClassName('StaffMemberRow')
+class StaffMembers extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+
+  /// `owner` or `staff`.
+  TextColumn get role => text()();
+  BoolColumn get isActive => boolean()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+
+  @override
+  String get tableName => 'staff_members';
+}
+
 /// Small values the sync engine keeps: the pull cursor, the clock offset,
 /// the last successful sync.
 @DataClassName('SyncMetaRow')

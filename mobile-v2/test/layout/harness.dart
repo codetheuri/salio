@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:salio/app/app.dart';
@@ -34,12 +35,16 @@ Map<Role, List<String>> get routesByRole => {
       '/customers/new',
       '/customers/$longCustomerId',
       '/customers/$longCustomerId/debt',
+      '/customers/$longCustomerId/payment',
+      '/customers/$longCustomerId/edit',
+      if (role == Role.owner) '/customers/$longCustomerId/limit',
+      '/customers/$longCustomerId/entries/$longEntryId',
       '/more/attention',
     ],
 };
 
 /// Screens shown to nobody signed in.
-const signedOutRoutes = ['/sign-in'];
+const signedOutRoutes = ['/sign-in', '/register', '/join'];
 
 const locales = [Locale('en'), Locale('sw')];
 
@@ -134,6 +139,7 @@ class AppUnderTest {
     required String route,
     Locale locale = const Locale('en'),
     FakeAppUpdateService? updates,
+    List<Override> overrides = const [],
   }) async {
     PackageInfo.setMockInitialValues(
       appName: 'Salio',
@@ -153,6 +159,7 @@ class AppUnderTest {
         connectionChangesProvider.overrideWithValue(const Stream.empty()),
         // Never the real update server or Android's installer.
         ...fakeUpdateOverrides(updates),
+        ...overrides,
       ],
     );
     container.read(appLocaleProvider.notifier).set(locale);

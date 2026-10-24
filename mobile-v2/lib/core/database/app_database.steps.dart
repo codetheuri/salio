@@ -874,8 +874,317 @@ class Shape9 extends i0.VersionedTable {
       columnsByName['record_id']! as i1.GeneratedColumn<String>;
 }
 
+final class Schema3 extends i0.VersionedSchema {
+  Schema3({required super.database}) : super(version: 3);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    customers,
+    ledgerEntries,
+    sales,
+    stockRequests,
+    suppliers,
+    supplierEntries,
+    syncMeta,
+    pushBatches,
+    syncIssues,
+    resyncSeen,
+    staffMembers,
+    customersSyncState,
+    ledgerEntriesCustomer,
+    ledgerEntriesSyncState,
+    salesCustomer,
+    salesSyncState,
+    stockRequestsSyncState,
+    suppliersSyncState,
+    supplierEntriesSupplier,
+    supplierEntriesSyncState,
+  ];
+  late final Shape0 customers = Shape0(
+    source: i0.VersionedTable(
+      entityName: 'customers',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_6,
+        _column_7,
+        _column_8,
+        _column_9,
+        _column_10,
+        _column_11,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape1 ledgerEntries = Shape1(
+    source: i0.VersionedTable(
+      entityName: 'ledger_entries',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_12,
+        _column_13,
+        _column_14,
+        _column_15,
+        _column_16,
+        _column_17,
+        _column_18,
+        _column_19,
+        _column_20,
+        _column_21,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape2 sales = Shape2(
+    source: i0.VersionedTable(
+      entityName: 'sales',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_22,
+        _column_13,
+        _column_23,
+        _column_24,
+        _column_15,
+        _column_25,
+        _column_19,
+        _column_20,
+        _column_8,
+        _column_26,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape3 stockRequests = Shape3(
+    source: i0.VersionedTable(
+      entityName: 'stock_requests',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_13,
+        _column_23,
+        _column_27,
+        _column_8,
+        _column_28,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape4 suppliers = Shape4(
+    source: i0.VersionedTable(
+      entityName: 'suppliers',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_6,
+        _column_7,
+        _column_8,
+        _column_9,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape5 supplierEntries = Shape5(
+    source: i0.VersionedTable(
+      entityName: 'supplier_entries',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_29,
+        _column_13,
+        _column_14,
+        _column_15,
+        _column_30,
+        _column_17,
+        _column_20,
+        _column_18,
+        _column_19,
+        _column_28,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape6 syncMeta = Shape6(
+    source: i0.VersionedTable(
+      entityName: 'sync_meta',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY("key")'],
+      columns: [_column_31, _column_32],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape7 pushBatches = Shape7(
+    source: i0.VersionedTable(
+      entityName: 'push_batches',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(operation_id)'],
+      columns: [_column_33, _column_34, _column_35, _column_1, _column_36],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape8 syncIssues = Shape8(
+    source: i0.VersionedTable(
+      entityName: 'sync_issues',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: [],
+      columns: [
+        _column_37,
+        _column_38,
+        _column_39,
+        _column_40,
+        _column_41,
+        _column_42,
+        _column_43,
+        _column_1,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape9 resyncSeen = Shape9(
+    source: i0.VersionedTable(
+      entityName: 'resync_seen',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(record_table, record_id)'],
+      columns: [_column_38, _column_39],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape10 staffMembers = Shape10(
+    source: i0.VersionedTable(
+      entityName: 'staff_members',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [_column_0, _column_6, _column_44, _column_45],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Index customersSyncState = i1.Index(
+    'customers_sync_state',
+    'CREATE INDEX customers_sync_state ON customers (sync_state)',
+  );
+  final i1.Index ledgerEntriesCustomer = i1.Index(
+    'ledger_entries_customer',
+    'CREATE INDEX ledger_entries_customer ON ledger_entries (customer_id, is_deleted)',
+  );
+  final i1.Index ledgerEntriesSyncState = i1.Index(
+    'ledger_entries_sync_state',
+    'CREATE INDEX ledger_entries_sync_state ON ledger_entries (sync_state)',
+  );
+  final i1.Index salesCustomer = i1.Index(
+    'sales_customer',
+    'CREATE INDEX sales_customer ON sales (customer_id, is_deleted)',
+  );
+  final i1.Index salesSyncState = i1.Index(
+    'sales_sync_state',
+    'CREATE INDEX sales_sync_state ON sales (sync_state)',
+  );
+  final i1.Index stockRequestsSyncState = i1.Index(
+    'stock_requests_sync_state',
+    'CREATE INDEX stock_requests_sync_state ON stock_requests (sync_state)',
+  );
+  final i1.Index suppliersSyncState = i1.Index(
+    'suppliers_sync_state',
+    'CREATE INDEX suppliers_sync_state ON suppliers (sync_state)',
+  );
+  final i1.Index supplierEntriesSupplier = i1.Index(
+    'supplier_entries_supplier',
+    'CREATE INDEX supplier_entries_supplier ON supplier_entries (supplier_id, is_deleted)',
+  );
+  final i1.Index supplierEntriesSyncState = i1.Index(
+    'supplier_entries_sync_state',
+    'CREATE INDEX supplier_entries_sync_state ON supplier_entries (sync_state)',
+  );
+}
+
+class Shape10 extends i0.VersionedTable {
+  Shape10({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<String> get id =>
+      columnsByName['id']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get name =>
+      columnsByName['name']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get role =>
+      columnsByName['role']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get isActive =>
+      columnsByName['is_active']! as i1.GeneratedColumn<int>;
+}
+
+i1.GeneratedColumn<String> _column_44(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'role',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+      $customConstraints: 'NOT NULL',
+    );
+i1.GeneratedColumn<int> _column_45(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'is_active',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL CHECK (is_active IN (0, 1))',
+    );
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
+  required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -884,6 +1193,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from1To2(migrator, schema);
         return 2;
+      case 2:
+        final schema = Schema3(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from2To3(migrator, schema);
+        return 3;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -892,6 +1206,7 @@ i0.MigrationStepWithVersion migrationSteps({
 
 i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
+  required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
 }) => i0.VersionedSchema.stepByStepHelper(
-  step: migrationSteps(from1To2: from1To2),
+  step: migrationSteps(from1To2: from1To2, from2To3: from2To3),
 );
