@@ -8,7 +8,7 @@ import '../../../app/l10n/generated/app_localizations.dart';
 import '../../../core/money/money.dart';
 import '../../../core/sync/sync_controller.dart';
 import '../../../core/widgets/form_page.dart';
-import '../../ledger/presentation/record_debt_screen.dart';
+import '../../ledger/presentation/widgets/money_fields.dart';
 import '../data/providers.dart';
 
 /// How much a customer may owe (owners). A warning when a debt goes past

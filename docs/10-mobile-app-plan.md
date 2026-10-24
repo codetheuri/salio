@@ -1,6 +1,6 @@
 # 10 — Salio mobile app v2: execution plan
 
-**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check; M2 (complete sync) and M3 (customers and the ledger) built on 2026-10-24. See the outcome notes in §10.
+**Status:** proposed on 2026-10-14. In `mobile-v2/`: M0 (foundations) done on 2026-10-19; M1 (walking skeleton) built on 2026-10-24, waiting for its on-phone check; M2 (complete sync), M3 (customers and the ledger) and M4 (sales, stock and suppliers) built on 2026-10-24. See the outcome notes in §10.
 **Builds on:** [08 — backend rewrite](08-tusk-rewrite-plan.md) (server-v2, complete) and [09 — operations](09-operations.md) (security model, deployment).
 **Borrows from:** the DairyGo app (`/var/www/html/startup/Dairy/mobile`), which already solved self-updating, layout testing and slow networks with real users.
 
@@ -585,7 +585,7 @@ Sources, checked on 2026-10-14:
 | B5 | `permissions` in sign-in and `/users/me` | Roles change without an app release | P1, M3 — **done** |
 | B6 | Record each user's app version and last sync from the version header. Add a "Devices" page in the console. Refuse sync below the minimum build with 426 | Support can see which version a shop runs, and forced updates become a guarantee | P1, M6 |
 | B7 | `POST /auth/refresh`: a new 30-day token while the session is valid | An active shop is never signed out in the middle of a day | P1, M6 |
-| B8 | `Idempotency-Key` for online-only saves (port DairyGo's into Tusk). `create-purchase-order` takes no client ID today | An answer lost on the way back must not place an order twice | P1, M4 |
+| B8 | `Idempotency-Key` for online-only saves (port DairyGo's into Tusk). `create-purchase-order` takes no client ID today | An answer lost on the way back must not place an order twice | P1, M4 — **done for purchase orders** with a client id (see M4's outcome); the general header waits for M6's invites |
 | B9 | Owner password recovery in the console: support confirms who is calling, then sets a temporary password that must be changed. It writes through a tenant declared for that one business, because the console's database door is read-only by design | Today an owner who forgets their password cannot get back in. There is no email or SMS reset, and the console is read-only | P1, before the beta |
 | B10 | Requests to delete an account or a business, in the app and on a web page | Google Play's rule, and the Data Protection Act | P1, before Play |
 | B11 | CI publishes server-v2's OpenAPI document for the app's contract snapshot | Contract changes show up in the app's pull requests | P2, M1 |
@@ -1023,6 +1023,59 @@ Estimates are working days for one developer working with Claude. They will be r
   - Live scenarios 8 and 9 pass.
   - A purchase-order PDF opens in WhatsApp.
 
+> **M4 outcome (2026-10-24, branch `mobile/m4-sales-stock`, cut from `v2`).**
+>
+> **Built on the server:**
+> - **B8 for purchase orders, by the phone's own id.** `create-purchase-order` takes an optional `id`, as sales and stock notes already do. A retry finds the order the first attempt placed and answers with it. It looks first, because by then the order's stock notes are "already ordered", and checking them would refuse the retry of a save that succeeded. A retry racing the first attempt is caught under the per-shop lock that numbers orders.
+> - **Why not the `Idempotency-Key` header yet:** placing an order is M4's only online-only save. A client id fits how every other save already works, and needs no new table, no Tusk release and no second tenant-scoped store. The general header comes with M6, where invites and password resets need it.
+> - **Shared test cases:** `sale_debt.json` pins the id and the words of a credit sale's debt on both sides.
+>
+> **Built in the app:**
+> - **Sales:**
+>   - **The list:** the last 30 days, newest first, by the shop's day, with each day's total. At the top, today's takings by cash, M-Pesa, bank and credit.
+>   - **A new sale:** the product (suggested from what the shop has sold, so it is spelt one way), the quantity (decimals allowed: 1.5 bags), the total and the method. M-Pesa and bank codes are checked as typed.
+>   - **A credit sale** needs a customer, chosen from a search by name or phone, and warns before going over their limit. A **Sale** button on the customer page starts one for them.
+>   - **The sale's own screen**, with Void for owners. Voiding a credit sale takes its debt off too.
+>   - **Two panes from 840 dp.**
+> - **A credit sale's debt, made on the phone:** the balance moves at once, offline. The debt has the id and words the server will give it, and is never sent: the server makes its own. One rule in the database (`followSales`) keeps the phone's copy in step with its sale until the server's copy replaces it: voided, restored, moved or discarded with it, and refused or accepted with it.
+> - **Stock:**
+>   - **To order:** stock notes, added offline by anyone, edited or removed until they are on an order. A note on an order is read-only, and says why.
+>   - **Orders:** purchase orders, read online. Without a connection the tab says so at once.
+>   - **Placing an order (owners):** the supplier, with suggestions and their phone from the supplier list; a quantity for every product; extra products not noted. The order's id is made once and kept across retries (B8).
+>   - **An order:** its products, Share PDF (Android's share sheet, so WhatsApp, email or Drive) and Cancel.
+> - **Suppliers (owners):**
+>   - the list with what the shop owes each and in all, search, and two panes;
+>   - adding and editing, with the phone from contacts;
+>   - bills (with an optional due date) and payments (with method and code);
+>   - each entry's own screen, with Void;
+>   - delete only at a zero balance.
+> - **Shared form pieces** for every money screen: the amount (now with KES in the box), the due date, the reference and the methods.
+>
+> **Tests:** 281 passing (233 at M3), and the full server-v2 suite with the race detector. The 15 skipped are the live scenarios, which pass against a live server. New: 10 flow tests, 6 for the credit-sale debt rule, 3 for its shared cases, a contrast check, and the M4 layout cases.
+> - **Layout:** every new screen joins every size × text scale × language × role, with seed data that stresses them: a 66-character product, a sale of KES 9.8 million, a supplier with a long name, voided and unsent rows.
+> - **Live:** 15 scenarios against a real server, all passing. New:
+>   - **8:** an offline credit sale leaves exactly one debt, with the same id on both phones, and its void clears it everywhere.
+>   - **9:** a staff phone receives no suppliers. Promoted to owner (`scripts/live-promote.sh`) and signed in again, it resyncs and receives them.
+>   - **B8:** placing an order whose answer was lost, then again, places one order. Cancelling twice is done, not an error.
+> - **Guards broken on purpose and seen to fail:** B8's rescue of a racing retry, and the credit-sale debt rule.
+>
+> **Found and fixed on the way:**
+> - **Unreadable Stock tabs.** On the teal app bar the selected tab's label was invisible. Dimming the unselected one would have put it below 4.5 : 1, so the chosen tab is marked by weight and the indicator, and a contrast test checks the theme. The layout tests could not see this; the screenshots did.
+> - **An endless spinner offline.** Riverpod 3 retries a failed provider for about a minute and reports loading meanwhile. Online-only reads now fail at once, so the screen can say that orders need a connection.
+> - **A stock note's form offered Remove before it had loaded the note.**
+> - **The test phone synced with the role's name,** not with what it may read, as the app does. Both now use one function (`pullScopeFor`).
+> - **`share_plus` 12 conflicts with `package_info_plus` 10**, so the app uses 13.
+>
+> **For the tests:** a read like `.first` from the database finishes on real time, which a widget test's clock does not move. The M4 flow tests let a moment of real time pass after opening a screen and after writing a file.
+>
+> **Changed from the plan:**
+> - **B8 by client id** for purchase orders, not the general header (above).
+> - **Live scenario 9 promotes through the database:** the server has no route to change a role, and v2.0 does not need one.
+>
+> **Not done yet:**
+> - **The WhatsApp check needs a phone:** the share sheet is Android's, so this exit item is for your on-phone test.
+> - **The + button on Home** comes with Home in M5.
+
 **M5 — Home and reports (4–6 days)**
 
 - **Home,** by role, computed on the phone.
@@ -1196,10 +1249,10 @@ After v2.0 come the v2.1 features in §2.4.
 | sync-pull, sync-push | The sync engine | In the background | M1, M2 |
 | create/update/delete-customer, set-customer-credit-limit | Customers | Through sync | M2, M3 ✅ |
 | create-transaction, void-transaction | Debts and payments | Through sync | M2, M3 ✅ |
-| record-sale, void-sale | Sales | Through sync | M4 |
-| create/update/delete-stock-request | Stock | Through sync | M4 |
-| create/cancel/list/get-purchase-order, purchase-order-pdf | Purchase orders | Online, owner | M4 |
-| create/update/delete-supplier, create-supplier-entry, void-supplier-entry | Suppliers | Through sync, owner | M4 |
+| record-sale, void-sale | Sales | Through sync | M4 ✅ |
+| create/update/delete-stock-request | Stock | Through sync | M4 ✅ |
+| create/cancel/list/get-purchase-order, purchase-order-pdf | Purchase orders | Online, owner | M4 ✅ |
+| create/update/delete-supplier, create-supplier-entry, void-supplier-entry | Suppliers | Through sync, owner | M4 ✅ |
 | list/get for customers, transactions, sales, stock requests, suppliers and supplier entries | — | Read from the phone's database instead | — |
 | reports-summary | The self-check, parity tests | Online | M2, M5 |
 | reports-due | Today list | Computed on the phone, by the same FIFO rule | M5 |

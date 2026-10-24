@@ -77,7 +77,9 @@ PostgreSQL on port 5434, so the dev and test databases are not touched.
 Without `SALIO_LIVE_URL` the live tests are skipped.
 Scenario 10 runs `scripts/live-gc.sh`, which ages the live database's
 deletions and runs the real tombstone sweep, so a phone is told to resync.
-It refuses any database whose name lacks "live".
+Scenario 9 runs `scripts/live-promote.sh`, which makes a member of staff an
+owner (the server has no route for it), so their phone starts receiving
+suppliers. Both refuse any database whose name lacks "live".
 
 **The sync engine's failure tests** (`test/sync/`) run the engine against
 `test/support/fake_server.dart`, which can lose answers, time out, fail with

@@ -175,3 +175,66 @@ func TestOrderPDF_Renders(t *testing.T) {
 		t.Fatalf("not a PDF, or filename %q", name)
 	}
 }
+
+// B8: the phone sends the order's id, so a retry after a lost answer, even
+// one racing the first attempt, gets the same order and places nothing more.
+func TestOrder_ARetryWithTheSameIDPlacesOneOrder(t *testing.T) {
+	f := newFixture(t)
+	duodip := f.request(t, "Duodip 20ml")
+
+	in := orderOf(line(duodip, 12))
+	orderID := uuid.New()
+	in.Body.ID = &orderID
+	first, err := f.svc.CreateOrder(f.ctx, f.userID, in)
+	if err != nil {
+		t.Fatalf("first: %v", err)
+	}
+	again, err := f.svc.CreateOrder(f.ctx, f.userID, in)
+	if err != nil {
+		t.Fatalf("retry refused: %v", err)
+	}
+	if first.ID != orderID || again.ID != orderID || again.OrderNumber != first.OrderNumber {
+		t.Fatalf("retry answered %s #%d, want %s #%d", again.ID, again.OrderNumber, orderID, first.OrderNumber)
+	}
+
+	salt := "Mineral salt 2kg"
+	for name, in := range map[string]stock.CreateOrderInput{
+		"from a stock note": orderOf(line(f.request(t, "DAP 50kg"), 2)),
+		"extra products only": orderOf(stock.OrderLineInput{
+			ProductName: &salt, Quantity: quantity.FromUnits(3),
+		}),
+	} {
+		t.Run(name, func(t *testing.T) {
+			id := uuid.New()
+			in.Body.ID = &id
+			const attempts = 5
+			var wg sync.WaitGroup
+			got := make([]*stock.PurchaseOrderView, attempts)
+			errs := make([]error, attempts)
+			for i := range attempts {
+				wg.Add(1)
+				go func(i int) {
+					defer wg.Done()
+					got[i], errs[i] = f.svc.CreateOrder(f.ctx, f.userID, in)
+				}(i)
+			}
+			wg.Wait()
+			for i := range attempts {
+				if errs[i] != nil {
+					t.Fatalf("attempt %d refused: %v", i, errs[i])
+				}
+				if got[i].ID != id || got[i].OrderNumber != got[0].OrderNumber {
+					t.Fatalf("attempt %d answered %s #%d", i, got[i].ID, got[i].OrderNumber)
+				}
+			}
+		})
+	}
+
+	var orders int64
+	if err := f.db.WithContext(f.ctx).Model(&domain.PurchaseOrder{}).Count(&orders).Error; err != nil {
+		t.Fatal(err)
+	}
+	if orders != 3 {
+		t.Fatalf("%d orders placed, want 3", orders)
+	}
+}

@@ -661,6 +661,9 @@
       "CreateOrderInputBody": {
         "additionalProperties": false,
         "properties": {
+          "id": {
+            "type": "string"
+          },
           "lines": {
             "items": {
               "$ref": "#/components/schemas/OrderLineInput"

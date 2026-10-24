@@ -390,6 +390,7 @@ class SyncEngine {
       }
     }
 
+    await db.followSales();
     await (db.delete(
       db.pushBatches,
     )..where((b) => b.operationId.equals(batch.operationId))).go();
@@ -485,6 +486,7 @@ class SyncEngine {
       );
       if (removed > 0) _log.info('resync removed $removed ${kind.wire}');
     }
+    await db.followSales();
     await db.delete(db.resyncSeen).go();
     await db.writeMeta(_resyncKey, '0');
   }
@@ -514,6 +516,7 @@ class SyncEngine {
       }
       count += rows.length;
     }
+    await db.followSales();
     return count;
   }
 

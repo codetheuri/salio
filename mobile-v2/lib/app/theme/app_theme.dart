@@ -38,6 +38,19 @@ abstract final class AppTheme {
           fontWeight: FontWeight.w700,
         ),
       ),
+      // Tabs sit in the teal app bar: white labels and indicator on it. The
+      // chosen tab is marked by weight and the indicator, not by dimming the
+      // others, which would drop them below 4.5 : 1 (theme_contrast_test).
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.onPrimary,
+        unselectedLabelColor: AppColors.onPrimary,
+        indicatorColor: AppColors.onPrimary,
+        dividerColor: Colors.transparent,
+        labelStyle: AppTypography.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelStyle: AppTypography.textTheme.titleSmall,
+      ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 2,

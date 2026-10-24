@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'account_store.dart';
 import 'permissions.dart';
 import 'session_controller.dart';
 
@@ -17,6 +18,19 @@ class SessionUser {
 
   SessionUser.ofRole(this.name, this.role) : permissions = role.permissions;
 
+  /// The user [account] is: the server's permissions (B5), or for an
+  /// account saved before the server sent them, the role's table.
+  factory SessionUser.of(Account account) {
+    final granted = account.permissions;
+    return granted == null
+        ? SessionUser.ofRole(account.name, account.role)
+        : SessionUser(
+            name: account.name,
+            role: account.role,
+            permissions: granted.toSet(),
+          );
+  }
+
   bool can(String permission) => permissions.contains(permission);
 }
 
@@ -28,12 +42,5 @@ final currentUserProvider = Provider<SessionUser>((ref) {
   if (account == null) {
     return const SessionUser(name: '', role: Role.staff, permissions: {});
   }
-  final granted = account.permissions;
-  return granted == null
-      ? SessionUser.ofRole(account.name, account.role)
-      : SessionUser(
-          name: account.name,
-          role: account.role,
-          permissions: granted.toSet(),
-        );
+  return SessionUser.of(account);
 });

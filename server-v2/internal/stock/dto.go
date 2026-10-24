@@ -107,6 +107,10 @@ type OrderLineInput struct {
 
 type CreateOrderInput struct {
 	Body struct {
+		// ID is optional (B8). The phone sends one it generated, so a retry
+		// after a lost answer gets the order it already placed, instead of a
+		// second order for the same goods.
+		ID            *uuid.UUID       `json:"id,omitempty"`
 		SupplierName  string           `json:"supplier_name" required:"true" minLength:"1" maxLength:"255"`
 		SupplierPhone *string          `json:"supplier_phone,omitempty" maxLength:"50"`
 		Notes         *string          `json:"notes,omitempty" maxLength:"1000"`

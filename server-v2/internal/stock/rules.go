@@ -31,6 +31,10 @@ var (
 	ErrOrderNotActive     = errors.New("this purchase order is already cancelled")
 )
 
+// errOrderExists: an order with the client's id was placed while this copy
+// of the request waited for the lock. Answered with that order, never shown.
+var errOrderExists = errors.New("purchase order already placed")
+
 // ValidateRequest checks a stock request on its own terms. Shared by the REST
 // handlers and the sync engine, so both paths enforce the same thing.
 func ValidateRequest(r *domain.StockRequest) error {

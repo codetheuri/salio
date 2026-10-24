@@ -18,6 +18,16 @@ import '../../features/ledger/presentation/entry_screen.dart';
 import '../../features/ledger/presentation/record_debt_screen.dart';
 import '../../features/ledger/presentation/record_payment_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
+import '../../features/sales/presentation/new_sale_screen.dart';
+import '../../features/sales/presentation/sales_screen.dart';
+import '../../features/stock/presentation/place_order_screen.dart';
+import '../../features/stock/presentation/purchase_order_screen.dart';
+import '../../features/stock/presentation/stock_note_screen.dart';
+import '../../features/stock/presentation/stock_screen.dart';
+import '../../features/suppliers/presentation/supplier_entry_form_screen.dart';
+import '../../features/suppliers/presentation/supplier_entry_screen.dart';
+import '../../features/suppliers/presentation/supplier_form_screen.dart';
+import '../../features/suppliers/presentation/suppliers_screen.dart';
 import '../../features/sync_issues/presentation/needs_attention_screen.dart';
 import '../shell/app_sections.dart';
 import '../shell/main_shell.dart';
@@ -79,11 +89,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (section != null && !section.visibleTo(user)) {
         return AppSection.home.path;
       }
-      // Owner-only screens, opened by someone else: back to the customer.
-      final needs = _customerActions[location.split('/').last];
-      if (needs != null &&
-          location.startsWith('/customers/') &&
-          !user.can(needs)) {
+      // A screen that needs a permission the user lacks, opened from an old
+      // link or after a role change: back to the screen it was opened from.
+      final needs = _actions[section]?[location.split('/').last];
+      if (needs != null && location.contains('/', 1) && !user.can(needs)) {
         return location.substring(0, location.lastIndexOf('/'));
       }
       return null;
@@ -116,13 +125,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Customer screens that need a permission, by their last path segment.
-const _customerActions = {
-  'edit': Permission.customersUpdate,
-  'limit': Permission.customersCreditLimit,
-  'debt': Permission.transactionsCreate,
-  'payment': Permission.transactionsCreate,
-  'new': Permission.customersCreate,
+/// Screens that need a permission, by section and last path segment.
+const _actions = {
+  AppSection.customers: {
+    'edit': Permission.customersUpdate,
+    'limit': Permission.customersCreditLimit,
+    'debt': Permission.transactionsCreate,
+    'payment': Permission.transactionsCreate,
+    'sale': Permission.salesCreate,
+    'new': Permission.customersCreate,
+  },
+  AppSection.sales: {'new': Permission.salesCreate},
+  AppSection.stock: {
+    'new': Permission.stockRequest,
+    'order': Permission.purchaseOrdersManage,
+  },
+  AppSection.suppliers: {
+    'new': Permission.suppliersManage,
+    'edit': Permission.suppliersManage,
+    'bill': Permission.suppliersManage,
+    'payment': Permission.suppliersManage,
+  },
 };
 
 /// A section's first screen, and the screens opened from it, which keep the
@@ -163,9 +186,94 @@ GoRoute _sectionRoute(AppSection section) => switch (section) {
                 RecordPaymentScreen(customerId: state.pathParameters['id']!),
           ),
           GoRoute(
+            path: 'sale',
+            builder: (context, state) =>
+                NewSaleScreen(customerId: state.pathParameters['id']),
+          ),
+          GoRoute(
             path: 'entries/:entryId',
             builder: (context, state) => EntryScreen(
               customerId: state.pathParameters['id']!,
+              entryId: state.pathParameters['entryId']!,
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+  AppSection.sales => GoRoute(
+    path: section.path,
+    builder: (context, state) => const SalesScreen(),
+    routes: [
+      GoRoute(path: 'new', builder: (context, state) => const NewSaleScreen()),
+      GoRoute(
+        path: ':id',
+        builder: (context, state) =>
+            SalesScreen(selectedId: state.pathParameters['id']),
+      ),
+    ],
+  ),
+  AppSection.stock => GoRoute(
+    path: section.path,
+    builder: (context, state) =>
+        StockScreen(showOrders: state.uri.queryParameters['tab'] == 'orders'),
+    routes: [
+      GoRoute(
+        path: 'new',
+        builder: (context, state) => const StockNoteScreen(),
+      ),
+      GoRoute(
+        path: 'order',
+        builder: (context, state) => const PlaceOrderScreen(),
+      ),
+      GoRoute(
+        path: 'orders/:orderId',
+        builder: (context, state) =>
+            PurchaseOrderScreen(orderId: state.pathParameters['orderId']!),
+      ),
+      GoRoute(
+        path: ':noteId',
+        builder: (context, state) =>
+            StockNoteScreen(noteId: state.pathParameters['noteId']),
+      ),
+    ],
+  ),
+  AppSection.suppliers => GoRoute(
+    path: section.path,
+    builder: (context, state) => const SuppliersScreen(),
+    routes: [
+      GoRoute(
+        path: 'new',
+        builder: (context, state) => const SupplierFormScreen(),
+      ),
+      GoRoute(
+        path: ':id',
+        builder: (context, state) =>
+            SuppliersScreen(selectedId: state.pathParameters['id']),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) =>
+                SupplierFormScreen(supplierId: state.pathParameters['id']),
+          ),
+          GoRoute(
+            path: 'bill',
+            builder: (context, state) => SupplierEntryFormScreen(
+              supplierId: state.pathParameters['id']!,
+              payment: false,
+            ),
+          ),
+          GoRoute(
+            path: 'payment',
+            builder: (context, state) => SupplierEntryFormScreen(
+              supplierId: state.pathParameters['id']!,
+              payment: true,
+            ),
+          ),
+          GoRoute(
+            path: 'entries/:entryId',
+            builder: (context, state) => SupplierEntryScreen(
+              supplierId: state.pathParameters['id']!,
               entryId: state.pathParameters['entryId']!,
             ),
           ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,7 +8,7 @@ import '../../../core/sync/sync_controller.dart';
 import '../../../core/widgets/form_page.dart';
 import '../../customers/data/providers.dart';
 import '../domain/payment_reference.dart';
-import 'record_debt_screen.dart';
+import 'widgets/money_fields.dart';
 
 /// Records a payment on this phone: how much and how it came in. An M-Pesa
 /// code is checked as it is typed, and is optional; a payment above what
@@ -40,12 +39,6 @@ class _RecordPaymentScreenState extends ConsumerState<RecordPaymentScreen> {
     super.dispose();
   }
 
-  String _methodLabel(AppLocalizations l10n, PaymentMethod m) => switch (m) {
-    PaymentMethod.cash => l10n.methodCash,
-    PaymentMethod.mpesa => l10n.methodMpesa,
-    PaymentMethod.bank => l10n.methodBank,
-  };
-
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
@@ -60,7 +53,7 @@ class _RecordPaymentScreenState extends ConsumerState<RecordPaymentScreen> {
           // The server needs a description on every entry; the method is
           // the plainest one when the user gives none.
           description: _note.text.trim().isEmpty
-              ? _methodLabel(l10n, _method)
+              ? paymentMethodLabel(l10n, _method)
               : _note.text,
         );
     ref.read(syncProvider.notifier).requestSoon();
@@ -91,54 +84,17 @@ class _RecordPaymentScreenState extends ConsumerState<RecordPaymentScreen> {
               ? l10n.paymentAdvance(Money.format(extra, compact: true))
               : null,
         ),
-        // Wraps to two rows at the largest text on a small phone.
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final m in PaymentMethod.values)
-              ChoiceChip(
-                label: Text(_methodLabel(l10n, m)),
-                selected: _method == m,
-                onSelected: (_) => setState(() {
-                  _method = m;
-                  _reference.clear();
-                }),
-              ),
-          ],
+        MethodChips(
+          values: PaymentMethod.values,
+          selected: _method,
+          label: (m) => paymentMethodLabel(l10n, m),
+          onSelected: (m) => setState(() {
+            _method = m;
+            _reference.clear();
+          }),
         ),
         if (_method != PaymentMethod.cash)
-          TextFormField(
-            key: ValueKey(_method),
-            controller: _reference,
-            textCapitalization: _method == PaymentMethod.mpesa
-                ? TextCapitalization.characters
-                : TextCapitalization.none,
-            inputFormatters: [
-              if (_method == PaymentMethod.mpesa) ...[
-                FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9]')),
-                LengthLimitingTextInputFormatter(10),
-              ] else
-                LengthLimitingTextInputFormatter(PaymentReference.maxLength),
-            ],
-            // Checked as it is typed once ten characters are in: a code with
-            // one character wrong matches no SMS.
-            autovalidateMode: AutovalidateMode.onUserInteraction,
-            decoration: InputDecoration(
-              labelText: _method == PaymentMethod.mpesa
-                  ? l10n.mpesaCode
-                  : l10n.bankReference,
-              helperText: _method == PaymentMethod.mpesa
-                  ? l10n.mpesaCodeHint
-                  : null,
-            ),
-            validator: (v) =>
-                switch (PaymentReference.check(_method, v ?? '').problem) {
-                  ReferenceProblem.mpesaCode => l10n.mpesaCodeInvalid,
-                  ReferenceProblem.tooLong => l10n.referenceTooLong,
-                  _ => null,
-                },
-          ),
+          ReferenceField(method: _method, controller: _reference),
         TextFormField(
           controller: _note,
           textCapitalization: TextCapitalization.sentences,
