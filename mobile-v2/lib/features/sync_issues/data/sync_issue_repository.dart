@@ -206,6 +206,8 @@ class SyncIssueRepository {
       );
     }
     await _clear(issue.recordTable, issue.recordId);
+    // A discarded credit sale takes the debt this phone made for it.
+    await db.followSales();
   });
 
   /// "Use the existing customer": this phone's entries and sales for the
@@ -241,6 +243,7 @@ class SyncIssueRepository {
             ))
             .go();
         await _clear('customers', copyId);
+        await db.followSales();
       });
 
   Future<void> _clear(String table, String id) => (db.delete(

@@ -186,10 +186,10 @@ class SyncController extends Notifier<SyncStatus> {
 /// What a pull returns for this user, in a word the engine compares between
 /// syncs: when it changes, everything is pulled again. Today only reading
 /// suppliers changes what a pull sends (server-v2's `Service.Pull`).
-String pullScope(Ref ref) =>
-    ref.read(currentUserProvider).can(Permission.suppliersRead)
-    ? Permission.suppliersRead
-    : 'basic';
+String pullScope(Ref ref) => pullScopeFor(ref.read(currentUserProvider));
+
+String pullScopeFor(SessionUser user) =>
+    user.can(Permission.suppliersRead) ? Permission.suppliersRead : 'basic';
 
 /// Records on this phone the server has not accepted yet, of every kind.
 final unsentCountProvider = StreamProvider<int>((ref) {

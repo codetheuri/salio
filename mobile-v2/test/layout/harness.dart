@@ -21,6 +21,7 @@ import 'package:salio/core/session/current_user.dart';
 import 'package:salio/core/session/permissions.dart';
 import 'package:salio/core/session/session_controller.dart';
 import 'package:salio/core/sync/sync_controller.dart';
+import 'package:salio/features/stock/data/providers.dart';
 
 import '../support/fake_app_update.dart';
 import '../support/fixtures.dart';
@@ -40,6 +41,21 @@ Map<Role, List<String>> get routesByRole => {
       if (role == Role.owner) '/customers/$longCustomerId/limit',
       '/customers/$longCustomerId/entries/$longEntryId',
       '/more/attention',
+      '/sales/new',
+      '/sales/$longSaleId',
+      '/customers/$longCustomerId/sale',
+      '/stock/new',
+      '/stock/$longNoteId',
+      '/stock/orders/$longOrderId',
+      if (role == Role.owner) ...[
+        '/stock/order',
+        '/suppliers/new',
+        '/suppliers/$longSupplierId',
+        '/suppliers/$longSupplierId/edit',
+        '/suppliers/$longSupplierId/bill',
+        '/suppliers/$longSupplierId/payment',
+        '/suppliers/$longSupplierId/entries/$longSupplierEntryId',
+      ],
     ],
 };
 
@@ -139,6 +155,7 @@ class AppUnderTest {
     required String route,
     Locale locale = const Locale('en'),
     FakeAppUpdateService? updates,
+    FakePurchaseOrderApi? orders,
     List<Override> overrides = const [],
   }) async {
     PackageInfo.setMockInitialValues(
@@ -157,6 +174,10 @@ class AppUnderTest {
         databaseProvider.overrideWithValue(db),
         httpAdapterProvider.overrideWithValue(OfflineAdapter()),
         connectionChangesProvider.overrideWithValue(const Stream.empty()),
+        // Purchase orders are online-only; these are served from fixtures.
+        purchaseOrderApiProvider.overrideWithValue(
+          orders ?? FakePurchaseOrderApi(),
+        ),
         // Never the real update server or Android's installer.
         ...fakeUpdateOverrides(updates),
         ...overrides,

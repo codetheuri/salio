@@ -451,7 +451,7 @@
   "entryDescription": "Description",
   "entryStatus": "Status",
   "entrySent": "Sent",
-  "entryFromSale": "From a credit sale: void the sale instead.",
+  "entryFromSale": "From a credit sale. Open the sale to void it.",
   "entryVoid": "Void entry",
   "entryVoidConfirm": "Void this entry? It stays in the history, crossed out, and stops counting in the balance.",
   "someoneElse": "someone else",
@@ -495,5 +495,127 @@
       }
     }
   },
-  "moreOptions": "More options"
+  "moreOptions": "More options",
+  "saleNew": "New sale",
+  "saleSelect": "Choose a sale to see it.",
+  "salesEmpty": "No sales in the last 30 days. Tap New sale to record one.",
+  "salesToday": "{count, plural, =0{Today: no sales yet} =1{Today: 1 sale} other{Today: {count} sales}}",
+  "@salesToday": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "methodCredit": "Credit",
+  "saleProduct": "Product",
+  "saleQuantity": "Quantity",
+  "saleQuantityHint": "e.g. 2, or 1.5 for one and a half",
+  "saleQuantityInvalid": "Enter a number, like 2 or 1.5",
+  "saleAmount": "Total",
+  "saleChooseCustomer": "Choose the customer",
+  "saleCustomerOptional": "Customer (optional)",
+  "saleCustomerClear": "Remove the customer",
+  "saleCreditHint": "The total goes on their account.",
+  "saleCreditNeedsCustomer": "A credit sale needs a customer.",
+  "saleSoldAt": "Sold",
+  "saleSoldBy": "Sold by",
+  "saleCustomer": "Customer",
+  "saleOnAccount": "Put on their account",
+  "saleVoid": "Void sale",
+  "saleVoidConfirm": "Void this sale? It stays in the list, crossed out, and stops counting.",
+  "saleVoidConfirmCredit": "Void this sale? Its debt comes off the customer's account too. It stays in the list, crossed out.",
+  "customerChoose": "Choose a customer",
+  "saleCredit": "Sale",
+  "stockToOrder": "To order",
+  "stockOrders": "Orders",
+  "stockNoteNew": "Note stock",
+  "stockNoteEdit": "Stock note",
+  "stockToOrderEmpty": "Nothing to order. When something runs out, tap Note stock.",
+  "stockRanOut": "Ran out {date}",
+  "@stockRanOut": {
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "Tue 14 Oct 2026"
+      }
+    }
+  },
+  "stockRanOutOn": "Ran out on",
+  "stockProductHint": "e.g. Duodip 20ml",
+  "stockNoteOrdered": "This is on a purchase order. Cancel the order to change it.",
+  "stockNoteRemove": "Remove",
+  "stockNoteRemoveConfirm": "Remove this note? It goes from every phone.",
+  "orderPlace": "Place order",
+  "orderPlacing": "Placing order…",
+  "orderNeedsConnection": "Placing an order needs a connection: the server numbers it.",
+  "orderSupplier": "Supplier",
+  "orderSupplierPhone": "Supplier's phone (optional)",
+  "orderProductsTitle": "Products",
+  "orderNoNotes": "No stock notes. Add the products to order below.",
+  "orderAddProduct": "Add a product",
+  "orderRemoveProduct": "Remove this product",
+  "orderQuantityRequired": "How many?",
+  "orderNoProducts": "Tick or add at least one product.",
+  "ordersEmpty": "No purchase orders yet.",
+  "ordersNeedConnection": "Purchase orders need a connection.",
+  "ordersAll": "All orders",
+  "orderCancelled": "Cancelled",
+  "orderProducts": "{count, plural, =1{1 product} other{{count} products}}",
+  "@orderProducts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "orderedOn": "Ordered",
+  "orderSharePdf": "Share PDF",
+  "orderCancel": "Cancel order",
+  "orderCancelConfirm": "Cancel {reference}? Its products go back on the list to order. Tell the supplier.",
+  "@orderCancelConfirm": {
+    "placeholders": {
+      "reference": {
+        "type": "String",
+        "example": "PO-0007"
+      }
+    }
+  },
+  "supplierAdd": "Add supplier",
+  "supplierEdit": "Edit supplier",
+  "supplierSelect": "Choose a supplier to see what the shop owes them.",
+  "suppliersEmpty": "No suppliers yet. Tap + to add the first.",
+  "suppliersNoMatch": "No suppliers match.",
+  "suppliersOwedTotal": "The shop owes {amount} in all",
+  "@suppliersOwedTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "KES 12,500"
+      }
+    }
+  },
+  "supplierNameHint": "e.g. Elgon Kenya, Ruiru depot",
+  "supplierWeOwe": "We owe",
+  "supplierPrepaid": "Prepaid",
+  "supplierRecordBill": "Record bill",
+  "supplierRecordPayment": "Pay supplier",
+  "supplierBill": "Bill",
+  "supplierPayment": "Payment",
+  "supplierBillHint": "e.g. Invoice 4471: 20 bags DAP",
+  "supplierPaymentHint": "e.g. For invoice 4471",
+  "supplierEntriesEmpty": "No bills or payments yet.",
+  "supplierDelete": "Delete supplier",
+  "supplierDeleteNotZero": "Only a supplier whose balance is zero can be deleted.",
+  "supplierDeleteConfirm": "Delete {name}? Their history stays in the reports.",
+  "@supplierDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Elgon Kenya"
+      }
+    }
+  }
 }

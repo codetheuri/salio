@@ -48,6 +48,11 @@ class ShopTime {
     return DateTime.utc(l.year, l.month, l.day);
   }
 
+  /// The instant the shop's calendar [day] (UTC midnight, as [day] gives)
+  /// begins on its wall clock: where "today's sales" start.
+  DateTime startOf(DateTime day) =>
+      tz.TZDateTime(location, day.year, day.month, day.day).toUtc();
+
   /// "Tue 14 Oct, 10:15".
   String dateTime(DateTime t, String locale) =>
       DateFormat('EEE d MMM, HH:mm', locale).format(local(t));

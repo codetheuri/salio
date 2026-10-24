@@ -84,6 +84,13 @@ class CustomerScreen extends ConsumerWidget {
                         label: Text(l10n.recordPayment),
                       ),
                     ],
+                    if (user.can(Permission.salesCreate))
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            context.go('/customers/$customerId/sale'),
+                        icon: const Icon(Icons.point_of_sale_outlined),
+                        label: Text(l10n.saleCredit),
+                      ),
                   ],
                 ),
               ),

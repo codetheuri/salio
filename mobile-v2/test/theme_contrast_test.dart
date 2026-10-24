@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salio/app/theme/app_colors.dart';
+import 'package:salio/app/theme/app_theme.dart';
 
 // Text must reach 4.5 : 1 against what it is drawn on, for shops in bright
 // light (docs/10, §5; WCAG 2.1, 1.4.3).
@@ -43,5 +44,15 @@ void main() {
       _contrast(AppColors.onPrimary, AppColors.primaryDark),
       greaterThanOrEqualTo(4.5),
     );
+  });
+
+  test('an unselected tab in the app bar is readable', () {
+    final tabs = AppTheme.light.tabBarTheme;
+    final dimmed = Color.alphaBlend(
+      tabs.unselectedLabelColor!,
+      AppColors.primary,
+    );
+    expect(_contrast(dimmed, AppColors.primary), greaterThanOrEqualTo(4.5));
+    expect(tabs.labelColor, AppColors.onPrimary);
   });
 }

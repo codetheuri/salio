@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import 'api_exception.dart';
@@ -7,8 +9,10 @@ import 'api_exception.dart';
 /// the `data` value or an [ApiException].
 ///
 /// Nothing here retries. The sync engine retries pushes, which its
-/// operation_id makes safe; an online-only save must not be retried until
-/// the server accepts an Idempotency-Key (docs/10, §4.6, B8).
+/// operation_id makes safe. An online-only save is safe to repeat only when
+/// it carries an id the phone made, which the server answers again with
+/// the same record (placing a purchase order, B8); the screen keeps that
+/// id across the user's retries.
 class ApiClient {
   final Dio _dio;
 
@@ -50,22 +54,47 @@ class ApiClient {
   Future<Object?> post(String path, Object? body) =>
       _send(() => _dio.post<Object?>(path, data: body));
 
+  /// GET of a file, such as a PDF: its bytes, or an [ApiException] read
+  /// from the envelope the server sends instead on failure.
+  Future<List<int>> getBytes(String path) async {
+    final Response<List<int>> response;
+    try {
+      response = await _dio.get<List<int>>(
+        path,
+        options: Options(responseType: ResponseType.bytes),
+      );
+    } on DioException catch (e) {
+      throw _failure(e);
+    }
+    final status = response.statusCode ?? 0;
+    final bytes = response.data ?? const <int>[];
+    if (status >= 200 && status < 300) return bytes;
+    Object? body;
+    try {
+      body = jsonDecode(utf8.decode(bytes));
+    } on FormatException {
+      body = null;
+    }
+    _unwrap(status, body);
+    throw ApiException(ApiFailure.server, status: status);
+  }
+
   Future<Object?> _send(Future<Response<Object?>> Function() request) async {
     final Response<Object?> response;
     try {
       response = await request();
     } on DioException catch (e) {
-      throw switch (e.type) {
-        DioExceptionType.connectionTimeout ||
-        DioExceptionType.sendTimeout ||
-        DioExceptionType.receiveTimeout => const ApiException(
-          ApiFailure.timeout,
-        ),
-        _ => const ApiException(ApiFailure.offline),
-      };
+      throw _failure(e);
     }
     return _unwrap(response.statusCode ?? 0, response.data);
   }
+
+  static ApiException _failure(DioException e) => switch (e.type) {
+    DioExceptionType.connectionTimeout ||
+    DioExceptionType.sendTimeout ||
+    DioExceptionType.receiveTimeout => const ApiException(ApiFailure.timeout),
+    _ => const ApiException(ApiFailure.offline),
+  };
 
   static Object? _unwrap(int status, Object? body) {
     final envelope = body is Map<String, dynamic> ? body : null;

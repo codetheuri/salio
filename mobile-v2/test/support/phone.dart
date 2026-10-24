@@ -12,11 +12,18 @@ import 'package:salio/core/database/app_database.dart';
 import 'package:salio/core/money/money.dart';
 import 'package:salio/core/network/api_client.dart';
 import 'package:salio/core/session/account_store.dart';
+import 'package:salio/core/session/current_user.dart';
+import 'package:salio/core/sync/sync_controller.dart';
 import 'package:salio/core/sync/sync_engine.dart';
 import 'package:salio/core/time/server_clock.dart';
+import 'package:salio/core/time/shop_time.dart';
 import 'package:salio/features/auth/data/auth_api.dart';
 import 'package:salio/features/customers/data/customer_repository.dart';
 import 'package:salio/features/ledger/data/ledger_repository.dart';
+import 'package:salio/features/sales/data/sales_repository.dart';
+import 'package:salio/features/stock/data/purchase_order_api.dart';
+import 'package:salio/features/stock/data/stock_repository.dart';
+import 'package:salio/features/suppliers/data/supplier_repository.dart';
 import 'package:salio/features/sync_issues/data/sync_issue_repository.dart';
 
 /// Wraps an adapter so a test can act around each request: run something
@@ -106,6 +113,16 @@ class Phone {
 
   LedgerRepository get ledger => LedgerRepository(db, clock, account.userId);
 
+  SalesRepository get sales => SalesRepository(db, clock, account.userId);
+
+  StockRepository get stock =>
+      StockRepository(db, clock, ShopTime(account.timeZone), account.userId);
+
+  SupplierRepository get suppliers =>
+      SupplierRepository(db, clock, account.userId);
+
+  PurchaseOrderApi get orders => PurchaseOrderApi(api);
+
   /// Every live customer's balance, by name.
   Future<Map<String, int>> balances() async => {
     for (final c in await customers.watchAll().first)
@@ -128,8 +145,22 @@ class Phone {
   Future<CustomerRow> customer(String id) =>
       (db.select(db.customers)..where((c) => c.id.equals(id))).getSingle();
 
-  /// Syncs as the signed-in role, as the app does.
-  Future<SyncReport> syncNow() => sync.sync(access: account.role.name);
+  /// Syncs with what this user may read, as the app does.
+  Future<SyncReport> syncNow() =>
+      sync.sync(access: pullScopeFor(SessionUser.of(account)));
+
+  /// Signs in again on this phone, keeping its database: what the app does
+  /// after the server ends a session, and how a changed role arrives.
+  Future<void> signInAgain({
+    required String phone,
+    required String password,
+  }) async {
+    final result = await AuthApi(
+      api,
+    ).signIn(phone: phone, password: password, now: clock.now());
+    token = result.token;
+    account = result.account;
+  }
 
   Future<int> pendingCount() async {
     final c = await (db.select(

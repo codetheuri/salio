@@ -19,6 +19,9 @@ import 'package:salio/core/phone/phone.dart' as phone_rule;
 import 'package:salio/core/session/permissions.dart';
 import 'package:salio/features/app_update/data/app_update_service.dart';
 import 'package:salio/features/ledger/domain/payment_reference.dart';
+import 'package:salio/features/sales/data/sales_repository.dart';
+import 'package:salio/features/sales/domain/sale_debt.dart';
+import 'package:salio/features/stock/data/purchase_order_api.dart';
 
 import '../support/fake_app_update.dart';
 
@@ -36,7 +39,7 @@ String _newPhone() =>
 const _password = 'live-test-pass';
 
 /// A new shop with an owner on phone A and a member of staff on phone B.
-Future<({Phone a, Phone b, String ownerPhone})> _newShop({
+Future<({Phone a, Phone b, String ownerPhone, String staffPhone})> _newShop({
   int pageSizeB = 200,
 }) async {
   final server = Uri.parse(_url!);
@@ -81,7 +84,7 @@ Future<({Phone a, Phone b, String ownerPhone})> _newShop({
   );
   addTearDown(a.close);
   addTearDown(b.close);
-  return (a: a, b: b, ownerPhone: ownerPhone);
+  return (a: a, b: b, ownerPhone: ownerPhone, staffPhone: staffPhone);
 }
 
 void main() {
@@ -364,6 +367,134 @@ void main() {
       expect(await shop.a.balances(), {'Mutua': 5000});
       expect((await shop.a.issues()).single.reason, 'has_balance');
       expect((await shop.a.customer(id)).isDeleted, isFalse);
+    });
+
+    test('8: a credit sale made offline leaves exactly one debt, with the '
+        'same id on every phone', () async {
+      final shop = await _newShop();
+      final otieno = await shop.a.customers.add(
+        name: 'Otieno',
+        phone: '0711000222',
+      );
+      await shop.a.syncNow();
+
+      // Offline on A: the sale, and at once the debt it puts on Otieno.
+      final sale = await shop.a.sales.record(
+        productName: 'DAP 50kg',
+        quantity: 2000,
+        amountCents: 700000,
+        method: SaleMethod.credit,
+        customerId: otieno,
+      );
+      expect(await shop.a.balances(), {'Otieno': 700000});
+
+      final report = await shop.a.syncNow();
+      expect(report.conflicts, 0);
+      await shop.b.syncNow();
+
+      final debtId = SaleDebt.idFor(sale);
+      for (final phone in [shop.a, shop.b]) {
+        final debts = await (phone.db.select(
+          phone.db.ledgerEntries,
+        )..where((e) => e.saleId.equals(sale))).get();
+        expect(debts, hasLength(1), reason: phone.label);
+        expect(debts.single.id, debtId, reason: phone.label);
+        expect(debts.single.description, 'Sale: DAP 50kg x 2');
+        expect(debts.single.syncState, SyncState.synced, reason: phone.label);
+        expect(await phone.balances(), {'Otieno': 700000});
+      }
+      expect(await shop.a.serverBalances(), {'Otieno': 700000});
+      expect(await shop.a.pendingCount(), 0, reason: 'nothing left waiting');
+
+      // Voided on A: off the account everywhere, once.
+      await shop.a.sales.voidSale(sale);
+      expect(await shop.a.balances(), {'Otieno': 0});
+      await shop.a.syncNow();
+      await shop.b.syncNow();
+      expect(await shop.b.balances(), {'Otieno': 0});
+      expect(await shop.a.serverBalances(), {'Otieno': 0});
+    });
+
+    test('9: a staff phone never receives suppliers; promoted to owner and '
+        'resynced, it does', () async {
+      final shop = await _newShop();
+      final elgon = await shop.a.suppliers.add(name: 'Elgon Kenya');
+      await shop.a.suppliers.recordBill(
+        supplierId: elgon,
+        amountCents: 1200000,
+        description: 'Invoice 4471',
+      );
+      await shop.a.syncNow();
+
+      await shop.b.syncNow();
+      expect(await shop.b.db.select(shop.b.db.suppliers).get(), isEmpty);
+      expect(await shop.b.db.select(shop.b.db.supplierEntries).get(), isEmpty);
+
+      final promoted = await Process.run('scripts/live-promote.sh', [
+        phone_rule.Phone.normalize(shop.staffPhone)!,
+      ]);
+      expect(promoted.exitCode, 0, reason: '${promoted.stderr}');
+      expect('${promoted.stdout}', contains('promoted'));
+      await shop.b.signInAgain(phone: shop.staffPhone, password: _password);
+      expect(shop.b.account.permissions, contains(Permission.suppliersRead));
+
+      final report = await shop.b.syncNow();
+      expect(report.resynced, isTrue);
+      final suppliers = await shop.b.suppliers.watchList().first;
+      expect(suppliers.single.supplier.name, 'Elgon Kenya');
+      expect(suppliers.single.balanceCents, 1200000);
+    });
+
+    test('B8: placing an order whose answer was lost, then again, places '
+        'one order', () async {
+      final shop = await _newShop();
+      final note = await shop.a.stock.add(productName: 'Duodip 20ml');
+      await shop.a.syncNow();
+
+      final id = PurchaseOrderApi.newId();
+      Future<PurchaseOrder> place() => shop.a.orders.place(
+        id: id,
+        supplierName: 'Twiga',
+        lines: [
+          OrderLine(
+            productName: 'Duodip 20ml',
+            quantity: 12000,
+            stockRequestId: note,
+          ),
+        ],
+      );
+      shop.a.adapter.afterResponse = (request, _) {
+        if (request.path.endsWith('/purchase-orders')) {
+          throw DioException.connectionError(
+            requestOptions: request,
+            reason: 'answer lost',
+          );
+        }
+      };
+      await expectLater(place(), throwsA(isA<ApiException>()));
+      shop.a.adapter.afterResponse = null;
+
+      // The note is now on the order, yet the retry is answered, not refused.
+      final order = await place();
+      expect(order.id, id);
+      final all = await shop.a.orders.list();
+      expect(all, hasLength(1));
+      expect(all.single.lines.single.quantity, 12000);
+
+      // Its note left the list to order, on the next sync.
+      await shop.a.syncNow();
+      expect(await shop.a.stock.watchToOrder().first, isEmpty);
+
+      // Cancelled twice, the second after a lost answer: done, not an error.
+      await shop.a.orders.cancel(id);
+      await shop.a.orders.cancel(id);
+      expect((await shop.a.orders.get(id)).cancelled, isTrue);
+      await shop.a.syncNow();
+      expect(
+        (await shop.a.stock.watchToOrder().first).single.id,
+        note,
+        reason: 'back on the list to order',
+      );
     });
 
     test('10: a phone away past the deletion horizon resyncs, loses what '

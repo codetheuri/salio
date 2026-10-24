@@ -117,7 +117,13 @@ class EntryScreen extends ConsumerWidget {
                 ),
               ),
             if (fromSale)
-              Text(l10n.entryFromSale, style: theme.textTheme.bodyMedium),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.point_of_sale_outlined),
+                title: Text(l10n.entryFromSale),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go('/sales/${entry.saleId}'),
+              ),
             if (canVoid) ...[
               const SizedBox(height: AppSpacing.lg),
               Align(
