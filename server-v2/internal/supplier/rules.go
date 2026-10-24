@@ -18,6 +18,7 @@ import (
 	"salio/server-v2/internal/money"
 	"salio/server-v2/internal/payment"
 	"salio/server-v2/internal/phone"
+	"salio/server-v2/internal/shopclock"
 )
 
 // The rules every supplier write obeys, whichever path it arrives by. Plain
@@ -68,7 +69,7 @@ func ValidateSupplier(s *domain.Supplier) error {
 }
 
 // ValidateEntry checks a new bill or payment and normalises its reference.
-func ValidateEntry(t *domain.SupplierTransaction) error {
+func ValidateEntry(t *domain.SupplierTransaction, loc *time.Location) error {
 	t.Description = strings.TrimSpace(t.Description)
 	switch {
 	case !t.Type.Valid():
@@ -101,7 +102,7 @@ func ValidateEntry(t *domain.SupplierTransaction) error {
 	if t.PaymentMethod != nil || t.Reference != nil {
 		return ErrMethodOnBill
 	}
-	if t.DueDate != nil && t.DueDate.Before(t.TransactionDate) {
+	if t.DueDate != nil && domain.DueBefore(*t.DueDate, t.TransactionDate, loc) {
 		return ErrDueBeforeDate
 	}
 	return nil
@@ -129,12 +130,16 @@ func IsRuleError(err error) bool {
 // allowed only at a zero balance, and an entry landing between that check and
 // the delete would leave a deleted supplier still owed money.
 func Record(ctx context.Context, db *gorm.DB, t *domain.SupplierTransaction) error {
-	if err := ValidateEntry(t); err != nil {
+	loc, err := shopclock.Location(ctx, db)
+	if err != nil {
+		return err
+	}
+	if err := ValidateEntry(t, loc); err != nil {
 		return err
 	}
 
 	var s domain.Supplier
-	err := db.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).
+	err = db.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("is_deleted = false").
 		First(&s, "id = ?", t.SupplierID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {

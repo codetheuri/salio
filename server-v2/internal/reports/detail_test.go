@@ -264,12 +264,17 @@ func TestReportPDFs_AllRender(t *testing.T) {
 	if err != nil {
 		t.Fatalf("collections: %v", err)
 	}
+	payables, err := f.svc.Payables(f.ctx, 7)
+	if err != nil {
+		t.Fatalf("payables: %v", err)
+	}
 
 	for name, render := range map[string]func() ([]byte, string, error){
 		"statement":   func() ([]byte, string, error) { return repo.StatementPDF(f.ctx, stmt) },
 		"ageing":      func() ([]byte, string, error) { return repo.AgeingPDF(f.ctx, ageing) },
 		"sales":       func() ([]byte, string, error) { return repo.SalesPDF(f.ctx, sales) },
 		"collections": func() ([]byte, string, error) { return repo.CollectionsPDF(f.ctx, coll) },
+		"payables":    func() ([]byte, string, error) { return repo.PayablesPDF(f.ctx, payables) },
 	} {
 		out, filename, err := render()
 		if err != nil {

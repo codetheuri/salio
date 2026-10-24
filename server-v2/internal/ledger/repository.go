@@ -125,6 +125,11 @@ func (r *Repository) Void(ctx context.Context, id uuid.UUID) error {
 }
 
 // Today is the business's current calendar date, in its own time zone.
+// Location is the business's time zone, for the rules that compare days.
+func (r *Repository) Location(ctx context.Context) (*time.Location, error) {
+	return shopclock.Location(ctx, r.db)
+}
+
 func (r *Repository) Today(ctx context.Context) (time.Time, error) {
 	return shopclock.Today(ctx, r.db)
 }

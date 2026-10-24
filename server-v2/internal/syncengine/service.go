@@ -19,6 +19,7 @@ import (
 	"salio/server-v2/internal/phone"
 	"salio/server-v2/internal/rbac"
 	"salio/server-v2/internal/sales"
+	"salio/server-v2/internal/shopclock"
 	"salio/server-v2/internal/stock"
 )
 
@@ -93,6 +94,11 @@ func (s *Service) Push(ctx context.Context, in PushInput) (*PushView, error) {
 		if err := p.loadMembers(); err != nil {
 			return nil, err
 		}
+		loc, err := shopclock.Location(ctx, tx)
+		if err != nil {
+			return nil, err
+		}
+		p.loc = loc
 
 		// The order matters, and each step depends on the one before.
 		steps := []func() error{
@@ -138,6 +144,10 @@ type push struct {
 	userID     uuid.UUID
 	now        time.Time
 	view       *PushView
+
+	// loc is the shop's time zone: a due date is compared with the day a
+	// record was made on in the shop, not with its moment.
+	loc *time.Location
 
 	// members are the business's users. A record's user_id is kept only when it
 	// names one of them; otherwise it is attributed to whoever is pushing.
@@ -542,7 +552,7 @@ func (p *push) applyTransactions(incoming []SyncTransaction) error {
 			CreatedAt: t.CreatedAt, PaymentMethod: t.PaymentMethod, Reference: t.Reference,
 			DueDate: t.DueDate,
 		}
-		if err := ledger.ValidateEntry(&entry); err != nil {
+		if err := ledger.ValidateEntry(&entry, p.loc); err != nil {
 			p.conflict("transactions", t.ID, "", ReasonInvalid, err.Error())
 			continue
 		}

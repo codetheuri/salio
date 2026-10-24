@@ -73,3 +73,22 @@ func DateIn(t time.Time, loc *time.Location) time.Time {
 	y, m, d := t.In(loc).Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
+
+// DayOf is the calendar day of t, as a midnight-UTC value: t itself when it
+// already is one (a date from a form or a query), otherwise the day t falls
+// on in loc (a moment from a phone).
+func DayOf(t time.Time, loc *time.Location) time.Time {
+	u := t.UTC()
+	if u.Hour() == 0 && u.Minute() == 0 && u.Second() == 0 && u.Nanosecond() == 0 {
+		return u
+	}
+	return DateIn(t, loc)
+}
+
+// DueBefore reports whether the calendar day due falls before the day of at
+// in loc: whether something falls due before it was recorded. A debt due
+// "today" is not, at whatever hour it was recorded. Comparing the day with
+// the moment itself refused exactly that (found by live scenario 14).
+func DueBefore(due, at time.Time, loc *time.Location) bool {
+	return DayOf(due, loc).Before(DayOf(at, loc))
+}

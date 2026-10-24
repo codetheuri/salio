@@ -132,6 +132,18 @@ func (h *Handler) Payables(ctx context.Context, in *DueInput) (*PayablesOutput, 
 	return resp, nil
 }
 
+func (h *Handler) PayablesPDF(ctx context.Context, in *DueInput) (*ReportPDFOutput, error) {
+	v, err := h.service.Payables(ctx, in.WithinDays)
+	if err != nil {
+		return nil, h.mapError(err, "building the payables report")
+	}
+	data, name, err := h.service.repo.PayablesPDF(ctx, v)
+	if err != nil {
+		return nil, h.mapError(err, "rendering the payables report")
+	}
+	return pdfOutput(data, name), nil
+}
+
 func (h *Handler) AgeingPDF(ctx context.Context, _ *SummaryInput) (*ReportPDFOutput, error) {
 	v, err := h.service.Ageing(ctx)
 	if err != nil {

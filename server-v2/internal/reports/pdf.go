@@ -133,6 +133,52 @@ func (r *Repository) AgeingPDF(ctx context.Context, v *AgeingView) ([]byte, stri
 	return out, "debt-ageing-" + dayKey(v.AsOf) + ".pdf", err
 }
 
+// PayablesPDF renders what the shop owes its suppliers, most urgent first.
+func (r *Repository) PayablesPDF(ctx context.Context, v *PayablesView) ([]byte, string, error) {
+	lh, err := letterhead.Load(ctx, r.db)
+	if err != nil {
+		return nil, "", err
+	}
+	doc := pdfdoc.New(lh, "Owed to Suppliers", []pdfdoc.Field{
+		{Label: "As of", Value: pdfdoc.Date(v.AsOf)},
+		{Label: "Suppliers", Value: fmt.Sprint(len(v.Rows))},
+	})
+
+	doc.Fields([]pdfdoc.Field{
+		{Label: "Total owed", Value: kes(v.Owed)},
+		{Label: "Past due", Value: kes(v.Overdue)},
+		{Label: fmt.Sprintf("Due within %d days", v.WithinDays), Value: kes(v.DueSoon)},
+		{Label: "Prepaid to suppliers", Value: kes(v.PrepaymentsHeld)},
+	})
+	doc.Paragraph("Payments are applied to each supplier's oldest bill first. \"Past due\" is the part " +
+		"of bills whose due date has passed; bills recorded without a due date are never past due.")
+
+	doc.Heading("By supplier, most urgent first")
+	rows := make([][]string, 0, len(v.Rows)+1)
+	for _, p := range v.Rows {
+		next := ""
+		if p.NextDue != nil {
+			next = pdfdoc.Date(*p.NextDue)
+		}
+		rows = append(rows, []string{
+			p.Name, pdfdoc.Date(p.OldestBill), next,
+			blankIfZero(p.Overdue), blankIfZero(p.DueSoon), p.Owed.Formatted(),
+		})
+	}
+	rows = append(rows, []string{"TOTAL", "", "", v.Overdue.Formatted(), v.DueSoon.Formatted(), v.Owed.Formatted()})
+	doc.Table([]pdfdoc.Column{
+		{Header: "Supplier", Width: 0.28, Align: pdfdoc.Left},
+		{Header: "Oldest bill", Width: 0.15, Align: pdfdoc.Left},
+		{Header: "Next due", Width: 0.15, Align: pdfdoc.Left},
+		{Header: "Past due", Width: 0.14, Align: pdfdoc.Right},
+		{Header: "Due soon", Width: 0.13, Align: pdfdoc.Right},
+		{Header: "Owed (KES)", Width: 0.15, Align: pdfdoc.Right},
+	}, rows)
+
+	out, err := doc.Bytes()
+	return out, "owed-to-suppliers-" + dayKey(v.AsOf) + ".pdf", err
+}
+
 // SalesPDF renders the sales report.
 func (r *Repository) SalesPDF(ctx context.Context, v *SalesReportView) ([]byte, string, error) {
 	lh, err := letterhead.Load(ctx, r.db)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -48,7 +49,7 @@ func TestSharedVectors_SaleDebt(t *testing.T) {
 		}
 		s := domain.Sale{ProductName: c.Product, Quantity: q}
 		// As Record does it: Validate trims the name first.
-		_ = Validate(&s)
+		_ = Validate(&s, time.UTC)
 		if got := DebtDescription(&s); got != c.Want {
 			t.Errorf("DebtDescription(%q, %s) = %q, want %q", c.Product, c.Quantity, got, c.Want)
 		}
