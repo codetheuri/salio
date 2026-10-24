@@ -41,6 +41,8 @@ import (
 // same doomed payload forever. That is precisely the v1 behaviour this phase
 // exists to remove, and it would be reintroduced by a struct tag.
 type SyncCustomer struct {
+	_ struct{} `additionalProperties:"true"` // B14: see PushInput
+
 	ID        uuid.UUID `json:"id" required:"true"`
 	Name      string    `json:"name" required:"false"`
 	Phone     *string   `json:"phone,omitempty"`
@@ -80,6 +82,8 @@ type SyncCustomer struct {
 // is_deleted and updated_at, so an edited amount was accepted with a 200 and
 // discarded.
 type SyncTransaction struct {
+	_ struct{} `additionalProperties:"true"` // B14: see PushInput
+
 	ID              uuid.UUID              `json:"id" required:"true"`
 	CustomerID      uuid.UUID              `json:"customer_id" required:"false"`
 	UserID          uuid.UUID              `json:"user_id" required:"false"`
@@ -112,6 +116,8 @@ type SyncTransaction struct {
 // change, and only for someone holding sales.void. Voiding a credit sale voids
 // its debt too.
 type SyncSale struct {
+	_ struct{} `additionalProperties:"true"` // B14: see PushInput
+
 	ID            uuid.UUID            `json:"id" required:"true"`
 	CustomerID    *uuid.UUID           `json:"customer_id,omitempty" required:"false"`
 	UserID        uuid.UUID            `json:"user_id" required:"false"`
@@ -134,6 +140,8 @@ type SyncSale struct {
 // PurchaseOrderID — which says so — is set only by the server and ignored when
 // a device sends it.
 type SyncStockRequest struct {
+	_ struct{} `additionalProperties:"true"` // B14: see PushInput
+
 	ID              uuid.UUID  `json:"id" required:"true"`
 	UserID          uuid.UUID  `json:"user_id" required:"false"`
 	ProductName     string     `json:"product_name" required:"false"`
@@ -148,6 +156,8 @@ type SyncStockRequest struct {
 // SyncSupplier is a supplier on the wire. Edited rarely and by the owner, so
 // the whole record follows the latest write rather than merging per field.
 type SyncSupplier struct {
+	_ struct{} `additionalProperties:"true"` // B14: see PushInput
+
 	ID        uuid.UUID `json:"id" required:"true"`
 	Name      string    `json:"name" required:"false"`
 	Phone     *string   `json:"phone,omitempty" required:"false"`
@@ -161,6 +171,8 @@ type SyncSupplier struct {
 // SyncSupplierTransaction is a supplier bill or payment on the wire. Immutable
 // once recorded, like a ledger entry: only a void is accepted afterwards.
 type SyncSupplierTransaction struct {
+	_ struct{} `additionalProperties:"true"` // B14: see PushInput
+
 	ID              uuid.UUID                `json:"id" required:"true"`
 	SupplierID      uuid.UUID                `json:"supplier_id" required:"false"`
 	UserID          uuid.UUID                `json:"user_id" required:"false"`
@@ -267,6 +279,17 @@ type PullView struct {
 	ServerTime time.Time `json:"server_time"`
 }
 
+// ServerCopies are records as the server holds them, in the shape a pull
+// sends. Lists are never null.
+type ServerCopies struct {
+	Customers            []SyncCustomer            `json:"customers"`
+	Transactions         []SyncTransaction         `json:"transactions"`
+	Sales                []SyncSale                `json:"sales"`
+	StockRequests        []SyncStockRequest        `json:"stock_requests"`
+	Suppliers            []SyncSupplier            `json:"suppliers"`
+	SupplierTransactions []SyncSupplierTransaction `json:"supplier_transactions"`
+}
+
 // PushView reports what a push did.
 type PushView struct {
 	OperationID uuid.UUID `json:"operation_id"`
@@ -282,6 +305,18 @@ type PushView struct {
 	// Conflicts is never null, always a list. A client checking length should
 	// not have to handle both.
 	Conflicts []SyncConflict `json:"conflicts"`
+
+	// Current is the server's copy, as it stands now, of every record named in
+	// Conflicts (B2). Without it a refused change stayed on the phone for good:
+	// the server's row had not changed, so no pull would ever correct it. The
+	// client stores these as if pulled.
+	//
+	// Read when the answer is sent, not stored with the outcome, so a replayed
+	// answer never hands back a copy older than one the phone has since
+	// pulled. A record the server does not have, such as a refused new
+	// customer, is absent. Supplier records appear only for a user who may
+	// read them, as on a pull.
+	Current ServerCopies `json:"current"`
 
 	// Replayed means this operation_id had already been applied and the stored
 	// result was returned. The client's retry worked; it just did no new work.
@@ -306,6 +341,16 @@ type PullOutput struct {
 
 type PushInput struct {
 	Body struct {
+		// Fields this server does not know are ignored rather than refused
+		// (B14), here and in every record. Huma refuses them by default, and a
+		// refusal fails the whole batch: a newer app talking to an older server
+		// (after a rollback, or a staging app on production) could then never
+		// sync, and would retry the same batch forever. Ignoring is safe
+		// because an older server stores nothing of a field it does not know,
+		// which is exactly what it did before the field existed. REST routes
+		// stay strict, where a refused field is a typo caught early.
+		_ struct{} `additionalProperties:"true"`
+
 		// OperationID names this attempt and must be reused across its retries.
 		// Required: without it a retry cannot be told from a new batch, and the
 		// only safe reading of an unnamed batch is that it is new.

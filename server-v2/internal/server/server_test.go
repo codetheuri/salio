@@ -279,3 +279,66 @@ func TestAPI_SessionsEnd(t *testing.T) {
 		}
 	}
 }
+
+// B2 and B14 through the real router, as the restricted role: a push may carry
+// fields this server does not know, and a refused record comes back as the
+// server holds it, supplier records only to those who may read them.
+func TestAPI_SyncIgnoresUnknownFieldsAndReturnsTheServersCopy(t *testing.T) {
+	c := startAsRestrictedRole(t)
+	owner := c.register("Ruiru Agrovet", "0716000001", "owner-pass-1")
+	code := data(c.mustOK("POST", "/auth/invite", owner, nil))["code"].(string)
+	joined := data(c.mustOK("POST", "/auth/join", "", map[string]any{
+		"code": code, "name": "Staff", "phone": "0716000002", "password": "staff-pass-1",
+	}))
+	staff := joined["token"].(string)
+	staffID := joined["user"].(map[string]any)["id"].(string)
+
+	// REST stays strict.
+	if status, _ := c.do("POST", "/customers", staff, map[string]any{"name": "Wanjiku", "nickname": "Shiku"}); status != http.StatusUnprocessableEntity {
+		t.Fatalf("REST create with an unknown field = %d, want 422", status)
+	}
+
+	// Sync does not: unknown fields at the top and inside a record.
+	cid := uuid.NewString()
+	now := time.Now().UTC().Format(time.RFC3339)
+	push := data(c.mustOK("POST", "/sync/push", staff, map[string]any{
+		"operation_id":  uuid.NewString(),
+		"loyalty_cards": []any{map[string]any{"id": uuid.NewString()}},
+		"customers": []map[string]any{{
+			"id": cid, "name": "Wanjiku", "nickname": "Shiku", "created_by": staffID,
+			"created_at": now, "updated_at": now,
+		}},
+	}))
+	if push["applied_customers"].(float64) != 1 {
+		t.Fatalf("push with unknown fields = %v", push)
+	}
+
+	// Staff may not delete: refused, with the live customer to put back.
+	refused := data(c.mustOK("POST", "/sync/push", staff, map[string]any{
+		"operation_id": uuid.NewString(),
+		"customers": []map[string]any{{
+			"id": cid, "name": "Wanjiku", "is_deleted": true, "updated_at": now,
+			"changed_fields": []string{"is_deleted"},
+		}},
+	}))
+	current := refused["current"].(map[string]any)
+	copies := current["customers"].([]any)
+	if len(refused["conflicts"].([]any)) != 1 || len(copies) != 1 {
+		t.Fatalf("refused delete = %v", refused)
+	}
+	if got := copies[0].(map[string]any); got["id"] != cid || got["is_deleted"] != false || got["name"] != "Wanjiku" {
+		t.Fatalf("server's copy = %v, want the live customer", got)
+	}
+
+	// A supplier the owner made, edited by staff: refused, and its copy is
+	// not handed to someone who may not read suppliers.
+	sid := data(c.mustOK("POST", "/suppliers", owner, map[string]any{"name": "Elgon Kenya"}))["id"].(string)
+	refused = data(c.mustOK("POST", "/sync/push", staff, map[string]any{
+		"operation_id": uuid.NewString(),
+		"suppliers":    []map[string]any{{"id": sid, "name": "Renamed", "updated_at": now}},
+	}))
+	current = refused["current"].(map[string]any)
+	if len(refused["conflicts"].([]any)) != 1 || len(current["suppliers"].([]any)) != 0 {
+		t.Fatalf("staff supplier push = %v, want one conflict and no copy", refused)
+	}
+}

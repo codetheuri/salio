@@ -796,3 +796,104 @@ func TestPush_StampsTheCallersBusinessNotThePayloads(t *testing.T) {
 		t.Fatal("the payload chose the business")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// B2: a conflict comes with the server's copy
+// ---------------------------------------------------------------------------
+
+// Without the copy, a phone that lost a field kept its own value for good: the
+// server's row had not changed, so no pull would ever bring it back.
+func TestPush_AConflictCarriesTheServersCurrentCopy(t *testing.T) {
+	f := newFixture(t)
+	cid := f.customer(t, "Mama Mboga")
+
+	recent := "0722999999"
+	f.push(t, []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &recent, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC(), ChangedFields: []string{"phone"},
+	}}, nil)
+
+	stale := "0700000000"
+	view := f.push(t, []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &stale, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
+	}}, nil)
+
+	if len(view.Current.Customers) != 1 {
+		t.Fatalf("current customers = %+v, want the one that conflicted", view.Current.Customers)
+	}
+	got := view.Current.Customers[0]
+	if got.ID != cid || got.Phone == nil || *got.Phone != recent {
+		t.Errorf("copy = %+v, want the newer phone %q", got, recent)
+	}
+	if n := len(view.Current.Transactions) + len(view.Current.Sales) + len(view.Current.Suppliers); n != 0 {
+		t.Errorf("%d unrelated copies returned", n)
+	}
+}
+
+func TestPush_AVoidedEntryComesBackVoided(t *testing.T) {
+	f := newFixture(t)
+	cid := f.customer(t, "Mama Mboga")
+	entry := syncengine.SyncTransaction{
+		ID: id.New(), CustomerID: cid, UserID: f.userID,
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("test entry"),
+		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
+	}
+	f.push(t, nil, []syncengine.SyncTransaction{entry})
+	voided := entry
+	voided.IsDeleted = true
+	f.push(t, nil, []syncengine.SyncTransaction{voided})
+
+	view := f.push(t, nil, []syncengine.SyncTransaction{entry})
+	if len(view.Current.Transactions) != 1 || !view.Current.Transactions[0].IsDeleted {
+		t.Fatalf("current = %+v, want the voided entry", view.Current.Transactions)
+	}
+}
+
+func TestPush_ARefusedNewRecordHasNoCopy(t *testing.T) {
+	f := newFixture(t)
+	view := f.push(t, nil, []syncengine.SyncTransaction{{
+		ID: id.New(), CustomerID: id.New(), UserID: f.userID,
+		Type: domain.TypeDebt, Amount: amount(t, "500.00"), Description: desc("no such customer"),
+		TransactionDate: time.Now().UTC(), CreatedAt: time.Now().UTC(),
+	}})
+	if len(view.Conflicts) != 1 || len(view.Current.Transactions) != 0 {
+		t.Fatalf("conflicts %+v, current %+v: want one conflict and no copy", view.Conflicts, view.Current)
+	}
+}
+
+// A replay is answered with the copy as it is now, not as it was when the
+// first attempt ran. A phone that has pulled a newer copy in between must not
+// be handed the older one.
+func TestPush_AReplayCarriesTodaysCopyNotTheStoredOne(t *testing.T) {
+	f := newFixture(t)
+	cid := f.customer(t, "Mama Mboga")
+
+	recent := "0722999999"
+	f.push(t, []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &recent, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC(), ChangedFields: []string{"phone"},
+	}}, nil)
+
+	op := id.New()
+	stale := "0700000000"
+	staleEdit := []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &stale, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC().Add(-time.Hour), ChangedFields: []string{"phone"},
+	}}
+	f.pushAs(t, op, staleEdit, nil)
+
+	newest := "0733111111"
+	f.push(t, []syncengine.SyncCustomer{{
+		ID: cid, Name: "Mama Mboga", Phone: &newest, CreatedBy: f.userID,
+		UpdatedAt: time.Now().UTC().Add(time.Second), ChangedFields: []string{"phone"},
+	}}, nil)
+
+	replay := f.pushAs(t, op, staleEdit, nil)
+	if !replay.Replayed || len(replay.Current.Customers) != 1 {
+		t.Fatalf("replay = %+v", replay)
+	}
+	if p := replay.Current.Customers[0].Phone; p == nil || *p != newest {
+		t.Errorf("replayed copy has phone %v, want today's %q", p, newest)
+	}
+}

@@ -65,6 +65,9 @@ func Parse(s string) (Quantity, error) {
 	case '+':
 		s = s[1:]
 	}
+	if s == "" {
+		return 0, fmt.Errorf("quantity: a sign with no number")
+	}
 
 	whole, frac, hasFrac := strings.Cut(s, ".")
 	if whole == "" {

@@ -9,9 +9,13 @@ pinned here, so changing it on one side only fails CI on that side
 |---|---|---|
 | `role_permissions.json` | `server-v2/internal/rbac/shared_vectors_test.go` | `mobile-v2/test/permissions_test.dart` |
 | `money.json` | `server-v2/internal/money/shared_vectors_test.go` | `mobile-v2/test/money_test.dart` |
+| `quantity.json` | `server-v2/internal/quantity/shared_vectors_test.go` | `mobile-v2/test/quantity_test.dart` |
 
 Add a file here, and a test on both sides, for every rule the app repeats.
 
 The money vectors found a real bug on their first run: server-v2's
 `money.Parse("-")` returned 0 instead of an error, because the empty check ran
 before the sign was removed.
+
+The quantity vectors found the same bug in `quantity.Parse` on theirs
+(2026-10-24): a lone sign, `-` or `+`, was read as zero.

@@ -78,7 +78,7 @@ func (s *Service) Push(ctx context.Context, in PushInput) (*PushView, error) {
 	body := in.Body
 	now := time.Now().UTC()
 
-	return s.repo.Push(ctx, body.OperationID, func(tx *gorm.DB) (*PushView, error) {
+	view, err := s.repo.Push(ctx, body.OperationID, func(tx *gorm.DB) (*PushView, error) {
 		p := &push{
 			ctx: ctx, tx: tx, businessID: businessID, userID: sub.UserID, now: now,
 			view: &PushView{
@@ -113,6 +113,20 @@ func (s *Service) Push(ctx context.Context, in PushInput) (*PushView, error) {
 		}
 		return p.view, nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// After the commit, and on a replay too: the copies are what the server
+	// holds now (B2).
+	includeSuppliers, err := s.repo.CanReadSuppliers(ctx, sub.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("checking supplier access: %w", err)
+	}
+	if view.Current, err = s.repo.CurrentCopies(ctx, view.Conflicts, includeSuppliers); err != nil {
+		return nil, err
+	}
+	return view, nil
 }
 
 // push carries one push through its steps.

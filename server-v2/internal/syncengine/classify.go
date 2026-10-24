@@ -100,6 +100,10 @@ func loadByIDs[T any](ctx context.Context, db *gorm.DB, businessID uuid.UUID, id
 
 func idOf(row any) uuid.UUID {
 	switch r := row.(type) {
+	case domain.Customer:
+		return r.ID
+	case domain.Transaction:
+		return r.ID
 	case domain.Sale:
 		return r.ID
 	case domain.StockRequest:
