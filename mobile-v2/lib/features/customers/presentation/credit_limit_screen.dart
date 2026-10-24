@@ -25,7 +25,7 @@ class CreditLimitScreen extends ConsumerStatefulWidget {
 class _CreditLimitScreenState extends ConsumerState<CreditLimitScreen> {
   final _form = GlobalKey<FormState>();
   final _amount = TextEditingController();
-  var _none = true;
+  var _hadLimit = false;
   var _saving = false;
 
   @override
@@ -40,12 +40,10 @@ class _CreditLimitScreenState extends ConsumerState<CreditLimitScreen> {
         .watch(widget.customerId)
         .first;
     final limit = c?.creditLimitCents;
-    if (!mounted) return;
+    if (!mounted || limit == null) return;
     setState(() {
-      _none = limit == null;
-      if (limit != null) {
-        _amount.text = Money.toWire(limit).replaceFirst(RegExp(r'\.00$'), '');
-      }
+      _hadLimit = true;
+      _amount.text = Money.toWire(limit).replaceFirst(RegExp(r'\.00$'), '');
     });
   }
 
@@ -56,13 +54,14 @@ class _CreditLimitScreenState extends ConsumerState<CreditLimitScreen> {
   }
 
   Future<void> _save() async {
-    if (!_none && !_form.currentState!.validate()) return;
+    if (!_form.currentState!.validate()) return;
     setState(() => _saving = true);
+    final text = _amount.text.trim();
     await ref
         .read(customerRepositoryProvider)
         .setCreditLimit(
           widget.customerId,
-          _none ? null : Money.parse(_amount.text),
+          text.isEmpty ? null : Money.parse(text),
         );
     ref.read(syncProvider.notifier).requestSoon();
     if (mounted) context.go('/customers/${widget.customerId}');
@@ -71,20 +70,30 @@ class _CreditLimitScreenState extends ConsumerState<CreditLimitScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // The amount is the whole point of the screen, so it is always there,
+    // focused; empty means no limit, rather than a switch to find first.
     return FormPage(
       title: l10n.creditLimitSet,
       formKey: _form,
       actionLabel: l10n.save,
       onAction: _saving ? null : _save,
       fields: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.creditLimitNone),
-          value: _none,
-          onChanged: (v) => setState(() => _none = v),
+        AmountField(
+          controller: _amount,
+          label: l10n.creditLimitAmount,
+          helperText: l10n.creditLimitHelp,
+          optional: true,
+          onChanged: (_) => setState(() {}),
         ),
-        if (!_none)
-          AmountField(controller: _amount, label: l10n.creditLimitAmount),
+        if (_hadLimit && _amount.text.isNotEmpty)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              icon: const Icon(Icons.block),
+              label: Text(l10n.creditLimitRemove),
+              onPressed: () => setState(_amount.clear),
+            ),
+          ),
       ],
     );
   }
